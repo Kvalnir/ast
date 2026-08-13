@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pattern trainer — Apple News+ Sudoku</title>
+<meta name="description" content="A sudoku board that behaves like Apple News+ and names the techniques available in your position, one hint level at a time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400;12..96,75..100,700;12..96,75..100,800&family=Instrument+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<div class="trainer">
+
+  <div class="sitebar">
+    <span class="mark">Sudoku <em>patterns</em></span>
+    <nav>
+      <a href="index.html">Techniques</a>
+      <a href="trainer.html" aria-current="page">Trainer</a>
+    </nav>
+  </div>
+
+  <header class="thead">
+    <h1>Pattern trainer</h1>
+    <p class="look">The board behaves like News+ — Pen and Notes, autofill, autocheck, notes cleared on entry. The difference is that it watches your position and tells you which techniques are available, at whatever level of help you ask for.</p>
+    <div class="tmeta">
+      <span class="badge lvl" id="mLevel">—</span>
+      <span class="badge" id="mGivens">—</span>
+      <span class="badge" id="mNeeds">—</span>
+    </div>
+  </header>
+
+  <div class="boardwrap">
+    <div class="board" id="board" role="grid" aria-label="Sudoku board"></div>
+    <svg class="geo2" id="geo" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"></svg>
+  </div>
+
+  <div class="tools">
+    <button class="tbtn" id="bUndo" title="Undo (also restores notes an entry removed)">Undo</button>
+    <span class="seg">
+      <button class="tbtn" id="bPen" aria-pressed="true">Pen</button>
+      <button class="tbtn" id="bNotes" aria-pressed="false">Notes</button>
+    </span>
+    <button class="tbtn" id="bErase">Erase</button>
+    <button class="tbtn" id="bAutofill" title="Fill every empty square with its possible numbers">Autofill</button>
+  </div>
+
+  <div class="pad" id="pad"></div>
+
+  <p class="padlabel">Focus a digit <span id="focusHint">— tap a number below to light it everywhere, notes included</span></p>
+  <div class="pad" id="focusPad"></div>
+
+  <section class="coach" id="coach">
+    <div class="coachhead">
+      <h2>Coach</h2>
+      <span class="badge" id="cCount">—</span>
+    </div>
+    <div class="chips" id="chips"></div>
+    <p class="ladder" id="ladder"><span class="step">Ready</span>Make a move, or press Autofill to get your notes in.</p>
+    <div class="coachrow">
+      <button class="tbtn" id="bMore">Show me more</button>
+      <button class="tbtn" id="bApply" disabled>Apply it</button>
+      <button class="tbtn" id="bClearHint">Clear</button>
+    </div>
+    <p class="note" id="cNote"></p>
+    <div class="setrow">
+      <label><input type="checkbox" id="sAutocheck" checked> Autocheck</label>
+      <label><input type="checkbox" id="sAutoRemove" checked> Clear notes on entry</label>
+      <label><input type="checkbox" id="sHighlightPeers" checked> Highlight peers</label>
+      <label>Coach
+        <select id="sCoach">
+          <option value="off">Off</option>
+          <option value="names" selected>Names only</option>
+          <option value="full">Names + counts</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="coach">
+    <div class="coachhead"><h2>Drill one technique</h2></div>
+    <p class="note" id="drillNote">Jumps to a real position where that technique is the move to find. Everything simpler has already been played.</p>
+    <div class="chips" id="drills"></div>
+  </section>
+
+  <section class="coach">
+    <div class="coachhead"><h2>Puzzle</h2></div>
+    <div class="coachrow">
+      <button class="tbtn" id="bNew">New challenging puzzle</button>
+      <button class="tbtn" id="bRestart">Restart this one</button>
+      <button class="tbtn" id="bCheckNotes" title="The one thing News+ cannot check">Check my notes</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="assets/js/core.js"></script>
+<script src="assets/js/techniques.js"></script>
+<script src="assets/js/bank.js"></script>
+<script src="assets/js/trainer.js"></script>
+</body>
+</html>

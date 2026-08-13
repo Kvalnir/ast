@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apple News+ Sudoku — cracking the Challenging tier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400;12..96,75..100,700;12..96,75..100,800&family=Instrument+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<div class="wrap">
+
+<div class="sitebar">
+    <span class="mark">Sudoku <em>patterns</em></span>
+    <nav>
+      <a href="index.html" aria-current="page">Techniques</a>
+      <a href="trainer.html">Trainer</a>
+    </nav>
+  </div>
+
+  <header class="hero">
+  <p class="kicker">Apple News+ Sudoku · the Challenging tier</p>
+  <h1>You are not missing a number. You are missing a <em>shape</em>.</h1>
+  <p class="lede">Easy puzzles fall to scanning. Hard puzzles don't — they are built so that no single cell can be solved directly. Progress comes from proving that a digit <i>cannot</i> go somewhere, and that proof always takes the form of a pattern. Here are nine of them, each shown on a real position with real pencil marks, each with a search routine for finding it — and, for each one, how to run that search inside the News app, where the notes are a snapshot rather than a live engine and there is no colouring to lean on.</p>
+  <p class="lede" style="margin-bottom:20px"><a href="trainer.html" style="color:var(--amber)">Open the pattern trainer &rarr;</a> to practise these on a live board that behaves like News+ and names what is available in your position.</p>
+  <div class="legend">
+    <p><span class="swatch b"></span> Amber cells are the pattern doing the work</p>
+    <p><span class="swatch l"></span> Amber lines show how the pattern connects</p>
+    <p><span class="swatch k"></span> Struck red digits are the candidates it kills</p>
+  </div>
+</header>
+
+<nav aria-label="Techniques"><!--NAV--></nav>
+
+<section class="block" id="marks">
+  <span class="eyebrow"><i>00</i> Groundwork</span>
+  <h2>Pencil marks are not optional</h2>
+  <p>Every technique below reads candidates, not digits. If your marks are wrong or incomplete, you will find patterns that aren't there and burn an hour on a contradiction. Four rules:</p>
+  <ul>
+    <li><b>Exhaust the easy stuff first.</b> Fill in all naked and hidden singles before you write a single pencil mark. Marking too early creates clutter you then have to maintain.</li>
+    <li><b>Then mark everything, everywhere.</b> Partial marking hides patterns. A cell you never marked is a cell you can never eliminate from, and half the techniques here depend on knowing that a line has <i>exactly</i> two spots for a digit — a claim you cannot make from partial notes.</li>
+    <li><b>Update immediately.</b> The moment you place a digit, strike it from all 20 peers — the eight in its row, eight in its column, and the remaining four in its box. A stale mark is worse than no mark.</li>
+    <li><b>Circle every two-candidate cell.</b> Bi-value cells are the fuel for pairs, wings and chains. Being able to see them at a glance is most of the skill, and it is the one piece of bookkeeping worth doing by hand even in an app.</li>
+  </ul>
+  <h3>Why hard puzzles feel different</h3>
+  <p>An easy puzzle always has a cell you can solve outright. A hard one is constructed so that, at some point, no cell can be solved and no digit can be placed — the only available move is to prove that a digit <i>cannot</i> go somewhere. That is what every technique below produces: not an answer, but a deletion. Deletions accumulate until some cell runs out of options and the puzzle starts flowing again.</p>
+  <p>This changes what "being stuck" means. You are not failing to see a number. You are failing to see a shape, and the fix is a systematic scan rather than harder staring.</p>
+</section>
+
+<section class="block" id="autonotes">
+  <span class="eyebrow"><i>01</i> The app</span>
+  <h2>Setting up in Apple News+</h2>
+  <p>Apple ships three sudoku difficulties each day — easy, moderate and challenging — and <b>Challenging is the top tier</b>. There is no Expert level in News+; if you have outgrown the daily challenging puzzle, the only harder thing Apple offers is your own clock. Everything below is written for that top tier.</p>
+
+  <h3>The controls that matter</h3>
+  <ul>
+    <li><b>Pen and Notes tabs.</b> Pen enters answers, Notes enters candidates. On the Mac, Tab switches between them and the number keys work in both — which alone makes the Mac the better place to fight a challenging grid.</li>
+    <li><b>Autofill Notes</b> (••• menu). Fills every empty square with its possible numbers, based on the squares filled <i>at that moment</i>. Apple confirms it doesn't affect your stats or your streak, so there is no purity argument against it.</li>
+    <li><b>Automatically Remove Notes</b> (••• &rarr; Settings, on by default). When you enter an answer, matching notes elsewhere in that block, row and column disappear. Leave it on — it is your peer maintenance, done for free.</li>
+    <li><b>Touch and hold a keypad number</b> to promote a note into an answer. This is the fastest way to cash in a technique that has just reduced a square to one note.</li>
+    <li><b>Autocheck</b> confirms when you have correctly completed a block, row or column. It is a completion signal, not per-square error detection.</li>
+    <li><b>Get Hint, Check Square, Check Puzzle</b> (••• menu). Check Square and Check Puzzle test what you have entered rather than filling anything in, which makes them the fast way to answer <i>have I gone wrong, or is this puzzle just hard?</i> Apple's warning about voided stats and streaks is written around Reveal; whether checking carries the same cost is worth testing once on a puzzle you don't mind burning.</li>
+    <li><b>Undo</b> steps back one action. <b>Clear Puzzle</b> resets the grid and the timer and wipes the undo history. <b>Reveal</b> voids the puzzle for stats and streaks, and also kills undo.</li>
+    <li><b>Toolbar shortcuts.</b> The stopwatch and the check-square icon sit next to the ••• button at the top of the puzzle, so the timer and Autocheck are one tap away without opening the menu.</li>
+  </ul>
+
+  <h3>Autofill is a snapshot, not an engine</h3>
+  <p>This is the single most important thing to understand about the News implementation, and it cuts both ways.</p>
+  <ul>
+    <li><b>Good: your deductions persist.</b> Nothing recalculates behind your back. When you strike a 6 out of a square because of an X-Wing, it stays struck, and the grid you are reading an hour later still carries all your reasoning. Apps with live candidate engines cannot do this.</li>
+    <li><b>Bad: running Autofill twice destroys everything.</b> The second run rebuilds notes from the digits currently on the board, so every candidate you eliminated by logic quietly reappears. Autofill once, after your opening singles pass, and then never again for the rest of the puzzle.</li>
+    <li><b>Worse: Autofill trusts your answers, right or wrong.</b> Apple is explicit that it builds from all filled squares including incorrect ones. A wrong digit entered early doesn't just sit there — it deletes true candidates across three units and every deduction downstream inherits the error. Autocheck catches the digit but not the deletion; see below.</li>
+  </ul>
+
+  <h3>Error control</h3>
+  <p>Autocheck only speaks up when a whole block, row or column comes out right, so on a challenging grid a mistake can survive twenty moves before anything complains — and because Autofill built your notes from the digits on the board, a wrong answer has been quietly deleting true candidates that whole time. Three habits:</p>
+  <ul>
+    <li>Place a digit only when you can say why in one sentence. On this tier, a digit that merely feels right is usually a candidate you half-eliminated.</li>
+    <li>The instant a digit is flagged, hit Undo before anything else. Every action you take afterwards is another step Undo has to walk back through, one at a time, to reach the notes that entry destroyed.</li>
+    <li>When a grid stops making sense — a chain that leads nowhere legal, a square with no candidates left — reach for Check Puzzle before you reach for a new technique. If it comes back clean, the fault is an elimination you made by hand, since nothing in the app checks your notes.</li>
+  </ul>
+
+  <h3>Playing with Autocheck on</h3>
+  <p>News does per-square checking: enter a wrong digit and it is struck through in red the moment you place it, without waiting for the block or row to fill. That has one large benefit and one trap that is easy to miss.</p>
+  <p><b>The benefit: every digit on your board is verified.</b> Autofill builds its notes from exactly those digits, so the poisoned-notes failure mode disappears — the candidates you started from are sound, and when a grid later stops making sense you know the fault is not in the answers.</p>
+  <p><b>The trap: the flag does not undo the damage.</b> Automatically Remove Notes fires on entry, before any judgement about whether the entry was right. Place a wrong 1 and every 1 note in that row, that column and that box is deleted immediately — the digit gets a red line through it, and the candidates are gone anyway. Autocheck tells you that you were wrong; it does not put the grid back.</p>
+  <p><b>So back out with Undo, not the eraser, and do it straight away.</b> Undo reverses the action including the notes it removed. Deleting the digit by hand only removes the digit. Confirm this once on your own device — it costs one tap of each — because the difference decides whether a slip costs you three seconds or the whole grid.</p>
+  <p><b>If you notice late, Autofill is the reset.</b> The rule earlier — Autofill once, never again — assumes your placed digits might be wrong. With per-square checking they are not, so a second Autofill rebuilds correct notes from verified answers. You lose every elimination you deduced, which can be an hour of work, but it is a recoverable position rather than a dead puzzle. A deliberate lever, not a casual one.</p>
+  <p><b>Autocheck validates answers and never notes.</b> Every elimination on this page is an unverified edit: nothing in the app can tell you that you were wrong to strike that 6 out of r4c7. With your digits guaranteed, that is now your only real failure mode, and it surfaces several moves later as a square with no candidates left or a digit with no legal home.</p>
+  <p>One honest note on what per-square checking also enables. You can try a candidate and let the app grade it, and Apple only docks stats and streaks for Reveal. But each wrong guess quietly eats notes across three units before the red line appears, so trial and error does not just fail to teach you the patterns — it degrades the grid you would need in order to use them.</p>
+
+  <h3>One digit at a time</h3>
+  <p>News does give you a digit highlight, but only for a single digit — there is no way to light two at once and no cell colouring to hold a second thought. That split runs through everything below, and it is the most useful thing to know about scanning in this app:</p>
+  <ul>
+    <li><b>Single-digit techniques are fully supported.</b> Locked candidates, X-Wing, swordfish and skyscraper all want exactly one digit's map, which is what the highlight hands you. These scans are no harder in News than anywhere else — light the digit, read the shape, move on.</li>
+    <li><b>Multi-digit techniques get no help at all.</b> Naked pairs and triples, hidden pairs and XY-Wings are about two or three digits interacting, and the app can only show one. For these, read by <i>density</i> instead: sweep for squares carrying two marks, then three, ignoring what the digits actually are until you have found the candidates. The highlight then works as a verifier rather than a finder.</li>
+    <li><b>Switch digits deliberately.</b> Each change of highlight costs a tap and, more expensively, a re-orientation of your eye. Finish every question you have about a digit — boxes, then lines, then two-spot counts — before moving to the next one, rather than flipping back and forth.</li>
+  </ul>
+  <p><b>The highlight covers notes, not just answers.</b> Select a digit and every square already holding it fills green, while every note of that digit picks up a small green chip. That means the lit board is a true candidate map — the same view the X-Wing, swordfish and skyscraper figures below are drawn in — and not merely a map of where the digit has been placed. It is the single most powerful thing in the app for this tier of puzzle.</p>
+  <p>Notes also sit in fixed slots inside each square: 1 top-left, 5 centre, 9 bottom-right, with gaps where a candidate has been eliminated. That matters for the multi-digit techniques, where the highlight can't help — you can read two digits at once by looking at two slot positions across a row, which is the closest thing to a two-digit filter that News offers.</p>
+  <p>For anything the highlight cannot hold, use paper. Two rows and two columns is four characters, and losing a pattern halfway through tapping notes off is how a good deduction turns into a wrong grid.</p>
+
+  <h3>The stall loop, News+ edition</h3>
+  <ol>
+    <li>Solve every single you can see. Then Autofill Notes, once.</li>
+    <li>Light each digit in turn. For each one, check the boxes for a digit trapped in a line, then the lines for a digit trapped in a box. This breaks most challenging grids on its own.</li>
+    <li>Turn the highlight off and read by density: the sparse squares, two marks then three. Check them for pairs and triples inside their units.</li>
+    <li>Light each digit again, this time counting lit squares per row and column. Lines with exactly two feed X-Wings and skyscrapers.</li>
+    <li>Use each two-mark square in turn as an XY-Wing hinge.</li>
+    <li>Apply what you find in Notes mode by hand, and never Autofill again.</li>
+  </ol>
+
+  <h3>Play the meta, not just the grid</h3>
+  <ul>
+    <li><b>Protect the streak separately.</b> A streak needs one solved puzzle of any difficulty that day, so bank the easy one first and then take an unhurried hour over the challenging one.</li>
+    <li><b>Hide the timer</b> (••• &rarr; Settings) while you are learning these patterns. The Game Center leaderboard is per difficulty and it will still be there when your scans are fast.</li>
+    <li><b>Use the archive as a practice set.</b> The sudoku feed keeps a full archive you can sort and filter, so you can drill challenging puzzles back to back instead of waiting for tomorrow.</li>
+  </ul>
+</section>
+
+<!--CASES-->
+
+<section class="block" id="triage">
+  <span class="eyebrow"><i>11</i> Diagnosis</span>
+  <h2>What you see, what to try</h2>
+  <p>Techniques are usually taught as logic. In play they work as triggers: a visual feature appears, and it tells you which tool to reach for. This is the lookup table, ordered roughly by how cheap the move is.</p>
+  <ol class="triage">
+    <li><span class="see">A box's remaining spots for one digit all sit in one row or column</span><span class="try">&rarr; Pointing pair. Clear that digit from the line, outside the box.</span></li>
+    <li><span class="see">A line's remaining spots for one digit all sit in one box</span><span class="try">&rarr; Claiming. Clear that digit from the box, off the line.</span></li>
+    <li><span class="see">Two cells in a unit show the same two marks</span><span class="try">&rarr; Naked pair. Clear both digits from the rest of the unit.</span></li>
+    <li><span class="see">A unit has three or four cells carrying only two or three marks</span><span class="try">&rarr; Test for a naked triple by pooling their digits.</span></li>
+    <li><span class="see">A unit looks crowded and nothing else works</span><span class="try">&rarr; Digit-by-digit footprint. Hunt a hidden pair.</span></li>
+    <li><span class="see">Two rows each have exactly two spots for a digit, in the same two columns</span><span class="try">&rarr; X-Wing. Clear the digit from the rest of those columns.</span></li>
+    <li><span class="see">Two rows each have exactly two spots, sharing one column but not the other</span><span class="try">&rarr; Skyscraper. Clear the digit from cells seeing both loose ends.</span></li>
+    <li><span class="see">Three lines have two or three spots each, landing in the same three crossing lines</span><span class="try">&rarr; Swordfish. Clear the digit from those crossing lines.</span></li>
+    <li><span class="see">A two-mark cell has two-mark neighbours sharing one digit each</span><span class="try">&rarr; XY-Wing. Clear the shared third digit from cells seeing both wings.</span></li>
+    <li><span class="see">A digit has only two possible cells in a unit, repeatedly, across the board</span><span class="try">&rarr; You are looking at strong links. This is the doorway to colouring and chains.</span></li>
+  </ol>
+  <h3>If none of them fire</h3>
+  <p>Two possibilities, and they need different responses. Either your scan was incomplete — much the more likely — or you have made an error and are working on a grid with no solution. A quick integrity check: pick three or four digits and confirm each still has a legal home in every row, column and box. A digit with nowhere to go anywhere on the board means a mistake several moves back, and no technique will rescue it.</p>
+</section>
+
+<!--PRACTICE-->
+
+<section class="block" id="order">
+  <span class="eyebrow"><i>13</i> Method</span>
+  <h2>The order to attack in</h2>
+  <p>Cost rises as you go down this list, so always restart at the top after any successful elimination — a single placement often re-opens the cheap techniques.</p>
+  <ol class="order">
+    <li>Naked singles, then hidden singles, in every row, column and box.</li>
+    <li>Locked candidates, both directions: box&nbsp;&rarr;&nbsp;line, then line&nbsp;&rarr;&nbsp;box.</li>
+    <li>Naked pairs and triples. Scan your circled bi-value cells first.</li>
+    <li>Hidden pairs and triples. Sweep stuck units digit by digit rather than cell by cell.</li>
+    <li>X-Wing. One digit at a time, counting how many spots each line still has.</li>
+    <li>Skyscraper, then swordfish — still one digit at a time, same scan.</li>
+    <li>XY-Wing, starting from each bi-value cell in turn.</li>
+    <li>Only now consider guessing — and in News+, think twice. Undo walks back one action at a time, so a guess that runs ten moves deep before failing is painful to unwind, and Autofill cannot rescue you because re-running it wipes your real deductions. Prefer a two-note square, and write down the position before you commit.</li>
+  </ol>
+  <h3>When you're stuck, change what you're scanning</h3>
+  <p>Being stuck almost always means you have read the grid the same way for too long. If you have been looking at cells, start looking at digits. If you have been working inside boxes, run your eye down full columns. If you have been reading candidates, start counting them instead. Techniques don't fail; scans do.</p>
+  <p>The other reliable unsticker is to stop looking for a move and start looking for a <i>count</i>. Pick a digit, count its spots in all eighteen lines, and write the numbers down. The act of writing forces completeness, and completeness is what finds fish.</p>
+
+  <h3>Time budget</h3>
+  <p>Roughly what each stage should cost before you move on, assuming notes are already filled. If a stage runs much longer, you are not scanning systematically — you are staring. Add a couple of minutes to each digit sweep on an iPhone, where the notes are small enough to misread.</p>
+  <ul>
+    <li><b>Singles sweep:</b> under a minute, and worth repeating after every elimination.</li>
+    <li><b>Locked candidates, all nine digits, both directions:</b> two to three minutes. This is the highest-yield scan in the game.</li>
+    <li><b>Subsets across the stuck units:</b> two minutes, mostly spent on two-mark cells.</li>
+    <li><b>Single-digit scans for fish and skyscrapers:</b> three to four minutes with counts written down.</li>
+    <li><b>XY-Wing hinges:</b> a minute or two, since the candidate hinges are already on your list.</li>
+  </ul>
+
+  <h3>What comes after these nine</h3>
+  <p>For the News+ challenging tier you rarely need to go past the nine here — most stalls on that tier end with locked candidates or a subset, and the fish and wing sections are the fallback rather than the main event. If you are convinced a puzzle needs something exotic, the overwhelmingly likely explanation is a missed pointing pair or a wrong digit placed earlier.</p><p>If you want the next tier anyway, it is all built from one primitive: a <b>strong link</b>, a unit where a digit has exactly two possible squares, so one of them must be true. The skyscraper chains two of them together, and that is the entire idea. Beyond it sit simple colouring, the two-string kite, W-wings and forcing chains — all learnable in an afternoon once strong links are visible to you, and all meaningless before that.</p>
+
+  <h3>Practise deliberately</h3>
+  <p>Pick one technique and hunt only for it across three or four puzzles from the archive, even when other moves are available. Pattern recognition is a visual skill rather than a logical one; you are training your eye to flag <i>two spots in a line</i> before you consciously count. A good News+ drill: open an old challenging puzzle, Autofill, then light all nine digits in turn and name the shapes you see — without entering anything at all.</p>
+  </section>
+
+<footer>
+  <p>Every grid on this page is a genuine position from a real puzzle with a unique solution, and every elimination shown has been checked against that solution. Square references use <code>r5c3</code> for row 5, column 3. App behaviour described here follows Apple's current documentation for News+ sudoku on iPhone, iPad and Mac; if a future update adds cell colouring or multi-digit highlighting, the scans get easier rather than different.</p>
+</footer>
+
+</div>
+<script>
+document.querySelectorAll(".reveal").forEach(function(btn){
+  var showLabel = btn.textContent, hideLabel = showLabel.replace("Show", "Hide");
+  btn.addEventListener("click", function(){
+    var fig = btn.closest(".fig");
+    var shown = fig.getAttribute("data-state") === "shown";
+    fig.setAttribute("data-state", shown ? "hidden" : "shown");
+    btn.textContent = shown ? showLabel : hideLabel;
+  });
+});
+</script>
+</body>
+</html>
