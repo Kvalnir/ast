@@ -22,6 +22,25 @@
     swordfish: 'Swordfish', xy_wing: 'XY-Wing'
   };
   const ADVANCED = ['xwing', 'skyscraper', 'swordfish', 'xy_wing'];
+
+  /* What each technique *is*, independent of the position on the board. The
+     coach's `why` explains this instance; this explains the idea. Kept to one
+     or two sentences on purpose — it is a reminder for someone mid-puzzle, not
+     the lesson. The full write-up is a click away on index.html. */
+  const EXPLAIN = {
+    naked_single: 'A square with only one candidate left. Nothing else fits, so it is that digit.',
+    hidden_single: 'A digit with only one square left in its row, column or box — even though that square still shows other candidates of its own.',
+    pointing: 'Every remaining copy of a digit inside one box sits on a single line. That line has to supply the box, so the digit leaves the rest of the line outside it.',
+    claiming: 'Every remaining copy of a digit on one line sits inside a single box. The box has to supply the line, so the digit leaves the rest of the box.',
+    naked_pair: 'Two squares in a unit holding the same two candidates. Between them they use both digits up, so those digits leave every other square in the unit.',
+    naked_triple: 'Three squares in a unit sharing the same three candidates between them. Those digits are spoken for, so they leave the rest of the unit.',
+    hidden_pair: 'Two digits in a unit that can only go in the same two squares. Those squares belong to the pair, so every other candidate inside them dies.',
+    hidden_triple: 'Three digits confined to the same three squares in a unit. Those squares are theirs, so their other candidates die.',
+    xwing: 'One digit forming a rectangle: two rows where it fits in only the same two columns. It must take a diagonal pair of corners, so it leaves those columns everywhere else.',
+    skyscraper: 'Two lines where a digit has just two spots and which share one end column. The two far ends cover each other, so any square seeing both loses the digit.',
+    swordfish: 'The X-Wing idea stretched to three rows and three columns instead of two.',
+    xy_wing: 'A hinge square of X/Y seeing one wing of X/Z and another of Y/Z. Whichever way the hinge falls, Z lands in a wing, so any square seeing both wings loses Z.'
+  };
   const LESSON = {
     pointing: 'pointing', claiming: 'claiming', naked_pair: 'naked-pair',
     naked_triple: 'naked-triple', hidden_pair: 'hidden-pair', xwing: 'x-wing',
@@ -157,6 +176,43 @@
      also happen to be present are surfaced separately, not recommended. */
   function chooseDefault() { return S.findings[0] || null; }
   function article(name) { return /^[AEIOUX]/.test(name) ? 'an ' : 'a '; }
+
+  /* One chip, plus the hover/focus definition that goes with it. Shared by the
+     coach row and the drill row so the two cannot drift apart.
+
+     The definition is aria-describedby rather than markup inside the button:
+     text inside the button joins its accessible name, which would make every
+     chip announce as a full paragraph before you could tell what it was. */
+  let tipSeq = 0;
+  function makeChip(id, opts) {
+    opts = opts || {};
+    const wrap = document.createElement('span');
+    wrap.className = 'chipwrap';
+    const b = document.createElement('button');
+    b.className = 'chip' + (ADVANCED.includes(id) ? ' adv' : '');
+    b.type = 'button';
+    b.innerHTML = NAMES[id] + (opts.count ? '<span class="n">' + opts.count + '</span>' : '');
+    if (opts.pressed !== undefined) b.setAttribute('aria-pressed', !!opts.pressed);
+    if (opts.onClick) b.addEventListener('click', opts.onClick);
+    wrap.appendChild(b);
+    if (EXPLAIN[id]) {
+      const tip = document.createElement('span');
+      tip.className = 'tip';
+      tip.id = 'tip' + (++tipSeq);
+      tip.setAttribute('role', 'tooltip');
+      tip.innerHTML = '<b>' + NAMES[id] + '</b> — ' + EXPLAIN[id];
+      b.setAttribute('aria-describedby', tip.id);
+      wrap.appendChild(tip);
+    }
+    return wrap;
+  }
+
+  /* The same text as the tooltip, inlined into the hint ladder. Hover is not
+     available on a touch screen and is not discoverable anywhere, so the
+     explanation has to exist in the prose too. */
+  function defLine(id) {
+    return EXPLAIN[id] ? '<span class="def">' + EXPLAIN[id] + '</span>' : '';
+  }
 
   function more() {
     if (!S.findings.length) return;
@@ -352,11 +408,18 @@
       });
     }
 
-    /* keypad */
+    /* keypad. In Notes mode the pad doubles as a readout of the selected
+       square's pencil marks, so a digit key shows whether pressing it will add
+       or remove a note. Only for an empty square: a filled one has no notes to
+       report, and lighting keys there would be a lie. */
+    const notesMode = S.mode === 'notes';
+    const selNotes = (notesMode && S.sel !== null && !S.grid[S.sel]) ? S.notes[S.sel] : null;
+    padEl.classList.toggle('notesmode', notesMode);
     [...padEl.children].forEach((b, k) => {
       const d = k + 1;
       const placed = S.grid.filter(v => v === d).length;
       b.classList.toggle('done', placed >= 9);
+      b.classList.toggle('noted', !!(selNotes && selNotes.has(d)));
       b.querySelector('.left').textContent = placed >= 9 ? '' : (9 - placed);
     });
     [...focusEl.children].forEach((b, k) => b.classList.toggle('focused', S.focus === k + 1));
@@ -386,17 +449,15 @@
     chipsEl.innerHTML = '';
     if (S.coach !== 'off') {
       [...g.entries()].sort((a, b) => a[1][0].rank - b[1][0].rank).forEach(([id, arr]) => {
-        const b = document.createElement('button');
-        b.className = 'chip' + (ADVANCED.includes(id) ? ' adv' : '');
-        b.type = 'button';
-        b.innerHTML = NAMES[id] + (S.coach === 'full' ? '<span class="n">' + arr.length + '</span>' : '');
-        b.setAttribute('aria-pressed', !!(S.pick && S.pick.id === id));
-        b.addEventListener('click', () => {
-          S.pick = arr[0]; S.level = Math.max(1, S.level);
-          if (S.level >= 3 && S.pick.soloDigit) S.focus = S.pick.soloDigit;
-          render();
-        });
-        chipsEl.appendChild(b);
+        chipsEl.appendChild(makeChip(id, {
+          count: S.coach === 'full' ? arr.length : 0,
+          pressed: !!(S.pick && S.pick.id === id),
+          onClick: () => {
+            S.pick = arr[0]; S.level = Math.max(1, S.level);
+            if (S.level >= 3 && S.pick.soloDigit) S.focus = S.pick.soloDigit;
+            render();
+          }
+        }));
       });
     }
 
@@ -423,13 +484,14 @@
             (adv.length
               ? ' Also present, if you want the harder hunt: <em>' + adv.map(x => NAMES[x]).join('</em>, <em>') + '</em>.'
               : '') +
-            ' Find it yourself first, then press <b>Show me more</b>.');
+            ' Find it yourself first, then press <b>Show me more</b>.' +
+            defLine(hardest.id));
       return;
     }
     const steps = [
       () => '<span class="step">Level 1 — which technique</span>There is ' + article(NAMES[f.id]) + '<em>' + NAMES[f.id] +
             '</em> on the board' + (f.digits.length === 1 ? ' on the digit <b>' + f.digits[0] + '</b>' : '') +
-            '. Nothing about where yet.',
+            '. Nothing about where yet.' + defLine(f.id),
       () => '<span class="step">Level 2 — where to look</span>Look at <b>' + f.region +
             '</b>. The relevant unit' + ((f.units && f.units.length > 1) ? 's are' : ' is') + ' tinted on the board.',
       () => '<span class="step">Level 3 — the pattern</span>The squares doing the work are <b>' +
@@ -466,13 +528,7 @@
 
   const drillEl = $('drills');
   ['pointing', 'claiming', 'naked_pair', 'hidden_pair', 'naked_triple', 'xwing', 'skyscraper', 'swordfish', 'xy_wing']
-    .forEach(id => {
-      const b = document.createElement('button');
-      b.className = 'chip' + (ADVANCED.includes(id) ? ' adv' : '');
-      b.type = 'button'; b.textContent = NAMES[id];
-      b.addEventListener('click', () => startDrill(id));
-      drillEl.appendChild(b);
-    });
+    .forEach(id => drillEl.appendChild(makeChip(id, { onClick: () => startDrill(id) })));
 
   document.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey) {

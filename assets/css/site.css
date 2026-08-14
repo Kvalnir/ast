@@ -207,7 +207,14 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .badge.lvl{color:var(--amber);border-color:var(--amber-ink)}
 
 /* board */
-.boardwrap{position:relative;aspect-ratio:1;width:100%;margin:0 0 14px;touch-action:manipulation}
+/* container-type makes this the reference box for the cqw units below. The
+   board used to scale off the viewport, which was the same thing back when it
+   was the only column; in the two-column layout the viewport keeps growing
+   while the board does not, so vw sizing would blow the digits out. */
+.boardwrap{
+  position:relative;aspect-ratio:1;width:100%;margin:0 0 14px;touch-action:manipulation;
+  container-type:inline-size;
+}
 .board{
   display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(9,1fr);
   width:100%;height:100%;background:var(--paper);
@@ -236,7 +243,10 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .sq.tgt{background:rgba(226,84,63,.22)}
 .sq:focus-visible{outline:2px solid var(--amber);outline-offset:-2px;z-index:2}
 
+/* Second declaration wins where container queries are supported and is ignored
+   where they are not, so the vw line stays as the fallback. */
 .val{font-family:var(--mono);font-weight:500;font-size:clamp(15px,5.2vw,28px);color:var(--given);position:relative}
+.val{font-size:clamp(15px,5.4cqw,28px)}
 .sq.user .val{color:#1D5B8C}
 .sq.bad .val{color:var(--red-ink)}
 .sq.bad .val::after{
@@ -248,6 +258,7 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   width:100%;height:100%;min-height:0;overflow:hidden;place-items:center;
   font-family:var(--mono);font-size:clamp(6px,2vw,11px);line-height:1;color:var(--pencil);
 }
+.notes{font-size:clamp(6px,2.1cqw,11px)}
 .nt{opacity:0}
 .nt.on{opacity:.9}
 .nt.lit{
@@ -278,19 +289,39 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .seg .tbtn+.tbtn{border-left:1px solid #2A3D45}
 
 .pad{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin:0 0 10px}
-.key{
+/* Scoped to .pad on purpose. `key` is not a unique name: index.html marks the
+   decisive pencil mark in a figure as `.m.key`, and an unscoped `.key` rule
+   here painted those little digits with the keypad's panel background, border
+   and aspect ratio. */
+.pad .key{
   font-family:var(--mono);font-size:clamp(14px,4.6vw,19px);
   background:var(--panel2);color:var(--text);border:1px solid #2A3D45;
   aspect-ratio:.82;border-radius:3px;cursor:pointer;display:grid;place-items:center;
   position:relative;padding:0;
 }
-.key:hover{border-color:var(--amber-ink)}
-.key:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.key .left{
+.pad .key:hover{border-color:var(--amber-ink)}
+.pad .key:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.pad .key .left{
   position:absolute;bottom:2px;left:0;right:0;font-size:8px;color:var(--mist);
 }
-.key.done{opacity:.3}
-.key.focused{background:#2E5A32;border-color:#8FD48A;color:#DFF3DC}
+.pad .key.done{opacity:.3}
+.pad .key.focused{background:#2E5A32;border-color:#8FD48A;color:#DFF3DC}
+
+/* Notes mode: the pad reports what is already pencilled into the selected
+   square, so pressing a digit reads as the toggle it actually is. Deliberately
+   the pencil blue used for notes on the board rather than the amber/green the
+   pad already spends on "focused" and "done" — this is a different axis of
+   information and should not look like either of those. */
+.pad.notesmode .key{border-style:dashed}
+.pad .key.noted{
+  background:#1B3745;border-color:#5D93A8;color:#D7ECF5;
+  border-style:solid;font-weight:500;
+}
+.pad .key.noted::before{
+  content:"";position:absolute;top:3px;right:3px;width:5px;height:5px;
+  border-radius:50%;background:#7FC0D8;
+}
+.pad .key.noted.done{opacity:.45}
 .padlabel{
   font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
   color:var(--mist);margin:0 0 6px
@@ -301,7 +332,24 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .coachhead{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .coachhead h2{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--amber);margin:0;font-weight:400}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+/* position:relative here, not on .chipwrap, is load-bearing: it makes .chips
+   the containing block for every .tip, so a popup spans the row and is
+   anchored to it. Anchoring to the chip instead would push the tooltip of a
+   right-hand chip out through the side of the panel. */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;position:relative}
+.chipwrap{display:inline-flex}
+.tip{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;
+  background:#0C171D;border:1px solid var(--amber-ink);border-radius:3px;
+  padding:9px 11px;font-family:var(--sans);font-size:12.5px;line-height:1.5;
+  color:var(--text);text-align:left;pointer-events:none;
+  opacity:0;visibility:hidden;transition:opacity .12s ease;
+  box-shadow:0 10px 26px rgba(0,0,0,.55);
+}
+.tip b{color:var(--amber);font-weight:500}
+.chipwrap:hover .tip,
+.chipwrap:focus-within .tip{opacity:1;visibility:visible}
+@media (prefers-reduced-motion:reduce){.tip{transition:none}}
 .chip{
   font-family:var(--mono);font-size:11.5px;padding:5px 9px;border-radius:2px;cursor:pointer;
   border:1px solid #2A3D45;background:transparent;color:var(--mist);
@@ -316,6 +364,12 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   letter-spacing:.14em;text-transform:uppercase;margin-bottom:5px}
 .ladder b{color:#F4F8F5}
 .ladder em{font-style:normal;color:var(--amber)}
+/* The technique definition, under the hint that names it. Set back from the
+   instruction above it: this is reference, not the next thing to do. */
+.ladder .def{
+  display:block;margin-top:7px;padding-left:9px;font-size:13px;
+  color:var(--mist);border-left:1px solid #2A3D45;
+}
 .coachrow{display:flex;gap:8px;flex-wrap:wrap}
 .note{font-size:13px;color:var(--mist);margin:10px 0 0}
 .note.warn{color:var(--red)}
@@ -335,4 +389,59 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 @media (max-width:400px){
   .trainer{padding:0 10px 70px}
   .pad{gap:3px}
+  /* The bar bleeds full width by cancelling .trainer's side padding with a
+     negative margin, so the two have to agree. This block drops the padding to
+     10px and the -18px was left behind, which put 8px of the bar past the right
+     edge and gave the whole page a horizontal scroll on a phone. */
+  .sitebar{margin:0 -10px}
+}
+
+/* ---- wide screens: board and coach side by side ----------------------------
+   The complaint this solves: at one column the coach ladder sits ~450px below
+   the board, so reading a hint and looking at the position are two different
+   scroll positions.
+
+   Two mechanisms, and both are needed. The grid puts them side by side, and
+   `position:sticky` keeps the board on screen while the right column scrolls —
+   the right column is the taller of the two and will always outgrow the
+   viewport once a technique is expanded. Capping .tplay against 100vh is what
+   makes sticky work at all: an element taller than the viewport has nothing
+   left to stick with. */
+@media (min-width:1040px){
+  .trainer{max-width:1280px}
+  .thead{padding:14px 0 10px}
+  .tgrid{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(360px,460px);
+    gap:34px;align-items:start;
+  }
+  .tside>.coach:first-child{margin-top:0}
+
+  /* Keys are tall-ish on touch because a fingertip needs the height. With a
+     mouse they do not, and two 9-wide pad rows are the largest claim on the
+     vertical budget after the board itself — squatter keys buy the board about
+     45px of width on a laptop screen. */
+  .pad .key{aspect-ratio:1.25}
+
+  /* The board is capped by viewport HEIGHT, not by the column, so that board +
+     both keypads + the page header all land on one screen. Letting it fill the
+     column gave a 750px board and pushed the keypad below the fold, which just
+     moves the scrolling complaint from the coach to the pad.
+
+     The divisor is not a fudge factor: everything under the board scales with
+     the board. Two pad rows of nine keys at the aspect-ratio above come to
+     ~0.142x the board width, so the column costs 1.142x board plus a fixed
+     355px of site bar, page header, tools row, label and margins. Both numbers
+     were measured in the browser, not guessed.
+
+     620px is a comfort ceiling — past it the cells are just large, and the
+     coach column starts to look starved. min() with 100% keeps a very tall
+     window from making the board wider than its column. */
+  .tplay{
+    position:sticky;top:14px;
+    width:min(100%,620px,calc((100vh - 355px) / 1.142));
+    margin-inline:auto;
+  }
+  /* Board digits size off the board itself (see .boardwrap container-type), so
+     the column can be any width without the numbers drifting. */
 }

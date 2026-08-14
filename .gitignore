@@ -50,6 +50,11 @@ secrets.json
 /private/
 /scratch/
 /notes/
+
+# Local development harness — the throwaway headless Chromium and its driver.
+# Not part of the site and deliberately never committed; dev/scripts/dev-browser.sh
+# is adapted from my-homepage/scripts/ and can be re-copied from there.
+/dev/
 *.local
 *.local.md
 *.local.json

@@ -31,6 +31,12 @@
     </div>
   </header>
 
+  <!-- Two columns on a wide screen: the board and its controls stay put on the
+       left while the coach scrolls on the right. Below 1040px this is a plain
+       block and the order is unchanged. -->
+  <div class="tgrid">
+  <div class="tplay">
+
   <div class="boardwrap">
     <div class="board" id="board" role="grid" aria-label="Sudoku board"></div>
     <svg class="geo2" id="geo" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"></svg>
@@ -50,6 +56,9 @@
 
   <p class="padlabel">Focus a digit <span id="focusHint">— tap a number below to light it everywhere, notes included</span></p>
   <div class="pad" id="focusPad"></div>
+
+  </div><!-- /.tplay -->
+  <div class="tside">
 
   <section class="coach" id="coach">
     <div class="coachhead">
@@ -92,6 +101,9 @@
       <button class="tbtn" id="bCheckNotes" title="The one thing News+ cannot check">Check my notes</button>
     </div>
   </section>
+
+  </div><!-- /.tside -->
+  </div><!-- /.tgrid -->
 
 </div>
 
