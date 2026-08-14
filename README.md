@@ -57,9 +57,14 @@ assets/js/techniques.js the nine detectors; returns structured findings
 assets/js/bank.js       20 verified puzzles, tagged by technique required
 assets/js/trainer.js    board UI, News+ behaviours, hint ladder
 assets/js/pwa.js        service worker registration, update and install prompts
-assets/icons/           app icons (generated — see tools/icons.py)
+assets/icons/*.png      app icons (generated — see tools/icons.py)
+assets/icons/icon.svg   the same mark as vector, for the tab favicon (hand-written)
 tools/                  Python generators (only needed to rebuild content)
 ```
+
+`icon.svg` is the one asset with two sources of truth: it carries the same 24-unit geometry as
+`tools/icons.py`, because a nine-cell grid does not survive a 16px downsample and browsers that
+support SVG favicons should get the vector. Edit the two together or they drift.
 
 ## Installing it as an app
 
@@ -72,7 +77,7 @@ the network off.
 Two things worth knowing:
 
 - **Everything is precached on the first visit** — both pages, the CSS, all five scripts and the
-  six icons: 15 files, 283 KB. There is no lazy loading to go wrong later.
+  seven icons: 16 files, 309 KB. There is no lazy loading to go wrong later.
 - **Fonts arrive one visit late.** They come from Google Fonts, and on a first visit the page has
   already requested them before the worker takes control, so they are only cached from the second
   visit onwards. Until then an offline load falls back to the system stack — the layout holds, the
@@ -94,10 +99,32 @@ python3 -m http.server 8123
 ## The trainer
 
 **It behaves like News+ on purpose.** Pen and Notes modes, Autofill, per-square Autocheck, notes
-in fixed 3×3 slots, a digit focus that lights notes as well as placed digits, and — importantly —
-notes cleared on entry *before* the entry is judged. Enter a wrong digit and you will watch it get
-flagged **and** destroy a dozen notes, exactly as the app does. Undo restores both; the eraser
-would not. Practising on a board with different reflexes would be practising the wrong thing.
+in fixed 3×3 slots, and — importantly — notes cleared on entry *before* the entry is judged. Enter
+a wrong digit and you will watch it get flagged **and** destroy a dozen notes, exactly as the app
+does. Undo restores both; the eraser would not. Practising on a board with different reflexes
+would be practising the wrong thing.
+
+**One keypad, and the selection decides what it does.** A square is selected, so a digit goes into
+it — placed in Pen, toggled as a note in Notes. Nothing is selected, so the same key lights that
+digit everywhere instead, notes included. The pad is 3×3 because the notes inside a square are laid
+out on the same 3×3 in the same order, which makes "the 7 is bottom-left" one fact rather than two.
+
+Getting to the second mode is a matter of letting go of the square: click the selected one again,
+or press <kbd>Esc</kbd>. Placing a digit releases it for you, so the digit you just entered is lit
+across the board without your asking. The line under the pad always says which of the two the next
+tap will be.
+
+**It is fully playable from the keyboard.**
+
+| Key | Does |
+|-----|------|
+| <kbd>1</kbd>–<kbd>9</kbd> | Enter the digit, or light it if no square is selected — the same rule as the pad |
+| <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> | Move the selection (needs a square selected to start) |
+| <kbd>Esc</kbd> | Let go of the square |
+| <kbd>Backspace</kbd> | Erase the square |
+| <kbd>N</kbd> | Switch between Pen and Notes |
+| <kbd>H</kbd> | Show me more — the next rung of the hint ladder |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> | Undo, notes included |
 
 **The coach is a ladder, not an answer.** Findings escalate only as far as you ask:
 
