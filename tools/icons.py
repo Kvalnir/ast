@@ -2,10 +2,15 @@
 
 Run from this directory:  python3 icons.py
 
-The mark is the site's own visual argument in miniature: a 3x3 box with two
-amber cells joined by an amber line -- a pointing pair, the first technique on
-the page. Everything is drawn at 4x and downsampled, which is cheaper than
-fighting PIL for antialiased primitives.
+The mark is the top-left 3x3 block of a board, cropped: the two heavy rules
+run past the block so the grid reads as continuing off the icon, and the
+centre cell carries a placed digit. It is the same glyph the site uses as its
+bookmark elsewhere, redrawn here in the site palette.
+
+The glyph is described in its own 24-unit square (the SVG viewBox it came
+from, kept identical so the two stay in step) and mapped onto a canvas drawn
+at 8x and downsampled, which is cheaper than fighting PIL for antialiased
+primitives.
 
 Outputs to ../assets/icons/. Regenerate only when the mark changes; the files
 are committed so the site has no build step.
@@ -13,20 +18,80 @@ are committed so the site has no build step.
 
 from PIL import Image, ImageDraw
 
-INK    = (15, 26, 32)      # icon ground -- --ink lifted slightly so it is not
-                           # invisible against a black home screen
-RULE   = (46, 64, 72)      # --rule-strong
-AMBER  = (240, 180, 41)    # --amber
-PAPER  = (233, 238, 232)   # --paper
+INK   = (15, 26, 32)      # icon ground -- --ink lifted slightly so it is not
+                          # invisible against a black home screen
+AMBER = (240, 180, 41)    # --amber
+PAPER = (233, 238, 232)   # --paper
 
-SS = 4                     # supersample factor
+SS = 8                    # supersample factor
+VB = 24.0                 # the glyph's viewBox
+HEAVY, THIN = 1.7, 1.0    # the two stroke weights, in glyph units
 
 
-def draw(size, *, inset, radius_frac, bleed):
-    """One icon. `inset` is the fraction of the edge left empty around the
-    mark -- maskable icons need a wide margin because the launcher may crop to
-    a circle. `bleed` fills the whole canvas with the ground colour instead of
-    rounding the corners (also what maskable wants)."""
+class Pen:
+    """Draws glyph coordinates onto a supersampled canvas.
+
+    `scale` is how much of the canvas edge the 24-unit square spans; the glyph
+    already carries a 3-unit margin of its own, so 1.0 leaves the mark at 75%
+    of the icon.
+    """
+
+    def __init__(self, d, S, scale):
+        self.d = d
+        self.k = S * scale / VB           # units -> pixels
+        self.o = (S - VB * self.k) / 2    # centring offset
+
+    def at(self, x, y):
+        return self.o + x * self.k, self.o + y * self.k
+
+    def px(self, units):
+        return max(1, round(units * self.k))
+
+    def line(self, x0, y0, x1, y1, units, fill):
+        w = self.px(units)
+        self.d.line([self.at(x0, y0), self.at(x1, y1)], fill=fill, width=w)
+        for x, y in ((x0, y0), (x1, y1)):    # PIL butts its line ends; the
+            self.cap(x, y, w, fill)          # glyph asks for round caps
+
+    def cap(self, x, y, w, fill):
+        cx, cy = self.at(x, y)
+        r = w / 2
+        self.d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fill)
+
+    def arc(self, cx, cy, r, start, end, units, fill):
+        # PIL strokes an arc inward from its bounding box, so the box is the
+        # outer edge: push it out by half the stroke to centre it on r.
+        rr = r + units / 2
+        (x0, y0), (x1, y1) = self.at(cx - rr, cy - rr), self.at(cx + rr, cy + rr)
+        self.d.arc([x0, y0, x1, y1], start, end, fill=fill, width=self.px(units))
+
+    def box(self, x, y, w, h, r, fill):
+        (x0, y0), (x1, y1) = self.at(x, y), self.at(x + w, y + h)
+        self.d.rounded_rectangle([x0, y0, x1, y1], radius=r * self.k, fill=fill)
+
+
+def glyph(pen):
+    # The block's own two edges, meeting at the board's rounded corner.
+    pen.line(3, 21, 3, 4.7, HEAVY, PAPER)
+    pen.arc(4.7, 4.7, 1.7, 180, 270, HEAVY, PAPER)
+    pen.line(4.7, 3, 21, 3, HEAVY, PAPER)
+
+    # The other two, overrunning the block: the board carries on past the crop.
+    pen.line(17, 3, 17, 21, HEAVY, PAPER)
+    pen.line(3, 17, 21, 17, HEAVY, PAPER)
+
+    # Cell rules inside the block.
+    for u in (7.67, 12.33):
+        pen.line(u, 3, u, 17, THIN, PAPER)
+        pen.line(3, u, 17, u, THIN, PAPER)
+
+    # The centre cell, filled: the one digit the block has given up.
+    pen.box(8.7, 8.7, 2.6, 2.6, 0.7, AMBER)
+
+
+def draw(size, *, scale, radius_frac, bleed):
+    """One icon. `bleed` fills the whole canvas with the ground colour instead
+    of rounding the corners -- what maskable and iOS both want."""
     S = size * SS
     img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
@@ -36,37 +101,7 @@ def draw(size, *, inset, radius_frac, bleed):
     else:
         d.rounded_rectangle([0, 0, S - 1, S - 1], radius=int(S * radius_frac), fill=INK)
 
-    # The 3x3 box, centred.
-    pad = S * inset
-    box = S - 2 * pad
-    step = box / 3.0
-    line = max(1, int(S * 0.012))
-
-    def cell(r, c):
-        x, y = pad + c * step, pad + r * step
-        return [x, y, x + step, y + step]
-
-    # Two cells carrying the pattern, and the line that connects them. Drawn
-    # before the grid so the rules sit on top and keep the cell edges crisp.
-    for r, c in ((0, 0), (0, 2)):
-        x0, y0, x1, y1 = cell(r, c)
-        d.rectangle([x0 + line, y0 + line, x1 - line, y1 - line], fill=AMBER)
-
-    cy = pad + step * 0.5
-    d.line([pad + step * 0.5, cy, pad + step * 2.5, cy],
-           fill=AMBER, width=int(line * 1.6))
-
-    # A third cell in paper white: the placed digit the pattern buys you.
-    x0, y0, x1, y1 = cell(2, 1)
-    d.rectangle([x0 + line, y0 + line, x1 - line, y1 - line], fill=PAPER)
-
-    # Grid rules, then the heavy box border.
-    for i in (1, 2):
-        p = pad + i * step
-        d.line([pad, p, pad + box, p], fill=RULE, width=line)
-        d.line([p, pad, p, pad + box], fill=RULE, width=line)
-    d.rectangle([pad, pad, pad + box, pad + box], outline=RULE, width=int(line * 2))
-
+    glyph(Pen(d, S, scale))
     return img.resize((size, size), Image.LANCZOS)
 
 
@@ -86,11 +121,15 @@ if __name__ == "__main__":
     os.makedirs("../assets/icons", exist_ok=True)
 
     for size in (192, 512):
-        save(draw(size, inset=0.14, radius_frac=0.22, bleed=False), f"icon-{size}.png")
+        save(draw(size, scale=1.0, radius_frac=0.22, bleed=False), f"icon-{size}.png")
 
-    # Maskable: full bleed, mark kept inside the 80% safe zone.
+    # Maskable: full bleed, and the mark pulled in until its corners clear the
+    # 80% safe circle a launcher may crop to.
     for size in (192, 512):
-        save(draw(size, inset=0.26, radius_frac=0, bleed=True), f"icon-maskable-{size}.png")
+        save(draw(size, scale=0.74, radius_frac=0, bleed=True), f"icon-maskable-{size}.png")
 
-    save(draw(180, inset=0.14, radius_frac=0, bleed=True), "apple-touch-icon.png", flatten=True)
-    save(draw(32, inset=0.10, radius_frac=0.18, bleed=False), "favicon-32.png")
+    save(draw(180, scale=1.0, radius_frac=0, bleed=True), "apple-touch-icon.png", flatten=True)
+
+    # A tab favicon is 16px more often than 32: run the mark slightly larger so
+    # the thin rules survive the browser's own downsample.
+    save(draw(32, scale=1.08, radius_frac=0.18, bleed=False), "favicon-32.png")

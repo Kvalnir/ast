@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v2';   // v2: renamed to Advanced Sudoku Techniques
+const VERSION = 'v3';   // v3: new icon set (cropped 3x3 block), SVG favicon
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
@@ -40,6 +40,7 @@ const PRECACHE = [
   './assets/icons/icon-maskable-192.png',
   './assets/icons/icon-maskable-512.png',
   './assets/icons/favicon-32.png',
+  './assets/icons/icon.svg',
   './assets/icons/apple-touch-icon.png',
 ];
 

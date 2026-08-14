@@ -1,0 +1,13 @@
+<!-- The site mark: the top-left 3x3 block of a board, cropped, with one cell
+     placed. Same 24-unit geometry as tools/icons.py, scaled onto a 32-unit
+     ground so the margins match the generated PNGs. Edit both together. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="7" fill="#0F1A20"/>
+  <g transform="scale(1.33333)" fill="none" stroke="#E9EEE8"
+     stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 21V4.7A1.7 1.7 0 0 1 4.7 3H21"/>
+    <path d="M17 3v18M3 17h18"/>
+    <path d="M7.67 3v14M12.33 3v14M3 7.67h14M3 12.33h14" stroke-width="1"/>
+    <rect x="8.7" y="8.7" width="2.6" height="2.6" rx="0.7" fill="#F0B429" stroke="none"/>
+  </g>
+</svg>
