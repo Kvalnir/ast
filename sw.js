@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v3';   // v3: new icon set (cropped 3x3 block), SVG favicon
+const VERSION = 'v4';   // v4: icon re-anchored on the filled cell
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between

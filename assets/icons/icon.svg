@@ -1,9 +1,12 @@
 <!-- The site mark: the top-left 3x3 block of a board, cropped, with one cell
-     placed. Same 24-unit geometry as tools/icons.py, scaled onto a 32-unit
-     ground so the margins match the generated PNGs. Edit both together. -->
+     placed. Same 24-unit geometry as tools/icons.py, hung on the same point:
+     the filled cell at 10,10 sits at the centre of the 32-unit ground, which
+     is why the transform is not a plain scale and why the mark rides low and
+     right. scale = 32 * 0.90 / 23.7, the FOOT and standard-icon scale from
+     icons.py; translate = 16 - 10 * scale. Edit the two together. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
   <rect width="32" height="32" rx="7" fill="#0F1A20"/>
-  <g transform="scale(1.33333)" fill="none" stroke="#E9EEE8"
+  <g transform="translate(3.848 3.848) scale(1.2152)" fill="none" stroke="#E9EEE8"
      stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
     <path d="M3 21V4.7A1.7 1.7 0 0 1 4.7 3H21"/>
     <path d="M17 3v18M3 17h18"/>
