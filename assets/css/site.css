@@ -187,7 +187,16 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   padding:10px 18px;margin:0 -18px;background:rgba(10,16,20,.9);
   backdrop-filter:blur(8px);border-bottom:1px solid #1D2B33;
 }
-.sitebar .mark{font-family:var(--disp);font-weight:800;font-size:15px;color:#F4F8F5;letter-spacing:-.01em}
+.sitebar .mark{font-family:var(--disp);font-weight:800;font-size:15px;color:#F4F8F5;letter-spacing:-.01em;white-space:nowrap}
+/* The full name plus both nav links do not fit one line on a phone: at 390px
+   it wrapped to two, and this bar is sticky, so it stole that height from the
+   board on every screen of every puzzle. Below 480px the wordmark contracts to
+   the same acronym the installed app uses. */
+.sitebar .mark-short{display:none}
+@media (max-width:480px){
+  .sitebar .mark-long{display:none}
+  .sitebar .mark-short{display:inline}
+}
 .sitebar .mark em{font-style:normal;color:var(--amber)}
 .sitebar nav{position:static;margin:0;padding:0;background:none;border:none;backdrop-filter:none;overflow:visible;display:flex;gap:4px;margin-left:auto}
 .sitebar nav a{border:none;padding:4px 8px;font-size:12px}

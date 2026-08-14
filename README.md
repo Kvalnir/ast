@@ -1,8 +1,8 @@
-# Sudoku Patterns
+# Advanced Sudoku Techniques
 
 A two-page static site for getting past the wall in Apple News+ **Challenging** sudoku.
 
-- **`index.html`** — the technique reference. Nine patterns, each on a real position with real
+- **`index.html`** — the pattern reference. Nine patterns, each on a real position with real
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
 - **`trainer.html`** — a live board that behaves like News+ and names the techniques available in
   your position, one hint level at a time.
@@ -12,20 +12,37 @@ solution — nothing here is hand-waved.
 
 ## Deploying to GitHub Pages
 
+This repo is <https://github.com/Kvalnir/ast>, served at <https://kvalnir.github.io/ast/>.
+
+Working from a fresh clone, do this once — `core.hooksPath` is local config and does **not**
+clone, so the PII pre-commit hook is inert until you set it:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Setting a new copy up from scratch:
+
 ```bash
 git init
-git add -A
+git add index.html trainer.html manifest.webmanifest sw.js assets tools .githooks \
+        .gitignore .nojekyll README.md
 git commit -m "Sudoku pattern trainer"
 git branch -M main
-git remote add origin git@github.com:<you>/sudoku-patterns.git
+git remote add origin git@github.com:<you>/<repo>.git
 git push -u origin main
 ```
 
+Name the paths rather than reaching for `git add -A`. On WSL this directory picks up
+character-special dotfiles (`.bashrc`, `.gitconfig`, `.mcp.json`, `.claude/` and friends) that
+have no business in a public repo; `.gitignore` covers the ones seen so far, but a blanket add is
+the wrong habit for a repo whose source is world-readable.
+
 Then **Settings → Pages → Source: Deploy from a branch → `main` / `/ (root)`**.
 
-The site is at `https://<you>.github.io/sudoku-patterns/` in a minute or two. No build step, no
-dependencies, nothing to install — it is static files and vanilla JS. `.nojekyll` is present so
-Pages serves the `assets/` directory untouched.
+The site is live a minute or two later. No build step, no dependencies, nothing to install — it is
+static files and vanilla JS. `.nojekyll` is present so Pages serves the `assets/` directory
+untouched.
 
 ## Layout
 

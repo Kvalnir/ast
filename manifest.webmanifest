@@ -1,6 +1,6 @@
 {
-  "name": "Sudoku Patterns — Apple News+ trainer",
-  "short_name": "Sudoku Patterns",
+  "name": "Advanced Sudoku Techniques",
+  "short_name": "AST",
   "description": "Nine sudoku techniques on real positions, plus a live board that behaves like Apple News+ and names the techniques available in your position.",
   "id": "ast-sudoku-patterns",
   "start_url": "./trainer.html",
@@ -25,8 +25,8 @@
       "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
-      "name": "Technique reference",
-      "short_name": "Techniques",
+      "name": "Pattern reference",
+      "short_name": "Patterns",
       "description": "The nine patterns, each on a real position",
       "url": "./index.html",
       "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]

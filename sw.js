@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';   // v2: renamed to Advanced Sudoku Techniques
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
