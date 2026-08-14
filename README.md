@@ -32,12 +32,46 @@ Pages serves the `assets/` directory untouched.
 ```
 index.html              technique reference (generated — see tools/)
 trainer.html            interactive board
+manifest.webmanifest    PWA metadata: name, icons, start URL
+sw.js                   service worker — precache, offline, update prompt
 assets/css/site.css     shared design tokens and all page styles
 assets/js/core.js       units, peers, candidates, backtracking solver
 assets/js/techniques.js the nine detectors; returns structured findings
 assets/js/bank.js       20 verified puzzles, tagged by technique required
 assets/js/trainer.js    board UI, News+ behaviours, hint ladder
+assets/js/pwa.js        service worker registration, update and install prompts
+assets/icons/           app icons (generated — see tools/icons.py)
 tools/                  Python generators (only needed to rebuild content)
+```
+
+## Installing it as an app
+
+The site is a PWA, which matters here because a sudoku trainer is something you reach for on a
+phone, on a train, without a signal. Open it, then **Add to Home Screen** (iOS Share menu) or take
+the **Install** offer the site makes on Chromium browsers. It opens without browser chrome and
+starts on the trainer; the technique reference is one tap away in the site bar, and both work with
+the network off.
+
+Two things worth knowing:
+
+- **Everything is precached on the first visit** — both pages, the CSS, all five scripts and the
+  six icons: 15 files, 283 KB. There is no lazy loading to go wrong later.
+- **Fonts arrive one visit late.** They come from Google Fonts, and on a first visit the page has
+  already requested them before the worker takes control, so they are only cached from the second
+  visit onwards. Until then an offline load falls back to the system stack — the layout holds, the
+  type is just plainer.
+
+**When you change a precached file, bump `VERSION` in `sw.js`.** The precache is keyed on that
+string, and nothing here bumps it for you. On the next visit a returning visitor gets a small
+"a new version of the site is ready" bar and the new worker waits until they accept it — an update
+never swaps the code out from under a puzzle in progress.
+
+Service workers need a secure context: `https`, or `localhost`. Opening the files with `file://`
+gives you the plain site with no offline support, which is a fine way to work on everything else.
+To exercise the PWA locally, serve the directory instead:
+
+```bash
+python3 -m http.server 8123
 ```
 
 ## The trainer

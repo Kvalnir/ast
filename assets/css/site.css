@@ -445,3 +445,56 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   /* Board digits size off the board itself (see .boardwrap container-type), so
      the column can be any width without the numbers drifting. */
 }
+
+/* ---------------------------------------------------------------------------
+   PWA prompts (assets/js/pwa.js)
+
+   One bar at a time, used for both the update notice and the install offer.
+   Bottom centre on a wide screen, where the page ends well above it.
+
+   The env() insets are belt-and-braces. The pages ask for the `black` iOS
+   status bar rather than `black-translucent`, and set no `viewport-fit=cover`,
+   so iOS insets the whole web view itself and these all resolve to 0. They
+   start mattering the moment someone switches to the overlay style — at which
+   point the site bar needs a safe-area padding-top too, and that is worth
+   checking on a real device, which a Linux Chromium cannot stand in for.
+
+   On a phone it moves to the TOP, under the site bar: the trainer puts its
+   mode row and both keypads at the bottom of the viewport, so a bottom-docked
+   bar lands exactly on the keys a thumb is reaching for -- verified at 390px,
+   where it covered Undo/Pen/Notes and the first digit row.
+--------------------------------------------------------------------------- */
+/* Centred with symmetric insets and auto margins, NOT left:50% + translate.
+   A fixed element's shrink-to-fit width is measured against the space left of
+   the containing block, so left:50% caps the bar at half the viewport and a
+   phone got a 195px column with two words per line. */
+.pwabar{
+  position:fixed;z-index:60;left:14px;right:14px;margin-inline:auto;
+  width:fit-content;
+  bottom:calc(14px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;gap:10px;
+  max-width:min(520px,calc(100% - 28px));
+  padding:10px 10px 10px 14px;
+  background:var(--panel2);color:var(--text);
+  border:1px solid #2A3D45;border-radius:3px;
+  box-shadow:0 10px 30px rgba(0,0,0,.45);
+  font-size:13px;line-height:1.4;
+  animation:pwabar-in .18s ease-out;
+}
+.pwabar span{flex:1 1 auto}
+.pwabar .tbtn{flex:0 0 auto}
+.pwabar-x{
+  flex:0 0 auto;background:none;border:none;cursor:pointer;
+  color:var(--mist);font-size:18px;line-height:1;padding:4px 6px;
+}
+.pwabar-x:hover{color:var(--text)}
+.pwabar-x:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+@keyframes pwabar-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (max-width:700px){
+  .pwabar{
+    top:calc(52px + env(safe-area-inset-top));bottom:auto;
+    animation-name:pwabar-in-top;
+  }
+  @keyframes pwabar-in-top{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+}
+@media (prefers-reduced-motion:reduce){.pwabar{animation:none}}
