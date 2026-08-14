@@ -301,6 +301,12 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .sq.tgt{background:rgba(226,84,63,.22)}
 .sq:focus-visible{outline:2px solid var(--amber);outline-offset:-2px;z-index:2}
 
+/* The digit and the notes share one grid cell. Without this they are two grid
+   items, so .sq lays them out as two rows — the digit centred in the taller
+   upper row and the collapsed notes grid under it, which put every placed digit
+   about 8px above the true centre of its square. */
+.sq > .val,.sq > .notes{grid-area:1/1}
+
 /* Second declaration wins where container queries are supported and is ignored
    where they are not, so the vw line stays as the fallback. */
 .val{font-family:var(--mono);font-weight:500;font-size:clamp(15px,5.2vw,28px);color:var(--given);position:relative}

@@ -143,6 +143,11 @@
         S.wrong[i] = S.autocheck && S.sol[i] !== d;
         /* News clears notes on entry, before judging whether the entry was right. */
         if (S.autoRemove) C.PEERS[i].forEach(p => S.notes[p].delete(d));
+        /* The square is done, so the selection lets go of it. That also hands
+           the pad back to focus mode on the digit just placed, which is the
+           thing you want to look at next. Only on a placement: clearing a
+           square above leaves you on it to type the replacement. */
+        S.sel = null;
       }
       S.focus = S.grid[i] || null;
     }

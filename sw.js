@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v6';   // v6: tools moved alongside the pad, board constant re-derived
+const VERSION = 'v7';   // v7: digits centred in their squares, entry deselects
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
