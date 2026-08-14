@@ -16,6 +16,11 @@
   --sans:"Instrument Sans",system-ui,-apple-system,sans-serif;
   --disp:"Bricolage Grotesque","Helvetica Neue",system-ui,-apple-system,sans-serif;
   --mono:"DM Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  /* Heights of the two sticky bars, measured in the browser. Three rules depend
+     on them agreeing — where the nav parks, and how far an anchored section has
+     to sit below the top so it clears both. */
+  --bar:48px;   /* .sitebar */
+  --nav:87px;   /* the technique nav, wrapped to two rows */
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -47,24 +52,63 @@ h1 em{font-style:normal;color:var(--amber)}
 .swatch.k::after{content:"7";position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--red-ink);text-decoration:line-through}
 .swatch.l::after{content:"";position:absolute;left:3px;right:3px;top:50%;height:2px;background:var(--amber-ink);border-radius:2px}
 
-/* ---------- nav ---------- */
+/* ---------- nav ----------
+   The technique nav carries twelve links, 1342px of them measured, into a
+   column that .wrap caps at 720px on every screen there is. So it never fitted
+   on one line anywhere — and it was `overflow-x:auto` with both scrollbars
+   suppressed, which on a mouse meant the last five sections had no bar to drag
+   and no sign there was anywhere to drag to. They were simply unreachable.
+
+   It wraps now. That costs a second row of sticky height, which .block's
+   scroll-margin-top below has to match or every anchor lands under the nav.
+
+   It also parks at --bar, not at 0. Both bars are sticky and both used to claim
+   top:0, so the moment you scrolled the nav slid under .sitebar — which has the
+   higher z-index — and 48px of it went behind an opaque bar. That is the whole
+   nav on a phone and all but the second row on a laptop: the sections were
+   doubly unreachable, once off the right edge and once behind the wordmark. */
 nav{
-  position:sticky;top:0;z-index:20;margin:0 -18px 8px;padding:10px 18px;
+  position:sticky;top:var(--bar);z-index:20;margin:0 -18px 8px;padding:10px 18px;
   background:rgba(10,16,20,.86);backdrop-filter:blur(8px);
-  border-bottom:1px solid #1D2B33;overflow-x:auto;white-space:nowrap;
-  scrollbar-width:none;
+  border-bottom:1px solid #1D2B33;
+  display:flex;flex-wrap:wrap;gap:5px;
 }
-nav::-webkit-scrollbar{display:none}
 nav a{
-  display:inline-block;font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;
-  color:var(--mist);text-decoration:none;padding:5px 10px;margin-right:4px;
+  flex:0 0 auto;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;
+  color:var(--mist);text-decoration:none;padding:5px 10px;white-space:nowrap;
   border:1px solid #22343C;border-radius:2px;
+}
+/* On a phone the wrap costs 193px of sticky bar — half the viewport, and worse
+   than the problem it fixes. So below 560px it goes back to one scrolling line,
+   where a swipe reaches the far end natively. The scrollbar stays visible this
+   time: that is the piece whose absence made the desktop version unusable, and
+   a narrow desktop window lands here too. */
+/* Scoped to the technique nav by its label, not to `nav`: .sitebar has a nav of
+   its own, and an unscoped rule here faded the wordmark's "Trainer" link too. */
+@media (max-width:560px){
+  :root{--nav:51px}   /* one row again, so the anchor offset shrinks with it */
+  nav[aria-label="Techniques"]{
+    flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#2E4048 transparent;
+    /* Overlay scrollbars reserve no width and only surface mid-gesture, so at
+       rest there is still nothing saying the row continues. The right edge
+       fades instead. At this width it always overflows — 789px of it at the
+       breakpoint itself — so the fade is never lying. */
+    -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 32px),transparent);
+    mask-image:linear-gradient(to right,#000 calc(100% - 32px),transparent);
+  }
+  nav[aria-label="Techniques"]::-webkit-scrollbar{height:4px}
+  nav[aria-label="Techniques"]::-webkit-scrollbar-thumb{background:#2E4048;border-radius:2px}
 }
 nav a:hover,nav a:focus-visible{color:var(--amber);border-color:var(--amber-ink)}
 .hint{font-family:var(--mono);font-size:12px;color:var(--mist);border:1px dashed #2A3D45;padding:10px 12px;margin:0 0 16px;line-height:1.7}
 
 /* ---------- prose blocks ---------- */
-.block{scroll-margin-top:60px;padding:34px 0 8px;border-top:1px solid #1D2B33;margin-top:34px}
+/* An anchored section has to clear both sticky bars stacked, not just one. */
+.block{
+  scroll-margin-top:calc(var(--bar) + var(--nav) + 8px);
+  padding:34px 0 8px;border-top:1px solid #1D2B33;margin-top:34px;
+}
 h2{font-family:var(--disp);font-weight:700;font-size:clamp(24px,6.4vw,32px);line-height:1.06;letter-spacing:-.015em;margin:6px 0 10px;color:#F4F8F5}
 h3{font-family:var(--disp);font-weight:700;font-size:18px;margin:26px 0 6px;color:#F4F8F5}
 p{margin:0 0 14px}
@@ -74,7 +118,12 @@ b{color:#F4F8F5;font-weight:600}
 code{font-family:var(--mono);font-size:.88em;color:var(--amber);background:#16232A;padding:1px 5px;border-radius:2px}
 
 /* ---------- case ---------- */
-.case{padding:38px 0 10px;border-top:1px solid #1D2B33;margin-top:30px;scroll-margin-top:56px}
+/* Same offset as .block, and for the same reason — these are the sections the
+   nav actually links to, so getting this wrong is the nav not working. */
+.case{
+  padding:38px 0 10px;border-top:1px solid #1D2B33;margin-top:30px;
+  scroll-margin-top:calc(var(--bar) + var(--nav) + 8px);
+}
 .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mist)}
 .eyebrow i{font-style:normal;color:var(--amber);margin-right:8px}
 .casehead h2{margin:8px 0 8px}
@@ -297,17 +346,29 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .seg .tbtn{border:none;border-radius:0}
 .seg .tbtn+.tbtn{border-left:1px solid #2A3D45}
 
-.pad{display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin:0 0 10px}
+/* Three by three, the shape News+ uses, and not an arbitrary one: the notes
+   inside a square are laid out on the same 3x3 with the same digit order, so
+   "the 7 is bottom-left" is one fact about the pad and the square both.
+   Width-capped and centred rather than filling the column — three keys across
+   a 600px board would be 200px each. */
+.pad{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+  width:min(100%,282px);margin:0 auto 8px;
+}
 /* Scoped to .pad on purpose. `key` is not a unique name: index.html marks the
    decisive pencil mark in a figure as `.m.key`, and an unscoped `.key` rule
    here painted those little digits with the keypad's panel background, border
    and aspect ratio. */
 .pad .key{
-  font-family:var(--mono);font-size:clamp(14px,4.6vw,19px);
+  font-family:var(--mono);font-size:clamp(18px,6vw,26px);
   background:var(--panel2);color:var(--text);border:1px solid #2A3D45;
-  aspect-ratio:.82;border-radius:3px;cursor:pointer;display:grid;place-items:center;
+  aspect-ratio:1;border-radius:3px;cursor:pointer;display:grid;place-items:center;
   position:relative;padding:0;
 }
+/* Focus mode — nothing selected, so a tap lights a digit instead of entering
+   it. Sunk a shade, which is as loud as this needs to be: the hint line under
+   the pad says it in words and the lit key says which. */
+.pad.focusmode .key{background:var(--panel)}
 .pad .key:hover{border-color:var(--amber-ink)}
 .pad .key:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .pad .key .left{
@@ -317,23 +378,26 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .pad .key.focused{background:#2E5A32;border-color:#8FD48A;color:#DFF3DC}
 
 /* Notes mode: the pad reports what is already pencilled into the selected
-   square, so pressing a digit reads as the toggle it actually is. Deliberately
-   the pencil blue used for notes on the board rather than the amber/green the
-   pad already spends on "focused" and "done" — this is a different axis of
-   information and should not look like either of those. */
+   square, so pressing a digit reads as the toggle it actually is. It wears the
+   exact green a highlighted note wears on the board (.nt.lit) — the pad is
+   showing you the same thing the square is, and two colours for one fact read
+   as two facts. The dot carries the state without relying on hue. */
 .pad.notesmode .key{border-style:dashed}
 .pad .key.noted{
-  background:#1B3745;border-color:#5D93A8;color:#D7ECF5;
+  background:#8FD48A;border-color:#8FD48A;color:#14532D;
   border-style:solid;font-weight:500;
 }
 .pad .key.noted::before{
   content:"";position:absolute;top:3px;right:3px;width:5px;height:5px;
-  border-radius:50%;background:#7FC0D8;
+  border-radius:50%;background:#14532D;opacity:.55;
 }
 .pad .key.noted.done{opacity:.45}
+/* The remaining-count is --mist against the dark keys; on the green one that
+   is barely there. */
+.pad .key.noted .left{color:#14532D;opacity:.75}
 .padlabel{
   font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--mist);margin:0 0 6px
+  color:var(--mist);margin:0 0 6px;text-align:center
 }
 
 /* coach */
@@ -426,29 +490,37 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   }
   .tside>.coach:first-child{margin-top:0}
 
-  /* Keys are tall-ish on touch because a fingertip needs the height. With a
-     mouse they do not, and two 9-wide pad rows are the largest claim on the
-     vertical budget after the board itself — squatter keys buy the board about
-     45px of width on a laptop screen. */
-  .pad .key{aspect-ratio:1.25}
+  /* A fingertip needs a ~90px key; a mouse pointer does not, and the pad is the
+     largest claim on the vertical budget after the board itself. Narrower and
+     squatter here buys back most of what the 3x3 shape costs the board — at
+     touch size the pad would be 290px tall, against 183px for this. */
+  .pad{width:min(100%,216px)}
+  .pad .key{aspect-ratio:1.25;font-size:19px}
 
   /* The board is capped by viewport HEIGHT, not by the column, so that board +
      both keypads + the page header all land on one screen. Letting it fill the
      column gave a 750px board and pushed the keypad below the fold, which just
      moves the scrolling complaint from the coach to the pad.
 
-     The divisor is not a fudge factor: everything under the board scales with
-     the board. Two pad rows of nine keys at the aspect-ratio above come to
-     ~0.142x the board width, so the column costs 1.142x board plus a fixed
-     355px of site bar, page header, tools row, label and margins. Both numbers
-     were measured in the browser, not guessed.
+     The subtraction is not a fudge factor. It used to be a divisor, because two
+     rows of nine keys were as wide as the board and therefore scaled with it.
+     The 3x3 pad is width-capped instead, so its height is fixed no matter how
+     big the board gets, and it moves out of the multiplier into the constant:
+     183px of pad on top of the 355px of site bar, page header, tools row, label
+     and margins. Both numbers were measured in the browser, not guessed.
+
+     That constant is why the 3x3 costs the board roughly 100px of width on a
+     900px-tall window against the two rows it replaced. The pad has to go
+     beside the board, not under it, to get that back.
 
      620px is a comfort ceiling — past it the cells are just large, and the
      coach column starts to look starved. min() with 100% keeps a very tall
-     window from making the board wider than its column. */
+     window from making the board wider than its column, and the 320px floor
+     keeps a short one from shrinking it to nothing: past that point the page
+     scrolls, which is better than an unreadable board. */
   .tplay{
     position:sticky;top:14px;
-    width:min(100%,620px,calc((100vh - 355px) / 1.142));
+    width:min(100%,620px,max(320px,calc(100vh - 538px)));
     margin-inline:auto;
   }
   /* Board digits size off the board itself (see .boardwrap container-type), so

@@ -72,18 +72,22 @@
     select(+sq.dataset.i);
   });
 
-  const padEl = $('pad'), focusEl = $('focusPad');
+  const padEl = $('pad');
   for (let d = 1; d <= 9; d++) {
     const b = document.createElement('button');
     b.className = 'key'; b.type = 'button';
     b.innerHTML = d + '<span class="left" data-left="' + d + '"></span>';
-    b.addEventListener('click', () => enter(d));
+    b.addEventListener('click', () => press(d));
     padEl.appendChild(b);
+  }
 
-    const f = document.createElement('button');
-    f.className = 'key'; f.type = 'button'; f.textContent = d;
-    f.addEventListener('click', () => { S.focus = S.focus === d ? null : d; render(); });
-    focusEl.appendChild(f);
+  /* The one rule the whole pad runs on: with a square selected a digit goes
+     into it, with nothing selected it lights that digit across the board. Two
+     jobs, one pad, and the selection is what says which — so deselecting a
+     square is also how you reach the focus. */
+  function press(d) {
+    if (S.sel === null) { S.focus = S.focus === d ? null : d; render(); }
+    else enter(d);
   }
 
   /* ---------------- history ---------------- */
@@ -103,9 +107,24 @@
   }
 
   /* ---------------- moves ---------------- */
+  /* Clicking the selected square again drops the selection. The focus goes with
+     it only when this square is what lit it — a focus you set deliberately on
+     the focus pad outlives the square you happened to be sitting on. */
   function select(i) {
-    S.sel = i;
-    if (S.grid[i]) S.focus = S.grid[i];
+    if (S.sel === i) {
+      if (S.focus && S.focus === S.grid[i]) S.focus = null;
+      S.sel = null;
+    } else {
+      S.sel = i;
+      if (S.grid[i]) S.focus = S.grid[i];
+    }
+    render();
+  }
+
+  function deselect() {
+    if (S.sel === null) return;
+    if (S.focus && S.focus === S.grid[S.sel]) S.focus = null;
+    S.sel = null;
     render();
   }
 
@@ -411,18 +430,29 @@
     /* keypad. In Notes mode the pad doubles as a readout of the selected
        square's pencil marks, so a digit key shows whether pressing it will add
        or remove a note. Only for an empty square: a filled one has no notes to
-       report, and lighting keys there would be a lie. */
+       report, and lighting keys there would be a lie.
+
+       `focused` is painted only while the pad is in focus mode. The focus digit
+       survives selecting a square — the board keeps it lit — but the pad shows
+       what the next tap will do, and while a square is selected the next tap is
+       an entry, not a focus. */
+    const focusing = S.sel === null;
     const notesMode = S.mode === 'notes';
-    const selNotes = (notesMode && S.sel !== null && !S.grid[S.sel]) ? S.notes[S.sel] : null;
-    padEl.classList.toggle('notesmode', notesMode);
+    const selNotes = (notesMode && !focusing && !S.grid[S.sel]) ? S.notes[S.sel] : null;
+    padEl.classList.toggle('notesmode', notesMode && !focusing);
+    padEl.classList.toggle('focusmode', focusing);
     [...padEl.children].forEach((b, k) => {
       const d = k + 1;
       const placed = S.grid.filter(v => v === d).length;
       b.classList.toggle('done', placed >= 9);
       b.classList.toggle('noted', !!(selNotes && selNotes.has(d)));
+      b.classList.toggle('focused', focusing && S.focus === d);
       b.querySelector('.left').textContent = placed >= 9 ? '' : (9 - placed);
     });
-    [...focusEl.children].forEach((b, k) => b.classList.toggle('focused', S.focus === k + 1));
+    $('padHint').textContent = focusing
+      ? 'No square selected — tap a number to light it everywhere'
+      : (notesMode ? 'Tap a number to add or remove a note'
+                   : 'Tap a number to place it');
 
     $('bPen').setAttribute('aria-pressed', S.mode === 'pen');
     $('bNotes').setAttribute('aria-pressed', S.mode === 'notes');
@@ -535,10 +565,11 @@
       if (e.key === 'z') { e.preventDefault(); undo(); }
       return;
     }
-    if (e.key >= '1' && e.key <= '9') { enter(+e.key); e.preventDefault(); return; }
+    if (e.key >= '1' && e.key <= '9') { press(+e.key); e.preventDefault(); return; }
     if (e.key === 'Backspace' || e.key === 'Delete') { erase(); e.preventDefault(); return; }
     if (e.key === 'n' || e.key === 'N') { S.mode = S.mode === 'pen' ? 'notes' : 'pen'; render(); return; }
     if (e.key === 'h' || e.key === 'H') { more(); return; }
+    if (e.key === 'Escape') { deselect(); return; }
     if (S.sel === null) return;
     const moves = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 };
     if (moves[e.key] !== undefined) {

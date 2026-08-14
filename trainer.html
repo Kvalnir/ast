@@ -61,10 +61,11 @@
     <button class="tbtn" id="bAutofill" title="Fill every empty square with its possible numbers">Autofill</button>
   </div>
 
+  <!-- One pad, as News+ has it. What a key does depends on whether a square is
+       selected, so the hint under it is not decoration — it is the only thing
+       telling you which of the two the next tap will be. -->
   <div class="pad" id="pad"></div>
-
-  <p class="padlabel">Focus a digit <span id="focusHint">— tap a number below to light it everywhere, notes included</span></p>
-  <div class="pad" id="focusPad"></div>
+  <p class="padlabel" id="padHint"></p>
 
   </div><!-- /.tplay -->
   <div class="tside">
