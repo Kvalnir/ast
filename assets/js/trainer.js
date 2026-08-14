@@ -449,8 +449,11 @@
       b.classList.toggle('focused', focusing && S.focus === d);
       b.querySelector('.left').textContent = placed >= 9 ? '' : (9 - placed);
     });
+    /* Kept short enough to hold one line down to the 320px board floor. The
+       height of this line is part of the constant .tplay sizes the board
+       against, so a second line here silently costs the board 17px. */
     $('padHint').textContent = focusing
-      ? 'No square selected — tap a number to light it everywhere'
+      ? 'Nothing selected — tap to light a digit'
       : (notesMode ? 'Tap a number to add or remove a note'
                    : 'Tap a number to place it');
 

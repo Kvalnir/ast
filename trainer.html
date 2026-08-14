@@ -51,20 +51,26 @@
     <svg class="geo2" id="geo" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"></svg>
   </div>
 
-  <div class="tools">
-    <button class="tbtn" id="bUndo" title="Undo (also restores notes an entry removed)">Undo</button>
-    <span class="seg">
-      <button class="tbtn" id="bPen" aria-pressed="true">Pen</button>
-      <button class="tbtn" id="bNotes" aria-pressed="false">Notes</button>
-    </span>
-    <button class="tbtn" id="bErase">Erase</button>
-    <button class="tbtn" id="bAutofill" title="Fill every empty square with its possible numbers">Autofill</button>
-  </div>
+  <!-- Tools beside the pad rather than above it. The row they used to sit in
+       was vertical space the board pays for directly — see .tplay's width in
+       the stylesheet — and the 3x3 pad left a column of unused height next to
+       it exactly the size of four buttons.
 
-  <!-- One pad, as News+ has it. What a key does depends on whether a square is
+       One pad, as News+ has it. What a key does depends on whether a square is
        selected, so the hint under it is not decoration — it is the only thing
        telling you which of the two the next tap will be. -->
-  <div class="pad" id="pad"></div>
+  <div class="padrow">
+    <div class="tools">
+      <button class="tbtn" id="bUndo" title="Undo (also restores notes an entry removed)">Undo</button>
+      <span class="seg">
+        <button class="tbtn" id="bPen" aria-pressed="true">Pen</button>
+        <button class="tbtn" id="bNotes" aria-pressed="false">Notes</button>
+      </span>
+      <button class="tbtn" id="bErase">Erase</button>
+      <button class="tbtn" id="bAutofill" title="Fill every empty square with its possible numbers">Autofill</button>
+    </div>
+    <div class="pad" id="pad"></div>
+  </div>
   <p class="padlabel" id="padHint"></p>
 
   </div><!-- /.tplay -->

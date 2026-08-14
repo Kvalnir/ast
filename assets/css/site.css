@@ -332,7 +332,20 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .geo2 line.cross{stroke-dasharray:.15 .15;opacity:.55}
 
 /* controls */
-.tools{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+
+/* The tools sit beside the pad, not above it, and the two stretch to the same
+   height: four control rows against three key rows, which is why the buttons
+   come out a little taller than they were. The row this replaced cost ~46px of
+   vertical space, and .tplay's width below converts that straight into board. */
+.padrow{display:flex;justify-content:center;align-items:stretch;gap:10px;margin:0 0 8px}
+.tools{
+  flex:0 0 118px;display:grid;grid-template-rows:repeat(4,1fr);gap:6px;margin:0;
+}
+.tools .tbtn{padding:8px 6px;text-align:center}
+/* In the column the segmented pair has a full row to itself, so it splits it
+   rather than hugging its labels. */
+.tools .seg{display:flex}
+.tools .seg .tbtn{flex:1}
 .tbtn{
   font-family:var(--mono);font-size:12px;letter-spacing:.04em;
   background:var(--panel);color:var(--text);border:1px solid #2A3D45;
@@ -349,11 +362,13 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 /* Three by three, the shape News+ uses, and not an arbitrary one: the notes
    inside a square are laid out on the same 3x3 with the same digit order, so
    "the 7 is bottom-left" is one fact about the pad and the square both.
-   Width-capped and centred rather than filling the column — three keys across
-   a 600px board would be 200px each. */
+   Width-capped rather than filling the column — three keys across a 600px board
+   would be 200px each. It shrinks below that basis when the tools column beside
+   it leaves less: on a 390px phone that lands the keys at ~71px, still a
+   comfortable thumb target. */
 .pad{
   display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
-  width:min(100%,282px);margin:0 auto 8px;
+  flex:0 1 282px;min-width:0;margin:0;
 }
 /* Scoped to .pad on purpose. `key` is not a unique name: index.html marks the
    decisive pencil mark in a figure as `.m.key`, and an unscoped `.key` rule
@@ -494,7 +509,7 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
      largest claim on the vertical budget after the board itself. Narrower and
      squatter here buys back most of what the 3x3 shape costs the board — at
      touch size the pad would be 290px tall, against 183px for this. */
-  .pad{width:min(100%,216px)}
+  .pad{flex-basis:216px}
   .pad .key{aspect-ratio:1.25;font-size:19px}
 
   /* The board is capped by viewport HEIGHT, not by the column, so that board +
@@ -505,22 +520,30 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
      The subtraction is not a fudge factor. It used to be a divisor, because two
      rows of nine keys were as wide as the board and therefore scaled with it.
      The 3x3 pad is width-capped instead, so its height is fixed no matter how
-     big the board gets, and it moves out of the multiplier into the constant:
-     183px of pad on top of the 355px of site bar, page header, tools row, label
-     and margins. Both numbers were measured in the browser, not guessed.
+     big the board gets, and it belongs in the constant.
 
-     That constant is why the 3x3 costs the board roughly 100px of width on a
-     900px-tall window against the two rows it replaced. The pad has to go
-     beside the board, not under it, to get that back.
+     441px, and every part of it was measured in the browser rather than
+     reasoned about: 221px above the column (site bar, page header, meta row)
+     plus 220px below the board (the 175px tools-and-pad row, the 17px hint, and
+     28px of margins). Moving the tools alongside the pad is what took this from
+     538 — the row they used to occupy was costing the board ~46px of width, and
+     the rest of the drop was slack the previous constant had never had measured
+     out of it.
+
+     Re-measure this if anything in the column changes height. The check is that
+     .tplay's bottom lands on the viewport bottom: short by a lot and the board
+     is smaller than it needs to be, over and `position:sticky` stops working
+     because the column no longer fits.
 
      620px is a comfort ceiling — past it the cells are just large, and the
-     coach column starts to look starved. min() with 100% keeps a very tall
-     window from making the board wider than its column, and the 320px floor
-     keeps a short one from shrinking it to nothing: past that point the page
-     scrolls, which is better than an unreadable board. */
+     coach column starts to look starved. It is reached at a 1061px-tall window.
+     min() with 100% keeps a very tall window from making the board wider than
+     its column, and the 320px floor keeps a short one from shrinking it to
+     nothing: past that point the page scrolls, which is better than an
+     unreadable board. */
   .tplay{
     position:sticky;top:14px;
-    width:min(100%,620px,max(320px,calc(100vh - 538px)));
+    width:min(100%,620px,max(320px,calc(100vh - 441px)));
     margin-inline:auto;
   }
   /* Board digits size off the board itself (see .boardwrap container-type), so
