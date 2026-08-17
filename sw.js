@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v7';   // v7: digits centred in their squares, entry deselects
+const VERSION = 'v8';   // v8: the cheat sheet joins the shell
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
@@ -22,12 +22,13 @@ const PREFIX = 'ast-';
 const SHELL = `${PREFIX}shell-${VERSION}`;  // our files, replaced on bump
 const FONTS = `${PREFIX}fonts`;             // Google Fonts, kept across versions
 
-// Everything the two pages need to run with the network off. `./` is left out
-// on purpose: it is byte-for-byte index.html, and the navigation handler
+// Everything the three pages need to run with the network off. `./` is left
+// out on purpose: it is byte-for-byte index.html, and the navigation handler
 // already falls back to the cached copy.
 const PRECACHE = [
   './index.html',
   './trainer.html',
+  './cheatsheet.html',
   './manifest.webmanifest',
   './assets/css/site.css',
   './assets/js/core.js',

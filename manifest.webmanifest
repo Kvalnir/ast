@@ -30,6 +30,13 @@
       "description": "The nine patterns, each on a real position",
       "url": "./index.html",
       "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Cheat sheet",
+      "short_name": "Cheat sheet",
+      "description": "All nine on one page: the trigger, the deletion, the trap",
+      "url": "./cheatsheet.html",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

@@ -1,11 +1,15 @@
 # Advanced Sudoku Techniques
 
-A two-page static site for getting past the wall in Apple News+ **Challenging** sudoku.
+A three-page static site for getting past the wall in Apple News+ **Challenging** sudoku.
 
 - **`index.html`** — the pattern reference. Nine patterns, each on a real position with real
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
 - **`trainer.html`** — a live board that behaves like News+ and names the techniques available in
   your position, one hint level at a time.
+- **`cheatsheet.html`** — the same nine as a card grid: the trigger that fires each one, the
+  deletion it earns, and where it goes wrong. The reference is what you read; this is what you keep
+  open beside the puzzle. Each card links back to its full write-up, and its figures are miniatures
+  of the same positions.
 
 Every position shown, and every elimination claimed, is verified against the puzzle's unique
 solution — nothing here is hand-waved.
@@ -25,7 +29,8 @@ Setting a new copy up from scratch:
 
 ```bash
 git init
-git add index.html trainer.html manifest.webmanifest sw.js assets tools .githooks \
+git add index.html trainer.html cheatsheet.html manifest.webmanifest sw.js assets tools \
+        .githooks \
         .gitignore .nojekyll README.md
 git commit -m "Sudoku pattern trainer"
 git branch -M main
@@ -49,6 +54,7 @@ untouched.
 ```
 index.html              technique reference (generated — see tools/)
 trainer.html            interactive board
+cheatsheet.html         one-page crib of the nine (generated — see tools/)
 manifest.webmanifest    PWA metadata: name, icons, start URL
 sw.js                   service worker — precache, offline, update prompt
 assets/css/site.css     shared design tokens and all page styles
@@ -71,13 +77,13 @@ support SVG favicons should get the vector. Edit the two together or they drift.
 The site is a PWA, which matters here because a sudoku trainer is something you reach for on a
 phone, on a train, without a signal. Open it, then **Add to Home Screen** (iOS Share menu) or take
 the **Install** offer the site makes on Chromium browsers. It opens without browser chrome and
-starts on the trainer; the technique reference is one tap away in the site bar, and both work with
-the network off.
+starts on the trainer; the reference and the cheat sheet are one tap away in the site bar, and all
+three work with the network off.
 
 Two things worth knowing:
 
-- **Everything is precached on the first visit** — both pages, the CSS, all five scripts and the
-  seven icons: 16 files, 309 KB. There is no lazy loading to go wrong later.
+- **Everything is precached on the first visit** — all three pages, the CSS, all five scripts and
+  the seven icons: 17 files, 344 KB. There is no lazy loading to go wrong later.
 - **Fonts arrive one visit late.** They come from Google Fonts, and on a first visit the page has
   already requested them before the worker takes control, so they are only cached from the second
   visit onwards. Until then an offline load falls back to the system stack — the layout holds, the
@@ -155,9 +161,14 @@ Only needed if you want different puzzles or edited lesson text.
 
 ```bash
 cd tools
-python3 bank.py     # regenerate the puzzle bank (slow — it verifies uniqueness)
-python3 build.py    # regenerate ../index.html from template.html
+python3 bank.py        # regenerate the puzzle bank (slow — it verifies uniqueness)
+python3 build.py       # regenerate ../index.html from template.html
+python3 cheatsheet.py  # regenerate ../cheatsheet.html
 ```
+
+`build.py` takes its prose from `template.html` and its figures from `examples.json`;
+`cheatsheet.py` carries its own copy in the `TECH` table at the top of the file. The two describe
+the same positions, so if you change an example in `examples.json`, change the matching card.
 
 `bank.py` emits `bank.json`; convert it to `assets/js/bank.js` with:
 
