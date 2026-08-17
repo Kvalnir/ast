@@ -583,14 +583,21 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   display:grid;grid-template-columns:repeat(auto-fill,minmax(384px,1fr));
   gap:1px;background:#1D2B33;border:1px solid #1D2B33;border-radius:2px;overflow:hidden;
 }
-/* The trigger list at the foot of the page links to these, and the site bar is
+/* Grid areas rather than a row of two columns, because the three parts have to
+   re-order for one column: the figure keeps its own column here, spanning the
+   heading and the detail beside it, and stacks under the heading below 560px.
+   The trigger list at the foot of the page links to these, and the site bar is
    sticky — without the offset a jump lands the card's eyebrow under the bar. */
 .card{
-  background:var(--panel);padding:16px;display:flex;gap:14px;align-items:flex-start;
+  background:var(--panel);padding:16px;
+  display:grid;grid-template-columns:auto minmax(0,1fr);
+  grid-template-areas:"fig head" "fig body";
+  gap:0 14px;align-content:start;
   scroll-margin-top:calc(var(--bar) + 10px);
 }
-.cardfig{flex:0 0 auto}
-.cardbody{flex:1 1 auto;min-width:0}
+.cardhead{grid-area:head}
+.cardfig{grid-area:fig}
+.cardbody{grid-area:body;min-width:0}
 .card .eyebrow{font-size:10px;letter-spacing:.16em}
 .card h2{font-family:var(--disp);font-weight:700;font-size:18px;line-height:1.15;margin:5px 0 7px}
 .card h2 a{color:#F4F8F5;text-decoration:none}
@@ -670,13 +677,15 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   .gloss{grid-template-columns:1fr}
   /* The figure goes above the text and grows, because at this width the card
      is the whole screen and there is room for a readable grid. */
-  .card{flex-direction:column;align-items:stretch;gap:16px}
+  /* Name, then board, then detail — the order the DOM is already in. */
+  .card{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "fig" "body";gap:14px 0}
   /* Both children take the card's width, so neither can size the column by its
-     own longest line. Before this the caption was a flex item sized to its
-     max-content — one unbroken line of `3 and 5 live only in r2c1 / r2c4, so
-     r2c4 loses its 7` — which pushed the whole card past the viewport and took
-     the body text off the right-hand edge with it. */
+     own longest line. Before this the caption was sized to its max-content —
+     one unbroken line of `3 and 5 live only in r2c1 / r2c4, so r2c4 loses its
+     7` — which pushed the whole card past the viewport and took the body text
+     off the right-hand edge with it. */
   .cardfig,.cardbody{width:100%;min-width:0}
+  .cardhead h2{margin-bottom:0}   /* the row gap does that job here */
   .figcap{max-width:100%}
   .mini{grid-template-columns:repeat(9,20px);grid-template-rows:repeat(9,20px)}
   .mini i{font-size:10px}

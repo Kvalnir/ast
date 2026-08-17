@@ -185,15 +185,22 @@ def mini(t):
 
 
 def card(t):
+    # Heading FIRST in the source, then the figure, then the detail. The card is
+    # laid out with grid areas, so on a wide screen the figure still sits in a
+    # column of its own to the left of both; in one column the reading order is
+    # the DOM order, and a figure printed above its own title reads as belonging
+    # to the card above it.
     return f'''
   <article class="card" id="{t['id']}">
+    <div class="cardhead">
+      <span class="eyebrow"><i>{t['n']}</i> {t['family']}</span>
+      <h2><a href="index.html#{t['id']}">{t['title']}</a></h2>
+    </div>
     <div class="cardfig">
       {mini(t)}
       <p class="figcap">{t['cap']}</p>
     </div>
     <div class="cardbody">
-      <span class="eyebrow"><i>{t['n']}</i> {t['family']}</span>
-      <h2><a href="index.html#{t['id']}">{t['title']}</a></h2>
       <p class="what">{t['what']}</p>
       <dl class="kv">
         <dt>Look for</dt><dd>{t['find']}</dd>

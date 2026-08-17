@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v9';   // v9: cheat-sheet grids no longer stretch on a phone
+const VERSION = 'v10';  // v10: cheat-sheet cards lead with the name, not the board
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
