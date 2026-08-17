@@ -6,10 +6,10 @@ A three-page static site for getting past the wall in Apple News+ **Challenging*
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
 - **`trainer.html`** — a live board that behaves like News+ and names the patterns available in
   your position, one hint level at a time.
-- **`cheatsheet.html`** — the same nine patterns as a card grid: the trigger that fires each one, the
-  deletion it earns, and where it goes wrong. The reference is what you read; this is what you keep
-  open beside the puzzle. Each card links back to its full write-up, and its figures are miniatures
-  of the same positions.
+- **`cheatsheet.html`** — the same nine patterns as a card grid: the trigger that fires each one,
+  the deletion it earns, and where it goes wrong. The reference is what you read; this is what you
+  keep open beside the puzzle. Each card links back to its full write-up, and its figures are
+  miniatures of the same positions.
 
 Every position shown, and every elimination claimed, is verified against the puzzle's unique
 solution — nothing here is hand-waved.
@@ -83,7 +83,7 @@ three work with the network off.
 Two things worth knowing:
 
 - **Everything is precached on the first visit** — all three pages, the CSS, all five scripts and
-  the seven icons: 17 files, 344 KB. There is no lazy loading to go wrong later.
+  the seven icons: 17 files, 354 KB. There is no lazy loading to go wrong later.
 - **Fonts arrive one visit late.** They come from Google Fonts, and on a first visit the page has
   already requested them before the worker takes control, so they are only cached from the second
   visit onwards. Until then an offline load falls back to the system stack — the layout holds, the
@@ -155,6 +155,26 @@ pattern in isolation without solving forty squares first.
 lost its real digit. This is the one error News+ cannot catch: Autocheck validates answers and never
 notes, so an elimination you made in error is invisible until the grid dies twenty moves later.
 
+## The cheat sheet
+
+**It is a peer of the other two, not a subsection.** It has its own link in the site bar because it
+is a thing you keep open beside the puzzle, the way the trainer is — the lesson is what you read
+once, this is what you glance at. Patterns links to it from the hero and from the triage table, and
+every card title links back to its own write-up.
+
+**The figures are the same positions the lesson works through**, drawn small: same paper ground,
+same amber pattern cells, same struck-red eliminations, same connecting lines from the same
+coordinates. A card that showed a different position, or an elimination the lesson does not claim,
+would quietly break the promise made at the top of this file — so the eliminations are taken from
+`examples.json` and labelled with the digits each cell actually loses.
+
+**Below the cards** sit the three things worth having on the same screen as them: the stall loop in
+six moves, the trigger table read feature-first rather than name-first, and a glossary. There is no
+JavaScript on the page at all.
+
+**Uniqueness is a footnote, not a card** — see the note at the foot of Patterns, linked from the
+glossary. The reasoning is in *Notes on scope* below.
+
 ## Rebuilding the content
 
 Only needed if you want different puzzles or edited lesson text.
@@ -166,9 +186,18 @@ python3 build.py       # regenerate ../index.html from template.html
 python3 cheatsheet.py  # regenerate ../cheatsheet.html
 ```
 
-`build.py` takes its prose from `template.html` and its figures from `examples.json`;
-`cheatsheet.py` carries its own copy in the `TECH` table at the top of the file. The two describe
-the same positions, so if you change an example in `examples.json`, change the matching card.
+`build.py` takes its prose from `template.html` and its figures from `examples.json`.
+`cheatsheet.py` carries its own copy of the positions in the `TECH` table at the top of the file,
+because its figures are schematic rather than rendered from a real grid. **The two describe the
+same positions**, so if you change an example in `examples.json`, change the matching card. A
+base cell or an elimination that disagrees between the two pages is the one bug neither generator
+can catch for you.
+
+`mini.py` is the small 9×9 figure, shared: `cheatsheet.py` draws one per card, `build.py` draws the
+single uniqueness example at the foot of the lesson. One renderer, so the two pages cannot drift
+into two dialects of the same picture. The uniqueness figure is the only one built by hand rather
+than read out of a verified position — if you edit it, check it stays a legal deadly pattern: four
+cells, two rows, two columns, and exactly two boxes.
 
 `bank.py` emits `bank.json`; convert it to `assets/js/bank.js` with:
 
@@ -209,12 +238,30 @@ Expected: `solved 20/20 assertions 1384 fails 0`.
 ## Notes on scope
 
 The trainer detects naked and hidden singles, pointing pairs, claiming, naked pairs and triples,
-hidden pairs and triples, X-Wing, swordfish, skyscraper and XY-Wing. Uniqueness (the unique
-rectangle, BUG+1) is documented as a footnote at the foot of the lesson but deliberately not
-detected: it reasons from the puzzle having one solution rather than from the grid, so it is the
-one technique that produces a confident, wrong elimination on a grid the player has already
-corrupted — and corrupted grids are exactly what the News+ section is about. That is comfortably enough for
-the News+ challenging tier — every puzzle in the bank solves with them alone. Chains beyond the
-skyscraper (colouring, kites, W-wings, forcing chains) are deliberately absent: they are rarely the
-move at this tier, and adding them would let the coach answer positions you should be solving with
-something cheaper.
+hidden pairs and triples, X-Wing, swordfish, skyscraper and XY-Wing. That is comfortably enough for
+the News+ challenging tier — every puzzle in the bank solves with them alone.
+
+Chains beyond the skyscraper (colouring, kites, W-wings, forcing chains) are deliberately absent:
+they are rarely the move at this tier, and adding them would let the coach answer positions you
+should be solving with something cheaper.
+
+Uniqueness (the unique rectangle, BUG+1) is documented as a footnote at the foot of the lesson and
+deliberately not detected. It is never needed here, and it is the one argument on the site that
+reasons from the puzzle having a single solution rather than from the grid in front of you. Every
+detector above degrades safely on a grid the player has corrupted — it finds nothing, or it
+contradicts itself. A uniqueness detector would keep working and name a confident, wrong
+elimination, on the exact failure mode the News+ section spends its length warning about. If you
+ever add one, gate it on the position still being solvable.
+
+## Words
+
+Three words, three jobs, and the site is consistent about them — worth keeping that way, because
+they are near-synonyms in ordinary sudoku writing and drift is invisible until someone reads two
+pages in a row.
+
+- **Pattern** — the configuration on the board, and the site's countable noun for the nine.
+  *Nine patterns, the pattern doing the work, pattern cells.* The default; when in doubt, use it.
+- **Technique** — the named method you apply, as a method: the drills, the coach ladder, the
+  detectors in `techniques.js`.
+- **Shape** is not used as a synonym for either. It was — in the hero, the figure captions and the
+  cheat sheet's title — and the pages ended up disagreeing about what to call the same thing.
