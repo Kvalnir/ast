@@ -4,9 +4,9 @@ A three-page static site for getting past the wall in Apple News+ **Challenging*
 
 - **`index.html`** — the pattern reference. Nine patterns, each on a real position with real
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
-- **`trainer.html`** — a live board that behaves like News+ and names the techniques available in
+- **`trainer.html`** — a live board that behaves like News+ and names the patterns available in
   your position, one hint level at a time.
-- **`cheatsheet.html`** — the same nine as a card grid: the trigger that fires each one, the
+- **`cheatsheet.html`** — the same nine patterns as a card grid: the trigger that fires each one, the
   deletion it earns, and where it goes wrong. The reference is what you read; this is what you keep
   open beside the puzzle. Each card links back to its full write-up, and its figures are miniatures
   of the same positions.
@@ -52,7 +52,7 @@ untouched.
 ## Layout
 
 ```
-index.html              technique reference (generated — see tools/)
+index.html              pattern reference (generated — see tools/)
 trainer.html            interactive board
 cheatsheet.html         one-page crib of the nine (generated — see tools/)
 manifest.webmanifest    PWA metadata: name, icons, start URL

@@ -146,7 +146,7 @@ CASES.append(dict(
         "Compare the short lists. Two rows with the identical column pair is an X-Wing.",
         "Eliminate the digit from the rest of both columns. Then run the whole scan again by column, comparing row pairs — the two directions are separate hunts.",
         "Move to the next digit. Nine digits, two directions, and every X-Wing on the board has been checked."],
-    auto="The lit digit is precisely the single-digit map this figure uses, so the technique becomes a reading exercise rather than a search. Light the digit, count lit squares per row, keep the rows scoring exactly two, then repeat by column. The catch is memory, not vision: News has no colouring, so the shape exists only in your head while you switch to Notes mode and start erasing. Write the two rows and two columns down first — four characters on paper — then tap.",
+    auto="The lit digit is precisely the single-digit map this figure uses, so the technique becomes a reading exercise rather than a search. Light the digit, count lit squares per row, keep the rows scoring exactly two, then repeat by column. The catch is memory, not vision: News has no colouring, so the pattern exists only in your head while you switch to Notes mode and start erasing. Write the two rows and two columns down first — four characters on paper — then tap.",
     watch="Both lines must have <i>exactly</i> two spots. A row with three that happen to include your two columns proves nothing, and it is the most common false positive there is. If one line has three, keep the note — you may have a swordfish or a skyscraper instead."))
 
 # ---------------- 08 Swordfish ----------------
@@ -267,7 +267,7 @@ def render_case(case):
     steps = "".join("<li>%s</li>" % s for s in case["steps"])
     scan = "".join("<li>%s</li>" % s for s in case["scan"])
     if case["mode"] == "single":
-        only = 'Showing only the %d candidates. Every other pencil mark is hidden so the shape can surface.' % case["key"][0]
+        only = 'Showing only the %d candidates. Every other pencil mark is hidden so the pattern can surface.' % case["key"][0]
     elif len(case["key"]) == 1:
         only = 'Full pencil marks. The %ds are picked out in amber.' % case["key"][0]
     else:

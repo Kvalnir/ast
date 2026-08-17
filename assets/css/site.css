@@ -616,8 +616,13 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 /* The miniature. Same anatomy as .grid on the lesson pages — paper ground,
    heavy block rules, pencil-coloured marks — at a size where the whole shape
    is one glance and no cell has to be readable in detail. */
+/* width:max-content is load-bearing, not tidiness. The tracks are a fixed pixel
+   size but the element is a block, so `width:auto` fills whatever box it lands
+   in and the nine columns sit in the left of a stretched sheet of paper — which
+   is exactly what happened on a phone once the caption widened the column. */
 .mini{
   display:grid;grid-template-columns:repeat(9,16px);grid-template-rows:repeat(9,16px);
+  width:max-content;margin-inline:auto;
   background:var(--paper);border:2px solid var(--rule-strong);border-radius:2px;overflow:hidden;
 }
 /* grid-auto-flow:column matters for the one cell that mixes plain text with a
@@ -665,9 +670,14 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   .gloss{grid-template-columns:1fr}
   /* The figure goes above the text and grows, because at this width the card
      is the whole screen and there is room for a readable grid. */
-  .card{flex-direction:column;align-items:center;gap:16px}
-  .cardbody{width:100%}
-  .figcap{max-width:none}
+  .card{flex-direction:column;align-items:stretch;gap:16px}
+  /* Both children take the card's width, so neither can size the column by its
+     own longest line. Before this the caption was a flex item sized to its
+     max-content — one unbroken line of `3 and 5 live only in r2c1 / r2c4, so
+     r2c4 loses its 7` — which pushed the whole card past the viewport and took
+     the body text off the right-hand edge with it. */
+  .cardfig,.cardbody{width:100%;min-width:0}
+  .figcap{max-width:100%}
   .mini{grid-template-columns:repeat(9,20px);grid-template-rows:repeat(9,20px)}
   .mini i{font-size:10px}
 }
