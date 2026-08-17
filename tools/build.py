@@ -1,4 +1,5 @@
 import json, engine
+from mini import seg as mseg, mini as minifig   # build.py has its own seg(); these draw the small figure
 
 ex = json.load(open("./examples.json"))
 def rc(i): return (i//9, i%9)
@@ -291,6 +292,32 @@ def render_case(case):
   <p class="watch"><span>Where it goes wrong</span>{case['watch']}</p>
 </section>'''
 
+# ---------------- uniqueness footnote ----------------
+# Not one of the nine, and deliberately drawn at cheat-sheet size rather than
+# figure size: it earns a mention because you will meet it in other apps, not a
+# card. The example is a textbook Type 1 -- three corners bare, the fourth
+# carrying one extra -- rather than a position from the bank, which is why it is
+# built by hand here and not read out of examples.json. Check it stays honest if
+# you edit it: four cells, two rows, two columns, and exactly two boxes.
+UNIQUE_FIG = minifig(dict(
+    cap="three bare 4/7 corners over two boxes",
+    tint=None,
+    cells={"2-1": ("b", "47"), "2-5": ("b", "47"), "3-1": ("b", "47"),
+           "3-5": ("b", "<s>47</s>9")},
+    geo=[mseg("2-1", "2-5"), mseg("3-1", "3-5"), mseg("2-1", "3-1"), mseg("2-5", "3-5")],
+))
+
+UNIQUE = """
+<div class="minicase" id="uniqueness">
+  <div class="mcfig">%s<p class="figcap">three bare 4/7 corners over two boxes</p></div>
+  <div>
+    <span class="mclabel">Not one of the nine</span>
+    <p>The one cheap thing out there that is not a chain is the <b>unique rectangle</b>: four cells at the corners of a rectangle, spanning exactly two boxes, all holding the same two candidates. If all four held nothing but those two digits the puzzle would have two solutions &mdash; swap the pairs diagonally and both grids are legal &mdash; so a puzzle with a single solution cannot contain that shape. Above, three corners are down to a bare 4/7, which means <b>r3c5</b> cannot be 4 or 7 either: the 9 it was carrying is the answer.</p>
+    <p>It is a footnote here for two reasons. It is never necessary at this tier &mdash; anything it finds, the nine find too, a little slower. And it is the only argument on this page that reasons from outside the grid: it assumes the puzzle has exactly one solution, which is true of Apple's puzzles and not necessarily true of the grid in front of you, once you have placed a wrong digit or erased a note in error. Every technique above degrades safely on a corrupted grid &mdash; it finds nothing, or it contradicts itself. This one keeps working, and hands you a confident deletion resting on a premise that is already false. Worth recognising when it appears; not worth hunting for.</p>
+  </div>
+</div>""" % UNIQUE_FIG
+
+
 # ---------------- practice ----------------
 pr = json.load(open("./practice.json"))
 pcells = []
@@ -324,6 +351,7 @@ NAV = ('<a href="#autonotes">Apple setup</a>' + "".join('<a href="#%s">%s</a>' %
 HTML = open("./template.html").read()
 HTML = (HTML.replace("<!--CASES-->", CASE_HTML)
             .replace("<!--NAV-->", NAV)
-            .replace("<!--PRACTICE-->", PRACTICE))
+            .replace("<!--PRACTICE-->", PRACTICE)
+            .replace("<!--UNIQUE-->", UNIQUE))
 open("../index.html", "w").write(HTML)
 print("ok", len(HTML))

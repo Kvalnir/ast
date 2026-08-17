@@ -209,7 +209,11 @@ Expected: `solved 20/20 assertions 1384 fails 0`.
 ## Notes on scope
 
 The trainer detects naked and hidden singles, pointing pairs, claiming, naked pairs and triples,
-hidden pairs and triples, X-Wing, swordfish, skyscraper and XY-Wing. That is comfortably enough for
+hidden pairs and triples, X-Wing, swordfish, skyscraper and XY-Wing. Uniqueness (the unique
+rectangle, BUG+1) is documented as a footnote at the foot of the lesson but deliberately not
+detected: it reasons from the puzzle having one solution rather than from the grid, so it is the
+one technique that produces a confident, wrong elimination on a grid the player has already
+corrupted — and corrupted grids are exactly what the News+ section is about. That is comfortably enough for
 the News+ challenging tier — every puzzle in the bank solves with them alone. Chains beyond the
 skyscraper (colouring, kites, W-wings, forcing chains) are deliberately absent: they are rarely the
 move at this tier, and adding them would let the coach answer positions you should be solving with

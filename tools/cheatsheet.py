@@ -23,10 +23,7 @@
 #
 # Run:  python3 cheatsheet.py
 
-def seg(a, b, cls="lead"):
-    """Cell centres, in the 0..9 units the overlay's viewBox uses."""
-    (r1, c1), (r2, c2) = (int(x) for x in a.split("-")), (int(x) for x in b.split("-"))
-    return (c1 - 0.5, r1 - 0.5, c2 - 0.5, r2 - 0.5, cls)
+from mini import seg, mini
 
 
 TECH = [
@@ -183,39 +180,9 @@ GLOSSARY = [
     ("Locked candidates", "The umbrella term for pointing pairs and claiming."),
     ("Base / crossing line", "In fish, the lines you count spots in, and the lines you delete from."),
     ("Hinge", "In an XY-Wing, the middle cell that sees both wings."),
+    ("Deadly pattern", "Four cells at the corners of a rectangle spanning two boxes, all holding the same two candidates. A puzzle with one solution cannot contain one &mdash; <a href=\"index.html#uniqueness\">the note at the foot of Patterns</a> says why that is a footnote here and not a tenth card."),
 ]
 
-
-def boxof(r, c):
-    return (r - 1) // 3 * 3 + (c - 1) // 3
-
-
-def mini(t):
-    # The overlay is a sibling of the grid inside .miniwrap, not a child of it:
-    # .mini has overflow:hidden so its tinted cells stay inside the rounded
-    # corners, which would clip the line ends too.
-    out = ['<div class="miniwrap">']
-    out.append('<div class="mini" role="img" aria-label="%s">' % t["cap"].replace("&rarr;", "to").replace("&mdash;", "-"))
-    for r in range(1, 10):
-        for c in range(1, 10):
-            cls = []
-            if c % 3 == 1 and c > 1: cls.append("bl")
-            if r % 3 == 1 and r > 1: cls.append("bt")
-            if t["tint"]:
-                kind, n = t["tint"]
-                if (kind == "box" and boxof(r, c) == n) or (kind == "row" and r == n) or (kind == "col" and c == n):
-                    cls.append("tint")
-            hit = t["cells"].get("%d-%d" % (r, c))
-            if hit: cls.append(hit[0])
-            out.append('<i class="%s">%s</i>' % (" ".join(cls), hit[1] if hit else ""))
-    out.append("</div>")
-    if t.get("geo"):
-        out.append('<svg class="geo3" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true">')
-        for x1, y1, x2, y2, cls in t["geo"]:
-            out.append('<line class="%s" x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f"/>' % (cls, x1, y1, x2, y2))
-        out.append("</svg>")
-    out.append("</div>")
-    return "".join(out)
 
 
 def card(t):
