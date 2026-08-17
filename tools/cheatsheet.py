@@ -16,7 +16,18 @@
 #   <s> inside a label          one struck digit within a cell that survives
 #   d   another spot for the same digit, or `·` for an ordinary unsolved cell
 #
+# `geo` draws the connecting lines over the figure, the same overlay index.html
+# puts on its full-size grids and with the same coordinates -- lifted from the
+# geo= lists in build.py so the two pictures tell one story. "cross" is the
+# dashed kind: the link the pattern rules out rather than the one it asserts.
+#
 # Run:  python3 cheatsheet.py
+
+def seg(a, b, cls="lead"):
+    """Cell centres, in the 0..9 units the overlay's viewBox uses."""
+    (r1, c1), (r2, c2) = (int(x) for x in a.split("-")), (int(x) for x in b.split("-"))
+    return (c1 - 0.5, r1 - 0.5, c2 - 0.5, r2 - 0.5, cls)
+
 
 TECH = [
     dict(
@@ -27,6 +38,7 @@ TECH = [
         guard="Usually there is nothing to delete. Check the digit still appears further along the line <b>before</b> you talk yourself into the pattern.",
         cap="box 7's 5s are stuck in row 9",
         tint=("box", 6),
+        geo=[seg("9-1", "9-3")],
         cells={"9-1": ("b", "5"), "9-3": ("b", "5"), "9-4": ("x", "5"),
                "3-1": ("d", "·"), "5-6": ("d", "·"), "1-8": ("d", "·")},
     ),
@@ -38,6 +50,7 @@ TECH = [
         guard="Easy to run backwards. The box's 1 is in row 8, so the rest of the row is safe and the rest of the <b>box</b> is not.",
         cap="row 8's 1s are stuck in box 7",
         tint=("row", 8),
+        geo=[seg("8-1", "8-2")],
         cells={"8-1": ("b", "1"), "8-2": ("b", "1"), "9-1": ("x", "1"), "9-3": ("x", "1"),
                "2-5": ("d", "·"), "4-8": ("d", "·")},
     ),
@@ -49,6 +62,7 @@ TECH = [
         guard="Both cells must hold <b>nothing but</b> those two digits. A 3/8/9 cell beside a 3/8 cell is not half a pair — it is a target.",
         cap="r5c3 and r5c7 are both 3/8",
         tint=("row", 5),
+        geo=[seg("5-3", "5-7")],
         # Struck cells carry the digit each one actually loses, not the pair:
         # r5c1 and r5c9 held a 3, r5c5 held the 8.
         cells={"5-3": ("b", "38"), "5-7": ("b", "38"),
@@ -62,6 +76,7 @@ TECH = [
         guard="A cell with four or more marks can <b>never</b> join a triple. Cross those out first and half the unit disappears.",
         cap="139 / 13 / 39 across three cells of row 5",
         tint=("row", 5),
+        geo=[seg("5-1", "5-9")],
         cells={"5-1": ("b", "139"), "5-8": ("b", "13"), "5-9": ("b", "39"),
                "5-2": ("x", "9"), "5-3": ("x", "13"), "5-6": ("x", "39")},
     ),
@@ -73,6 +88,7 @@ TECH = [
         guard="Only pays if one of the cells carries extra marks. Two cells already reading 3/5 is a naked pair with <b>nothing left to delete</b>.",
         cap="3 and 5 live only in r2c1 / r2c4, so r2c4 loses its 7",
         tint=("row", 2),
+        geo=[seg("2-1", "2-4")],
         # The pattern cell is also the cell the deletion lands in, so the 7 is
         # struck inside an otherwise amber cell.
         cells={"2-1": ("b", "35"), "2-4": ("b", "35<s>7</s>"),
@@ -86,6 +102,8 @@ TECH = [
         guard="<b>Exactly</b> two spots per line. A line with three that happen to include your columns proves nothing, and it is the commonest false positive there is.",
         cap="cols 2 and 7, both landing on rows 6 and 7",
         tint=None,
+        geo=[seg("6-2", "7-2"), seg("6-7", "7-7"),
+             seg("6-2", "6-7"), seg("7-2", "7-7")],
         cells={"6-2": ("b", "6"), "7-2": ("b", "6"), "6-7": ("b", "6"), "7-7": ("b", "6"),
                "6-4": ("x", "6"), "6-8": ("x", "6"), "2-5": ("d", "6"), "4-9": ("d", "6")},
     ),
@@ -97,6 +115,9 @@ TECH = [
         guard="Rarely the real answer at this tier. Re-run the cheap scans first — most apparent swordfish are a <b>pointing pair you walked past</b>.",
         cap="cols 1, 2, 6 &rarr; rows 3, 5, 7",
         tint=None,
+        geo=[seg("5-1", "7-1"), seg("3-2", "5-2"), seg("3-6", "7-6"),
+             seg("3-2", "3-6", "cross"), seg("5-1", "5-2", "cross"),
+             seg("7-1", "7-6", "cross")],
         cells={"5-1": ("b", "9"), "7-1": ("b", "9"), "3-2": ("b", "9"), "5-2": ("b", "9"),
                "3-6": ("b", "9"), "7-6": ("b", "9"), "5-3": ("x", "9"), "7-3": ("x", "9"),
                "1-8": ("d", "9"), "9-5": ("d", "9")},
@@ -109,6 +130,8 @@ TECH = [
         guard="Test the loose ends. Sharing the second column too is an <b>X-Wing</b>; sharing a box is a <b>pointing pair</b>. The skyscraper is the near-miss case, where the ends are strangers.",
         cap="rows 3 and 9 share column 4; the ends do the work",
         tint=None,
+        geo=[seg("3-4", "3-7"), seg("9-4", "9-8"),
+             seg("3-4", "9-4", "cross")],
         cells={"3-4": ("b", "4"), "9-4": ("b", "4"), "3-7": ("r", "4"), "9-8": ("r", "4"),
                "1-8": ("x", "4"), "7-7": ("x", "4"), "5-2": ("d", "4"), "6-9": ("d", "4")},
     ),
@@ -120,6 +143,7 @@ TECH = [
         guard="The hinge must see both wings. The wings do <b>not</b> need to see each other — demanding a neat triangle is how people miss the common case.",
         cap="hinge 1/5 &rarr; wings 1/9 and 5/9, so r7c8 loses its 9",
         tint=None,
+        geo=[seg("5-7", "7-7"), seg("5-7", "6-8")],
         cells={"5-7": ("b", "15"), "7-7": ("r", "19"), "6-8": ("r", "59"), "7-8": ("x", "9"),
                "3-2": ("d", "·"), "8-4": ("d", "·")},
     ),
@@ -167,7 +191,11 @@ def boxof(r, c):
 
 
 def mini(t):
-    out = ['<div class="mini" role="img" aria-label="%s">' % t["cap"].replace("&rarr;", "to").replace("&mdash;", "-")]
+    # The overlay is a sibling of the grid inside .miniwrap, not a child of it:
+    # .mini has overflow:hidden so its tinted cells stay inside the rounded
+    # corners, which would clip the line ends too.
+    out = ['<div class="miniwrap">']
+    out.append('<div class="mini" role="img" aria-label="%s">' % t["cap"].replace("&rarr;", "to").replace("&mdash;", "-"))
     for r in range(1, 10):
         for c in range(1, 10):
             cls = []
@@ -180,6 +208,12 @@ def mini(t):
             hit = t["cells"].get("%d-%d" % (r, c))
             if hit: cls.append(hit[0])
             out.append('<i class="%s">%s</i>' % (" ".join(cls), hit[1] if hit else ""))
+    out.append("</div>")
+    if t.get("geo"):
+        out.append('<svg class="geo3" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true">')
+        for x1, y1, x2, y2, cls in t["geo"]:
+            out.append('<line class="%s" x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f"/>' % (cls, x1, y1, x2, y2))
+        out.append("</svg>")
     out.append("</div>")
     return "".join(out)
 
@@ -257,6 +291,7 @@ HTML = f'''<!DOCTYPE html>
     <p class="lede">Every technique reduced to the trigger that fires it and the deletion it earns. <a href="index.html">Patterns</a> is the explainer — this is the thing you keep open while you play. Each name links back to its full write-up.</p>
     <div class="legend cribleg">
       <p><span class="swatch b"></span> Amber cells are the pattern doing the work</p>
+      <p><span class="swatch l"></span> Amber lines show how the pattern connects</p>
       <p><span class="swatch p"></span> Ringed cells are the loose ends of a chain</p>
       <p><span class="swatch k"></span> Struck red digits are the candidates it kills</p>
       <p><span class="swatch n"></span> Grey digits are other spots for the same digit, and a dot is any unsolved cell</p>

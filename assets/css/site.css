@@ -655,6 +655,14 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 /* One struck digit inside a cell that survives — the hidden pair, where the
    deletion lands in a pattern cell rather than beside it. */
 .mini s{color:var(--red-ink)}
+/* The connectors, the same overlay the lesson's figures carry. inset:2px, not
+   0: the viewBox is nine cells wide and the tracks start inside .mini's 2px
+   border, so anything else lands every line half a cell off. The border does
+   not scale with the cells, which is why this is a length and not a ratio. */
+.miniwrap{position:relative;width:max-content;margin-inline:auto}
+.geo3{position:absolute;inset:2px;width:calc(100% - 4px);height:calc(100% - 4px);pointer-events:none}
+.geo3 line{stroke:var(--amber-ink);stroke-width:.07;stroke-linecap:round;opacity:.8}
+.geo3 line.cross{stroke-dasharray:.18 .18;opacity:.5}
 .figcap{
   font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--mist);
   margin:8px 0 0;max-width:148px;text-align:center;
