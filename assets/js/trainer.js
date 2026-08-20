@@ -1,7 +1,8 @@
 /* trainer.js — a News+-shaped board that names the techniques in your position. */
 (function () {
   'use strict';
-  const C = window.SudokuCore, T = window.SudokuTech, BANK = window.SUDOKU_BANK;
+  const C = window.SudokuCore, T = window.SudokuTech, BANK = window.SUDOKU_BANK,
+        I = window.SudokuImport;
   const $ = id => document.getElementById(id);
   const boardEl = $('board'), geoEl = $('geo');
 
@@ -11,7 +12,11 @@
     notes: [], wrong: [], sel: null, mode: 'pen', focus: null,
     history: [], findings: [], pick: null, level: 0,
     autocheck: true, autoRemove: true, peers: true, coach: 'names',
-    solved: false, noteCheck: null
+    solved: false, noteCheck: null,
+    /* import: `capture` hands the board over to transcription, `mark` is the
+       set of squares the validator wants looked at again, `before` is the
+       puzzle capture interrupted so Cancel can put it back. */
+    capture: false, mark: [], before: null
   };
 
   const NAMES = {
@@ -94,15 +99,19 @@
   function snapshot() {
     S.history.push({
       grid: S.grid.slice(), wrong: S.wrong.slice(),
+      /* `given` never moves during play, but it is what capture mode is
+         editing, so undo has to carry it. */
+      given: S.given.slice(),
       notes: S.notes.map(s => [...s])
     });
     if (S.history.length > 200) S.history.shift();
   }
   function undo() {
     const h = S.history.pop(); if (!h) return;
-    S.grid = h.grid; S.wrong = h.wrong;
+    S.grid = h.grid; S.wrong = h.wrong; S.given = h.given;
     S.notes = h.notes.map(a => new Set(a));
     S.solved = false; S.noteCheck = null;
+    if (S.capture) { captureRefresh(); return; }
     recompute();
   }
 
@@ -129,6 +138,7 @@
   }
 
   function enter(d) {
+    if (S.capture) { captureEnter(d); return; }
     if (S.sel === null || S.given[S.sel] || S.solved) return;
     const i = S.sel;
     snapshot();
@@ -156,7 +166,14 @@
   }
 
   function erase() {
-    if (S.sel === null || S.given[S.sel] || S.solved) return;
+    if (S.sel === null || S.solved) return;
+    if (S.capture) {
+      snapshot();
+      S.grid[S.sel] = 0; S.given[S.sel] = false;
+      captureRefresh();
+      return;
+    }
+    if (S.given[S.sel]) return;
     snapshot();
     S.grid[S.sel] = 0; S.wrong[S.sel] = false; S.notes[S.sel] = new Set();
     S.noteCheck = null;
@@ -164,6 +181,7 @@
   }
 
   function autofill() {
+    if (S.capture) return;
     snapshot();
     const base = C.baseCandidates(S.grid);
     for (let i = 0; i < 81; i++) S.notes[i] = S.grid[i] ? new Set() : base[i];
@@ -174,6 +192,7 @@
 
   /* ---------------- coach ---------------- */
   function recompute() {
+    if (S.capture) { captureRefresh(); return; }
     const anyNotes = S.notes.some(s => s.size);
     const res = T.findAll(S.grid, anyNotes ? S.notes : null);
     S.findings = res.findings;
@@ -328,6 +347,8 @@
   }
 
   function startDrill(id) {
+    importPanel('start');
+    I.clearHash();
     const d = buildDrill(id);
     if (!d) { flash('No position with ' + article(NAMES[id]) + NAMES[id] + ' in the current bank.', 'warn'); return; }
     S.puzzle = d.puzzle;
@@ -337,7 +358,7 @@
     S.notes = d.notes.map(s => new Set(s));
     S.wrong = new Array(81).fill(false);
     S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
-    S.solved = false; S.noteCheck = null;
+    S.solved = false; S.noteCheck = null; S.mark = [];
     recompute();
     const also = (d.others || []).filter(x => x !== id);
     flash('No singles left on this board. ' + article(NAMES[id]).replace(/^./, c => c.toUpperCase()) +
@@ -357,11 +378,13 @@
     S.notes = []; for (let i = 0; i < 81; i++) S.notes.push(new Set());
     S.wrong = new Array(81).fill(false);
     S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
-    S.solved = false; S.noteCheck = null;
+    S.solved = false; S.noteCheck = null; S.mark = [];
     recompute();
     flash('');
   }
   function newPuzzle() {
+    importPanel('start');
+    I.clearHash();
     const pool = BANK.filter(p => p.level === 'advanced');
     let p, guard = 0;
     do { p = pool[Math.floor(Math.random() * pool.length)]; guard++; }
@@ -383,6 +406,11 @@
       if (!elimMap.has(e.cell)) elimMap.set(e.cell, new Set());
       elimMap.get(e.cell).add(e.digit);
     });
+    /* The validator's marks ride the same red tint an elimination target wears.
+       They have to be a background rather than the struck-through digit .bad
+       gives you: half of what a failed import wants to point at is an EMPTY
+       square — the given you skipped — and a slash through nothing is nothing. */
+    S.mark.forEach(i => tgtSet.add(i));
 
     const peerSet = new Set();
     if (S.peers && S.sel !== null) C.PEERS[S.sel].forEach(i => peerSet.add(i));
@@ -457,18 +485,31 @@
     /* Kept short enough to hold one line down to the 320px board floor. The
        height of this line is part of the constant .tplay sizes the board
        against, so a second line here silently costs the board 17px. */
-    $('padHint').textContent = focusing
-      ? 'Nothing selected — tap to light a digit'
-      : (notesMode ? 'Tap a number to add or remove a note'
-                   : 'Tap a number to place it');
+    $('padHint').textContent = S.capture
+      ? (focusing ? 'Importing — tap a square, or a number to light it'
+                  : 'Tap the number printed in this square')
+      : focusing
+        ? 'Nothing selected — tap to light a digit'
+        : (notesMode ? 'Tap a number to add or remove a note'
+                     : 'Tap a number to place it');
 
     $('bPen').setAttribute('aria-pressed', S.mode === 'pen');
     $('bNotes').setAttribute('aria-pressed', S.mode === 'notes');
     $('bUndo').disabled = !S.history.length;
     $('bApply').disabled = !S.pick;
+    /* Capture mode borrows the board, so everything that acts on a position
+       rather than builds one steps out of the way for the duration. Undo,
+       Erase and the pad stay: those are the transcription controls. */
+    ['bAutofill', 'bNotes', 'bMore', 'bCheckNotes', 'bNew', 'bRestart',
+     'bCatchUp', 'bCopyLink'].forEach(id => { $(id).disabled = S.capture; });
+    [...$('drills').querySelectorAll('.chip')].forEach(b => { b.disabled = S.capture; });
 
     /* meta */
-    if (S.puzzle) {
+    if (S.capture) {
+      $('mLevel').textContent = 'Importing';
+      $('mGivens').textContent = S.grid.filter(v => v).length + ' entered';
+      $('mNeeds').textContent = 'not checked yet';
+    } else if (S.puzzle) {
       $('mLevel').textContent = S.puzzle.level === 'advanced' ? 'Challenging' : 'Moderate';
       $('mGivens').textContent = S.puzzle.givens + ' givens';
       $('mNeeds').textContent = S.puzzle.adv.length
@@ -480,6 +521,15 @@
 
   function renderCoach() {
     const g = groups(), chipsEl = $('chips'), lad = $('ladder');
+    if (S.capture) {
+      $('cCount').textContent = S.grid.filter(v => v).length + ' of 81';
+      chipsEl.innerHTML = '';
+      lad.innerHTML = '<span class="step">Importing — reading the grid</span>' +
+        'Tap a square, then the number printed in it; tap the same number again to take it ' +
+        'back out. Leave the blanks blank. A digit repeated in a row, column or box is ' +
+        'struck through as you go. When the grid matches, press <b>Check it</b>.';
+      return;
+    }
     const total = S.findings.length;
     $('cCount').textContent = S.coach === 'off' ? 'hidden'
       : total ? total + ' move' + (total === 1 ? '' : 's') + ' available' : 'nothing available';
@@ -547,6 +597,214 @@
     lad.innerHTML = steps[Math.min(S.level, 5) - 1]();
   }
 
+
+  /* ---------------- import ----------------
+     The trainer's own end of assets/js/import.js: that module decides whether a
+     grid is a puzzle, this one collects the digits and says what happened.
+
+     Capture mode is the board itself rather than a form. The puzzle you are
+     stuck on is on a phone screen next to you and cannot be copied as text, so
+     the entry surface has to be the thing already sized for a thumb — the same
+     board, the same keypad, one tap per printed digit. */
+
+  function iSay(msg, kind) {
+    const el = $('iResult');
+    el.innerHTML = msg || '';
+    el.className = 'note' + (kind ? ' ' + kind : '');
+  }
+
+  /* Four states, one at a time: offering, transcribing, pasting, imported. */
+  function importPanel(state) {
+    $('iStart').hidden = state !== 'start';
+    $('iCapRow').hidden = state !== 'capture';
+    $('iPasteBox').hidden = state !== 'paste';
+    $('iAfter').hidden = state !== 'after';
+    $('iCount').hidden = state !== 'capture';
+    $('iNote').hidden = state !== 'start';
+  }
+
+  function captureRefresh() {
+    S.findings = []; S.pick = null; S.level = 0;
+    S.wrong = new Array(81).fill(false);
+    I.conflicts(S.grid).forEach(i => { S.wrong[i] = true; });
+    $('iCount').textContent = S.grid.filter(v => v).length + ' entered';
+    render();
+  }
+
+  function startCapture(seed) {
+    if (!S.capture) S.before = S.puzzle;
+    S.capture = true;
+    S.puzzle = null;
+    S.grid = seed ? C.parse(seed) : new Array(81).fill(0);
+    S.given = S.grid.map(v => v > 0);
+    S.sol = new Array(81).fill(0);
+    S.notes = []; for (let i = 0; i < 81; i++) S.notes.push(new Set());
+    S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
+    S.solved = false; S.noteCheck = null; S.mark = []; S.mode = 'pen';
+    $('boardwrap').classList.add('capturing');
+    importPanel('capture');
+    captureRefresh();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* Same digit twice clears the square, which is the fastest correction for the
+     commonest slip — you tapped 6 where the puzzle prints 8. */
+  function captureEnter(d) {
+    if (S.sel === null) return;
+    const i = S.sel;
+    snapshot();
+    if (S.grid[i] === d) { S.grid[i] = 0; S.given[i] = false; }
+    else { S.grid[i] = d; S.given[i] = true; }
+    S.mark = [];
+    captureRefresh();
+  }
+
+  function endCapture() {
+    S.capture = false;
+    S.before = null;
+    $('boardwrap').classList.remove('capturing');
+  }
+
+  function cancelCapture() {
+    const back = S.before;
+    endCapture();
+    S.mark = [];
+    if (back) { load(back); importPanel(back.imported ? 'after' : 'start'); }
+    else newPuzzle();
+    iSay('');
+  }
+
+  /* A refusal is not a dead end: the grid stays on the board with the squares
+     the validator wants re-read tinted, so the fix is one tap away. */
+  function refuse(res, seed) {
+    if (!S.capture) startCapture(seed);
+    S.mark = res.cells || [];
+    captureRefresh();
+    iSay(res.message, 'warn');
+  }
+
+  function acceptImport(res) {
+    const p = res.puzzle;
+    $('iText').value = '';
+    endCapture();
+    load(p);
+    I.save(p);
+    I.setHash(p.p);
+    importPanel('after');
+    renderSaved();
+    iSay(res.message, res.walk.filled === 81 ? 'good' : '');
+    flash('Your puzzle is on the board — play it as you would any other. If you are already ' +
+          'well into it, press Catch me up to skip the moves you have made.');
+  }
+
+  /* Checking is up to a few hundred solver runs when the grid turns out to be
+     wrong — under a second, but it blocks, so the panel says what it is doing
+     and the work waits one frame for that to land on screen. */
+  function check(text, seed) {
+    iSay('Checking the grid… if something is off, working out where takes a second or two.');
+    setTimeout(() => {
+      const res = I.analyze(text, NAMES);
+      if (res.ok) acceptImport(res);
+      else if (res.code === 'length' || res.code === 'empty') iSay(res.message, 'warn');
+      else refuse(res, seed);
+    }, 30);
+  }
+
+  function finishCapture() { check(S.grid.join(''), null); }
+
+  /* A string of the right length that is not a puzzle is worth putting on the
+     board — capture mode opens on it with the bad squares marked, so the fix is
+     a tap. One of the wrong length has nothing to show yet. */
+  function loadPasted() {
+    const raw = $('iText').value;
+    check(raw, I.normalise(raw));
+  }
+
+  /* Play every forced move from the printed digits and stop at the first
+     advanced pattern — the wall, which is where someone who is stuck already
+     is. Run from the givens rather than from the board in front of you: this
+     way it is sound even when the position you typed has a wrong digit in it,
+     and Restart is right there if you would rather play it yourself. */
+  function catchUp() {
+    if (!S.puzzle) return;
+    const given = C.parse(S.puzzle.p);
+    const w = I.walk(given, null, I.ADV_RANK);
+    S.grid = w.grid;
+    S.notes = w.notes;
+    S.given = given.map(v => v > 0);
+    S.wrong = new Array(81).fill(false);
+    S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
+    S.solved = false; S.noteCheck = null; S.mark = [];
+    recompute();
+    const played = w.played.map(x => x[1] + ' × ' + NAMES[x[0]]).join(', ') || 'nothing';
+    if (w.stopped) {
+      iSay('Played ' + played + ', and stopped at the first <b>' + NAMES[w.stopped.id] +
+        '</b> — ' + w.filled + ' of 81 squares filled, notes in. That is the wall, and the ' +
+        'coach is on it: hunt it yourself before you press <b>Show me more</b>.');
+    } else if (w.filled === 81) {
+      iSay('That solved it outright — ' + played + ' — without needing anything advanced. ' +
+        'So if you are stuck on this puzzle, what you are missing is not a pattern: press ' +
+        '<b>Restart this one</b>, play your own position back in, and let autocheck find the ' +
+        'entry that is wrong.', 'good');
+    } else {
+      iSay('Played ' + played + ', and then nothing more fires — ' + w.filled + ' of 81 ' +
+        'squares. This one needs something past the nine patterns this site teaches.', 'warn');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* Saved imports are the puzzle, not the position: 81 characters that survive
+     anything. Restart already exists for getting back to the start of one. */
+  function savedLabel(p) {
+    const d = p.imported ? new Date(p.imported) : null;
+    const when = d ? d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' · ' : '';
+    return when + p.givens + ' givens';
+  }
+
+  function renderSaved() {
+    const el = $('iSaved');
+    el.innerHTML = '';
+    I.saved().forEach(p => {
+      const label = savedLabel(p);
+      const wrap = document.createElement('span');
+      wrap.className = 'saved';
+      const b = document.createElement('button');
+      b.className = 'chip' + (p.adv && p.adv.length ? ' adv' : '');
+      b.type = 'button';
+      b.textContent = label;
+      b.title = 'Load this imported puzzle' +
+        (p.adv && p.adv.length ? ' — needs ' + p.adv.map(x => NAMES[x]).join(' + ') : '');
+      b.addEventListener('click', () => {
+        endCapture();
+        load(p);
+        I.setHash(p.p);
+        importPanel('after');
+        iSay('Back on your imported puzzle: ' + label + '.');
+      });
+      const x = document.createElement('button');
+      x.className = 'chip x';
+      x.type = 'button';
+      x.textContent = '×';
+      x.title = 'Forget this one';
+      x.setAttribute('aria-label', 'Forget the import from ' + label);
+      x.addEventListener('click', () => { I.forget(p.p); renderSaved(); });
+      wrap.appendChild(b); wrap.appendChild(x);
+      el.appendChild(wrap);
+    });
+  }
+
+  function copyLink() {
+    const url = window.location.href;
+    const ok = () => iSay('Link copied. It carries the puzzle itself, so it opens the same ' +
+                          'board on any device.', 'good');
+    const no = () => iSay('No clipboard available here — the link is in the address bar, and ' +
+                          'it carries the puzzle: ' + url);
+    try {
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, no);
+      else no();
+    } catch (e) { no(); }
+  }
+
   /* ---------------- wiring ---------------- */
   $('bUndo').addEventListener('click', undo);
   $('bPen').addEventListener('click', () => { S.mode = 'pen'; render(); });
@@ -564,6 +822,19 @@
   $('sHighlightPeers').addEventListener('change', e => { S.peers = e.target.checked; render(); });
   $('sCoach').addEventListener('change', e => { S.coach = e.target.value; render(); });
 
+  $('bCapture').addEventListener('click', () => { startCapture(null); iSay(''); });
+  $('bPaste').addEventListener('click', () => { importPanel('paste'); $('iText').focus(); });
+  $('bPasteLoad').addEventListener('click', loadPasted);
+  $('bPasteCancel').addEventListener('click', () => {
+    importPanel(S.puzzle && S.puzzle.imported ? 'after' : 'start');
+    iSay('');
+  });
+  $('bCapDone').addEventListener('click', finishCapture);
+  $('bCapClear').addEventListener('click', () => { startCapture(null); iSay(''); });
+  $('bCapCancel').addEventListener('click', cancelCapture);
+  $('bCatchUp').addEventListener('click', catchUp);
+  $('bCopyLink').addEventListener('click', copyLink);
+
   const drillEl = $('drills');
   ['pointing', 'claiming', 'naked_pair', 'hidden_pair', 'naked_triple', 'xwing', 'skyscraper', 'swordfish', 'xy_wing']
     .forEach(id => drillEl.appendChild(makeChip(id, { onClick: () => startDrill(id) })));
@@ -575,8 +846,14 @@
     }
     if (e.key >= '1' && e.key <= '9') { press(+e.key); e.preventDefault(); return; }
     if (e.key === 'Backspace' || e.key === 'Delete') { erase(); e.preventDefault(); return; }
-    if (e.key === 'n' || e.key === 'N') { S.mode = S.mode === 'pen' ? 'notes' : 'pen'; render(); return; }
+    /* Notes mean nothing while transcribing — capture writes givens whatever
+       the mode says — and the pad would dress itself as a note toggle and lie. */
+    if (e.key === 'n' || e.key === 'N') {
+      if (!S.capture) { S.mode = S.mode === 'pen' ? 'notes' : 'pen'; render(); }
+      return;
+    }
     if (e.key === 'h' || e.key === 'H') { more(); return; }
+    if (S.capture && e.key === 'Enter') { finishCapture(); e.preventDefault(); return; }
     if (e.key === 'Escape') { deselect(); return; }
     if (S.sel === null) return;
     const moves = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 };
@@ -587,5 +864,16 @@
     }
   });
 
-  newPuzzle();
+  renderSaved();
+  importPanel('start');
+  /* A link that carries a puzzle is someone arriving at THAT one, so it beats
+     the bank's opening draw. A link that carries a broken one says so and steps
+     aside rather than leaving the trainer empty. */
+  const linked = I.fromHash();
+  const first = linked ? I.analyze(linked, NAMES) : null;
+  if (first && first.ok) acceptImport(first);
+  else {
+    newPuzzle();
+    if (first) iSay('The puzzle in that link does not read as a real one. ' + first.message, 'warn');
+  }
 })();

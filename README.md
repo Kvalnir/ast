@@ -5,7 +5,8 @@ A three-page static site for getting past the wall in Apple News+ **Challenging*
 - **`index.html`** — the pattern reference. Nine patterns, each on a real position with real
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
 - **`trainer.html`** — a live board that behaves like News+ and names the patterns available in
-  your position, one hint level at a time.
+  your position, one hint level at a time. Twenty verified puzzles are built in, and you can
+  **import the one you are actually stuck on**.
 - **`cheatsheet.html`** — the same nine patterns as a card grid: the trigger that fires each one,
   the deletion it earns, and where it goes wrong. The reference is what you read; this is what you
   keep open beside the puzzle. Each card links back to its full write-up, and its figures are
@@ -61,6 +62,7 @@ assets/css/site.css     shared design tokens and all page styles
 assets/js/core.js       units, peers, candidates, backtracking solver
 assets/js/techniques.js the nine detectors; returns structured findings
 assets/js/bank.js       20 verified puzzles, tagged by technique required
+assets/js/import.js     read a puzzle off another screen: validate, derive, tag
 assets/js/trainer.js    board UI, News+ behaviours, hint ladder
 assets/js/pwa.js        service worker registration, update and install prompts
 assets/icons/*.png      app icons (generated — see tools/icons.py)
@@ -82,8 +84,8 @@ three work with the network off.
 
 Two things worth knowing:
 
-- **Everything is precached on the first visit** — all three pages, the CSS, all five scripts and
-  the seven icons: 17 files, 354 KB. There is no lazy loading to go wrong later.
+- **Everything is precached on the first visit** — all three pages, the CSS, all six scripts and
+  the seven icons: 18 files, 383 KB. There is no lazy loading to go wrong later.
 - **Fonts arrive one visit late.** They come from Google Fonts, and on a first visit the page has
   already requested them before the worker takes control, so they are only cached from the second
   visit onwards. Until then an offline load falls back to the system stack — the layout holds, the
@@ -154,6 +156,40 @@ pattern in isolation without solving forty squares first.
 **Check my notes** compares your candidates against the true solution and flags any square that has
 lost its real digit. This is the one error News+ cannot catch: Autocheck validates answers and never
 notes, so an elimination you made in error is invisible until the grid dies twenty moves later.
+
+**Importing the puzzle you are stuck on** is the point of the whole thing: the twenty in the bank
+are for practice, and the one beating you is on another screen. Press **Type in a puzzle** and the
+board becomes the entry surface — tap a square, tap the printed digit, one tap each. There is a
+paste box for the desktop case, and an imported puzzle rides in the URL (`trainer.html#p=…`), so
+a link moves it between the phone and the desk.
+
+You enter the givens and nothing else. The solution comes from the solver, the technique tags from
+the coach's own detectors, and the level from those — an imported puzzle is a bank entry like any
+other by the time it reaches the board, which is why every other feature works on it unchanged.
+
+**The validation is the feature, not the chore.** Transcribing 25 digits off a phone goes wrong,
+and a single misread digit yields a coach that talks confident nonsense for twenty moves. So the
+grid has to be a real puzzle before it is allowed on the board, and the solver settles it: no
+solution means a digit is wrong, more than one means a given is missing, exactly one is the
+solution you get to keep. When it fails, every single-cell change is tried and the ones that would
+make it a real puzzle are named — often a single square, and never the whole grid. The refusal
+leaves the digits on the board with those squares marked, so the fix is one tap.
+
+A note on what that search is *not*: asking which given, taken back out, lets the grid solve looks
+equivalent and is worthless. On a contradictory grid it is true of nearly every given, because
+dropping any constraint lets the wrong digit find a home — it names two dozen squares and means
+nothing.
+
+**Catch me up** plays every forced move from the printed digits and stops at the first advanced
+pattern — the wall, which is where someone who is stuck already is. It runs from the givens rather
+than from your board, so it is sound even if the position you typed has a wrong digit in it. Three
+outcomes, and the middle one is the useful one: it stops at a pattern and the coach is on it; it
+stalls short of 81 because the puzzle wants something past the nine patterns here; or it solves the
+thing outright with nothing advanced needed — in which case what you are missing is not a pattern
+but an entry that is wrong, and **Check my notes** with Autocheck will find it.
+
+Imported puzzles are kept in `localStorage` — the puzzle, not the position, which is 81 characters
+that survive anything. Restart already exists for getting back to the start of one.
 
 ## The cheat sheet
 

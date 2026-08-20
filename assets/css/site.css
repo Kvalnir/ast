@@ -476,6 +476,31 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   font-family:var(--mono);font-size:12px;background:var(--panel2);color:var(--text);
   border:1px solid #2A3D45;border-radius:2px;padding:5px 7px;
 }
+/* Panels that come and go — the import section swaps between three sets of
+   controls. `hidden` needs the !important because .coachrow and .chips set
+   `display` themselves, and an author display beats the UA sheet's. */
+[hidden]{display:none !important}
+
+/* import */
+/* Capture mode borrows the whole board as a typing surface, and the only thing
+   saying so is the board itself: amber rule, and the coach panel above it
+   replaced by the instructions. Cheap, and it cannot be missed. */
+.boardwrap.capturing .board{border-color:var(--amber-ink);box-shadow:0 0 0 3px rgba(240,180,41,.12)}
+.pastebox{margin:10px 0 0}
+.pastebox textarea{
+  width:100%;box-sizing:border-box;resize:vertical;
+  font-family:var(--mono);font-size:12px;line-height:1.7;letter-spacing:.06em;
+  background:var(--panel2);color:var(--text);border:1px solid #2A3D45;border-radius:2px;
+  padding:9px 10px;margin:0 0 8px;
+}
+.pastebox textarea:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+/* The saved list is chips, but each is a pair: the puzzle and its forget. They
+   share a border so the pair reads as one object rather than two chips that
+   happen to be adjacent. */
+.saved{display:inline-flex;border:1px solid #2A3D45;border-radius:2px;overflow:hidden}
+.saved .chip{border:none;border-radius:0}
+.saved .chip.x{border-left:1px solid #2A3D45;padding:5px 8px;opacity:.6}
+.saved .chip.x:hover{opacity:1;color:var(--red)}
 .done-banner{
   background:#14331A;border:1px solid #2E5A32;color:#CFEAC2;padding:12px 14px;
   border-radius:2px;margin:14px 0 0;font-size:14.5px;

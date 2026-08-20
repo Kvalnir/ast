@@ -47,7 +47,7 @@
   <div class="tgrid">
   <div class="tplay">
 
-  <div class="boardwrap">
+  <div class="boardwrap" id="boardwrap">
     <div class="board" id="board" role="grid" aria-label="Sudoku board"></div>
     <svg class="geo2" id="geo" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"></svg>
   </div>
@@ -104,6 +104,46 @@
     </div>
   </section>
 
+  <!-- Import. The puzzle you are actually stuck on is rarely one of the twenty
+       in the bank, and everything a bank entry carries — solution, technique
+       tags, level — is derivable from the printed digits alone. So this asks
+       for those and nothing else. See assets/js/import.js. -->
+  <section class="coach" id="importer">
+    <div class="coachhead">
+      <h2>Import a puzzle</h2>
+      <span class="badge" id="iCount" hidden>—</span>
+    </div>
+    <p class="note" id="iNote">Stuck on a puzzle somewhere else — News+, a paper, an app? Type in the digits it prints and the coach reads that one. It works out the solution and which techniques the puzzle needs; you only enter the givens.</p>
+
+    <div class="coachrow" id="iStart">
+      <button class="tbtn" id="bCapture">Type in a puzzle</button>
+      <button class="tbtn" id="bPaste" title="81 characters, 0 or . for a blank">Paste it instead</button>
+    </div>
+
+    <div class="coachrow" id="iCapRow" hidden>
+      <button class="tbtn" id="bCapDone">Check it</button>
+      <button class="tbtn" id="bCapClear">Clear grid</button>
+      <button class="tbtn" id="bCapCancel">Cancel</button>
+    </div>
+
+    <div class="pastebox" id="iPasteBox" hidden>
+      <textarea id="iText" rows="3" spellcheck="false" autocapitalize="off" autocorrect="off"
+        placeholder="81 characters, row by row. 0 or . for an empty square; spaces and line breaks are ignored."></textarea>
+      <div class="coachrow">
+        <button class="tbtn" id="bPasteLoad">Load it</button>
+        <button class="tbtn" id="bPasteCancel">Cancel</button>
+      </div>
+    </div>
+
+    <div class="coachrow" id="iAfter" hidden>
+      <button class="tbtn" id="bCatchUp" title="Play every forced move from the printed digits and stop at the first advanced pattern">Catch me up</button>
+      <button class="tbtn" id="bCopyLink">Copy link</button>
+    </div>
+
+    <p class="note" id="iResult"></p>
+    <div class="chips" id="iSaved"></div>
+  </section>
+
   <section class="coach">
     <div class="coachhead"><h2>Drill one technique</h2></div>
     <p class="note" id="drillNote">Jumps to a real position where that technique is the move to find. Everything simpler has already been played.</p>
@@ -127,6 +167,7 @@
 <script src="assets/js/core.js"></script>
 <script src="assets/js/techniques.js"></script>
 <script src="assets/js/bank.js"></script>
+<script src="assets/js/import.js"></script>
 <script src="assets/js/trainer.js"></script>
 <script src="assets/js/pwa.js" defer></script>
 </body>
