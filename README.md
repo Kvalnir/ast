@@ -6,7 +6,8 @@ A three-page static site for getting past the wall in Apple News+ **Challenging*
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
 - **`trainer.html`** — a live board that behaves like News+ and names the patterns available in
   your position, one hint level at a time. Twenty verified puzzles are built in, and you can
-  **import the one you are actually stuck on**.
+  **import the one you are actually stuck on** — by typing it, by pasting 81 characters, or
+  (experimentally) by handing it a screenshot of the app you are stuck in.
 - **`cheatsheet.html`** — the same nine patterns as a card grid: the trigger that fires each one,
   the deletion it earns, and where it goes wrong. The reference is what you read; this is what you
   keep open beside the puzzle. Each card links back to its full write-up, and its figures are
@@ -63,6 +64,7 @@ assets/js/core.js       units, peers, candidates, backtracking solver
 assets/js/techniques.js the nine detectors; returns structured findings
 assets/js/bank.js       20 verified puzzles, tagged by technique required
 assets/js/import.js     read a puzzle off another screen: validate, derive, tag
+assets/js/vision.js     read a puzzle off a SCREENSHOT of another screen — experimental
 assets/js/trainer.js    board UI, News+ behaviours, hint ladder
 assets/js/pwa.js        service worker registration, update and install prompts
 assets/icons/*.png      app icons (generated — see tools/icons.py)
@@ -73,6 +75,58 @@ tools/                  Python generators (only needed to rebuild content)
 `icon.svg` is the one asset with two sources of truth: it carries the same 24-unit geometry as
 `tools/icons.py`, because a nine-cell grid does not survive a 16px downsample and browsers that
 support SVG favicons should get the vector. Edit the two together or they drift.
+
+## Reading a puzzle off a screenshot
+
+**Experimental**, and labelled that way on the button, because it is the one thing here that is
+measured rather than verified. Everything else on this site is checked against a unique solution
+before it is shown; a picture cannot offer that, so this feature is built to be wrong safely
+instead of built to be right.
+
+What that means concretely: **a read never imports anything.** It puts the digits it found onto the
+capture board — the same surface that already exists for a grid that might be wrong — tints the
+squares it is least sure of, and stops. `import.js` still has the last word on whether what is on
+the board is a real puzzle, and **Check it** is still yours to press. The worst a bad read costs
+you is a glance.
+
+It works on screenshots, not photographs. Everything happens on the device; no image is uploaded,
+and nothing is kept once the read is done.
+
+Roughly how it works, since none of it is obvious:
+
+- **The board is found as a lattice, not as a box.** Apps disagree about whether cells have
+  gridlines at all — News+ draws thin rules, Good Sudoku delimits cells by background tint alone
+  and runs the board edge to edge with the screen. What both have is ten evenly spaced
+  discontinuities per axis, because a tint change is an edge just as much as a rule is. Several
+  candidate lattices are kept and the one that turns out to hold the most digits wins, which is
+  what stops it locking onto the false lattice formed by the tops and bottoms of the digits.
+- **Every cell decides its own black.** Selection highlights, peer tints, error cells, note chips
+  and dark mode all mean the background under one digit has nothing to do with the next. The
+  threshold walks outward until the ink covers less than half the cell, which drops a coloured chip
+  behind a pencil mark without knowing anything about chips.
+- **Glyphs are clustered before they are labelled.** In a screenshot every instance of a digit is
+  the same bitmap, so grouping them is nearly free — which turns "recognise sixty digits" into
+  "label nine clusters", small enough that a crude template set plus a one-digit-each assignment
+  gets it right. Sudoku then audits the grouping: two members of one cluster in the same unit is
+  proof the grouping merged two digits, so it gets split.
+- **The keypad is the font.** Both apps draw their own 1-9 under the board in the face the board
+  uses, which is nine perfectly labelled samples sitting in the same image as the question. When
+  they are found there is no guessing at the typeface at all.
+- **Pencil marks are read from where they are**, not from their shape — both apps place a mark in
+  the sub-square that names it. A mark struck through is dropped rather than read.
+- **Printed digits and your own are told apart by how they are drawn.** Good Sudoku uses two
+  weights, so the split is recoverable: solve from one group and see whether it lands on the
+  other's digits. News+ draws them identically, and then the honest answer is that it cannot tell —
+  so it says so, puts everything on the board, and you get a coach on the position rather than the
+  puzzle.
+
+Where it gives up, it gives up loudly: a picture that is not a board, one too cropped to hold 17
+digits, or one whose digits contradict each other across a row are all refused with a reason
+rather than guessed at. A grainy photograph of a screen is the case most likely to be refused.
+
+The dev tests for this live outside the repo (`dev/`, gitignored) and run against boards drawn to
+behave like each app's screenshot — gridlines or none, tinted cells, chips behind marks, two type
+weights, positional marks, the board running to the frame, plus noise, blur and uneven lighting.
 
 ## Installing it as an app
 
@@ -85,7 +139,7 @@ three work with the network off.
 Two things worth knowing:
 
 - **Everything is precached on the first visit** — all three pages, the CSS, all six scripts and
-  the seven icons: 18 files, 383 KB. There is no lazy loading to go wrong later.
+  the seven icons: 19 files, 438 KB. There is no lazy loading to go wrong later.
 - **Fonts arrive one visit late.** They come from Google Fonts, and on a first visit the page has
   already requested them before the worker takes control, so they are only cached from the second
   visit onwards. Until then an offline load falls back to the system stack — the layout holds, the
