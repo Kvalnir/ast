@@ -502,6 +502,7 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 }
 .drop:hover,.drop.over{border-color:var(--amber);background:rgba(240,180,41,.06)}
 .drop:focus-within{outline:2px solid var(--amber);outline-offset:2px}
+.dim{opacity:.65;font-size:.92em}
 .dropmain{font-size:14px;color:var(--amber)}
 .dropsub{font-size:12px;color:var(--mist)}
 .drop kbd{

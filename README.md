@@ -104,25 +104,36 @@ Roughly how it works, since none of it is obvious:
   and dark mode all mean the background under one digit has nothing to do with the next. The
   threshold walks outward until the ink covers less than half the cell, which drops a coloured chip
   behind a pencil mark without knowing anything about chips.
-- **Glyphs are clustered before they are labelled.** In a screenshot every instance of a digit is
-  the same bitmap, so grouping them is nearly free — which turns "recognise sixty digits" into
-  "label nine clusters", small enough that a crude template set plus a one-digit-each assignment
-  gets it right. Sudoku then audits the grouping: two members of one cluster in the same unit is
-  proof the grouping merged two digits, so it gets split.
+- **Glyphs are clustered before they are labelled**, which turns "recognise sixty digits" into
+  "label a handful of clusters" — small enough that a crude template set plus a one-digit-each
+  assignment gets it right. Both the clustering and the labelling work under the puzzle's own
+  constraint: two glyphs may only join, and two clusters may only share a label, if they never
+  share a row, column or box. A contradiction is therefore not something a read can produce.
+  (On a drawn test board every instance of a digit is the same bitmap. On a real screen it is
+  not — the same 5 sits on a white cell, a grey one and a green highlight at whatever subpixel
+  offset its column falls on — so one digit routinely becomes several clusters, and everything
+  downstream has to expect that rather than assume nine.)
 - **The keypad is the font.** Both apps draw their own 1-9 under the board in the face the board
   uses, which is nine perfectly labelled samples sitting in the same image as the question. When
   they are found there is no guessing at the typeface at all.
 - **Pencil marks are read from where they are**, not from their shape — both apps place a mark in
   the sub-square that names it. A mark struck through is dropped rather than read.
 - **Printed digits and your own are told apart by how they are drawn.** Good Sudoku uses two
-  weights, so the split is recoverable: solve from one group and see whether it lands on the
-  other's digits. News+ draws them identically, and then the honest answer is that it cannot tell —
-  so it says so, puts everything on the board, and you get a coach on the position rather than the
-  puzzle.
+  weights, so the split is recoverable — but the stroke measurement is only ever used to *propose*
+  it. The claim is not made until one group has been solved on its own and its solution lands on
+  every digit in the other, because the same board measured in two rendering environments gave
+  separations of 1.3 and 4.1, and nothing should rest on a threshold that moves that far. News+
+  draws printed and typed digits identically, so the honest answer there is that it cannot tell:
+  it says so, puts everything on the board, and you get a coach on the position rather than on
+  the puzzle.
 
-Where it gives up, it gives up loudly: a picture that is not a board, one too cropped to hold 17
-digits, or one whose digits contradict each other across a row are all refused with a reason
-rather than guessed at. A grainy photograph of a screen is the case most likely to be refused.
+Where it gives up, it gives up loudly, and it says why. A picture that is not a board, or one too
+cropped to hold 17 digits, is refused rather than guessed at — the deciding test being how well
+the shapes it found actually matched digits at all. A real board matches in the high eighties; nine
+columns of prose will yield a lattice and eighty glyphs and match at a tenth of that. A refusal
+also prints the numbers behind it — digits found, groups, styles, whether the keypad was located,
+cell size — because this runs on a phone looking at a picture that will never leave it, and one
+readable line is the difference between diagnosing a failure and guessing at it.
 
 The dev tests for this live outside the repo (`dev/`, gitignored) and run against boards drawn to
 behave like each app's screenshot — gridlines or none, tinted cells, chips behind marks, two type

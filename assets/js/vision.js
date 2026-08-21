@@ -53,11 +53,14 @@
   const N = 24;          // a normalised glyph is N x N
   const SPAN = 20;       // ...with its longer side scaled to this, centred
   const INSET = 0.08;    // fraction of each cell's edge ignored (gridlines live there)
-  const SAME = 0.80;     // Jaccard above which two glyphs are the same digit
+  const SAME = 0.72;     // Jaccard above which two glyphs may be the same digit
   const BIG = 0.40;      // component height, as a fraction of the inset box, that means "placed"
   const NOTE = 0.10;     // ...and below which it is too small to be anything
   const WORK = 1500;     // longest side we work at; phones hand over much bigger images
   const SURE = 0.55;     // confidence below which a cell is marked for re-reading
+  const SPLIT = 1.0;     // stroke separation above which two type styles are worth trying
+  const TRUST = 0.45;    // mean confidence below which this was not a board at all
+  let STYLE_SEP = 0;     // what the last read measured, for the diagnostics
 
   /* ---------------- image plumbing ---------------- */
 
@@ -646,72 +649,79 @@
     return out;
   }
 
-  function cluster(glyphs) {
-    const cl = [];
-    glyphs.forEach(gl => {
-      let bi = -1, bj = 0;
-      for (let i = 0; i < cl.length; i++) {
-        const j = jaccard(gl.bits, cl[i].bits);
-        if (j > bj) { bj = j; bi = i; }
-      }
-      if (bi >= 0 && bj >= SAME) cl[bi].members.push(gl);
-      else cl.push({ bits: gl.bits, members: [gl] });
-    });
-    cl.forEach(c => { c.bits = centroid(c.members); });
-    for (let i = 0; i < cl.length; i++) {
-      for (let j = i + 1; j < cl.length; j++) {
-        if (jaccard(cl[i].bits, cl[j].bits) >= SAME) {
-          cl[i].members = cl[i].members.concat(cl[j].members);
-          cl[i].bits = centroid(cl[i].members);
-          cl.splice(j, 1); j--;
-        }
-      }
-    }
-    return cl;
-  }
-
+  /* Which units a set of glyphs occupies, as one bitmask: nine rows, nine
+     columns, nine boxes. Two clusters may only join if their masks are
+     disjoint, because a digit appearing twice in a unit is impossible. */
   const ROW = i => (i / 9) | 0, COL = i => i % 9;
   const BOX = i => (((i / 27) | 0) * 3) + (((i % 9) / 3) | 0);
-  function clashes(members) {
-    for (let a = 0; a < members.length; a++) {
-      for (let b = a + 1; b < members.length; b++) {
-        const i = members[a].cell, j = members[b].cell;
-        if (i === undefined || j === undefined) continue;
-        if (ROW(i) === ROW(j) || COL(i) === COL(j) || BOX(i) === BOX(j)) return true;
-      }
-    }
-    return false;
+  function unitMask(cell) {
+    return (1 << ROW(cell)) | (1 << (9 + COL(cell))) | (1 << (18 + BOX(cell)));
   }
 
-  /* Sudoku as a check on the clustering. Two members of one cluster in the same
-     unit cannot both be right, so the group is holding two digits and gets cut
-     in half around its two least similar members. Worth being precise about
-     what this can and cannot do: it validates the GROUPING only. Permuting the
-     digits of a valid grid leaves it valid, so no amount of structure will ever
-     tell you which cluster is the 5 — that has to come from the shapes. */
-  function unmerge(cl) {
-    for (let pass = 0; pass < 6; pass++) {
-      let cut = false;
+  /* Two glyphs drawn by the same hand. Instances of one digit in one style
+     have all but identical stroke weight — background and subpixel offset move
+     it a little, nothing moves it much — while a bold 5 and a light 5 differ by
+     far more than that and are two different things on this board.
+
+     The unit constraint alone will not keep them apart, and this is subtle
+     enough to be worth stating: a printed 5 and a 5 you typed CAN legally merge,
+     because they never share a row. The constraint is about what is possible,
+     and that merge is possible. It is just wrong — and it destroys the only
+     evidence there is for which digits the puzzle printed. Near-identical
+     bitmaps are exempted, since at that similarity the weights agree anyway and
+     the rule would only be second-guessing a match that is already certain. */
+  function sameHand(a, b, sim) {
+    if (sim >= 0.88) return true;
+    const hi = Math.max(a.weight, b.weight), lo = Math.min(a.weight, b.weight);
+    return hi <= 1e-6 ? true : lo / hi >= 0.80;
+  }
+
+  /* Agglomerative, and constrained by the puzzle itself.
+
+     The first version of this thresholded on similarity alone and then repaired
+     the damage afterwards, which was backwards, and a real screenshot showed
+     why. On a drawn test board every instance of a digit is the same bitmap. On
+     a phone it is not: the same 5 sits on a white cell, a grey one and a green
+     highlight, at whatever subpixel offset its column happens to fall on, and
+     the three are similar rather than identical. So one digit becomes three
+     clusters, the count sails past nine, and everything downstream that assumed
+     nine starts merging or relabelling across digits that cannot coexist.
+
+     Encoding the constraint into the merge instead of auditing for it after
+     makes the threshold almost incidental. Genuine twins join first at .95 and
+     up; by the time the merge is scraping the floor the surviving clusters
+     already span most of the board, their masks collide, and the merge is
+     refused. A cluster built this way cannot contradict the puzzle, because it
+     was never allowed to. */
+  function cluster(glyphs) {
+    const cl = glyphs.map(g => ({ bits: g.bits, members: [g], mask: unitMask(g.cell),
+                                  weight: g.weight }));
+    const sim = cl.map(() => []);
+    for (let i = 0; i < cl.length; i++) {
+      for (let j = i + 1; j < cl.length; j++) sim[i][j] = jaccard(cl[i].bits, cl[j].bits);
+    }
+    for (;;) {
+      let bi = -1, bj = -1, best = SAME;
       for (let i = 0; i < cl.length; i++) {
-        const m = cl[i].members;
-        if (m.length < 2 || !clashes(m)) continue;
-        let pa = 0, pb = 1, worst = 2;
-        for (let a = 0; a < m.length; a++) {
-          for (let b = a + 1; b < m.length; b++) {
-            const j = jaccard(m[a].bits, m[b].bits);
-            if (j < worst) { worst = j; pa = a; pb = b; }
-          }
+        for (let j = i + 1; j < cl.length; j++) {
+          if (sim[i][j] <= best) continue;
+          if (cl[i].mask & cl[j].mask) continue;
+          if (!sameHand(cl[i], cl[j], sim[i][j])) continue;
+          best = sim[i][j]; bi = i; bj = j;
         }
-        const A = [], B = [];
-        m.forEach(x => {
-          (jaccard(x.bits, m[pa].bits) >= jaccard(x.bits, m[pb].bits) ? A : B).push(x);
-        });
-        if (!A.length || !B.length) continue;
-        cl[i] = { bits: centroid(A), members: A };
-        cl.push({ bits: centroid(B), members: B });
-        cut = true;
       }
-      if (!cut) break;
+      if (bi < 0) break;
+      const members = cl[bi].members.concat(cl[bj].members);
+      cl[bi] = { bits: centroid(members), members: members, mask: cl[bi].mask | cl[bj].mask,
+                 weight: median(members.map(m => m.weight)) };
+      cl.splice(bj, 1);
+      for (let i = 0; i < sim.length; i++) sim[i].splice(bj, 1);
+      sim.splice(bj, 1);
+      for (let i = 0; i < cl.length; i++) {
+        if (i === bi) continue;
+        const a = Math.min(i, bi), b = Math.max(i, bi);
+        sim[a][b] = jaccard(cl[a].bits, cl[b].bits);
+      }
     }
     return cl;
   }
@@ -735,24 +745,65 @@
     return vals[order[k]] - vals[order[k - 1]];
   }
 
+  /* How convincingly a cut separates, measured against how tightly each side
+     holds together rather than against the overall range. Two type weights on
+     one board give two tight knots of values with clear air between them, and
+     score high. One weight scattered by backgrounds and subpixel offsets gives
+     a smear, where the widest gap is still comparable to the spread either
+     side of it, and scores low. Magnitude alone cannot tell those apart, which
+     is what the first attempt at this got wrong. */
+  function spreadOf(vals, idx) {
+    if (idx.length < 2) return 0;
+    let m = 0;
+    idx.forEach(i => { m += vals[i]; });
+    m /= idx.length;
+    let v = 0;
+    idx.forEach(i => { const d = vals[i] - m; v += d * d; });
+    return Math.sqrt(v / idx.length);
+  }
+
+  function separation(vals, low, high, gap) {
+    const s = 0.5 * (spreadOf(vals, low) + spreadOf(vals, high));
+    return gap / (s + 1e-6);
+  }
+
   function styleSplit(cl) {
     const n = cl.length;
-    if (n <= 9 || n > 18) return null;
-    const lo = n - 9, hi = 9;
+    if (n <= 9) return null;
     let best = null;
     [['weight', cl.map(c => c.weight)], ['slant', cl.map(c => c.slant)]].forEach(pair => {
       const vals = pair[1];
       const order = vals.map((v, i) => i).sort((a, b) => vals[a] - vals[b]);
       const spread = vals[order[n - 1]] - vals[order[0]];
       if (spread <= 1e-9) return;
-      for (let k = lo; k <= hi; k++) {
-        const gap = cutAt(vals, order, k) / spread;
-        if (!best || gap > best.gap) {
-          best = { gap: gap, axis: pair[0], low: order.slice(0, k), high: order.slice(k) };
+      for (let k = Math.max(2, n - 9); k <= Math.min(n - 2, 9); k++) {
+        const low = order.slice(0, k), high = order.slice(k);
+        const sep = separation(vals, low, high, cutAt(vals, order, k));
+        if (!best || sep > best.sep) {
+          best = { sep: sep, gap: cutAt(vals, order, k) / spread, axis: pair[0], low: low, high: high };
         }
       }
     });
+    /* More than nine clusters is now only the PRECONDITION for two styles, not
+       the proof of it. A real screenshot overshoots nine on its own — one digit
+       drawn on three different backgrounds is three clusters — and a split
+       taken on that alone invents a distinction between printed digits and
+       typed ones that does not exist, which is far worse than declining to
+       find one that does. So the cut has to be visible in the drawing: a gap
+       in stroke weight or slant that dominates the spread around it.
+
+       The bar is deliberately low, because the two things a split decides are
+       not equally dangerous. Splitting only changes how the labelling is
+       organised, and the labelling is constrained either way, so a split taken
+       in error costs very little — the digits still come out. Claiming to know
+       which of them the puzzle PRINTED is the expensive part, and that claim is
+       not made here: it has to survive being solved, below. Measurements of the
+       same two-weight board across two rendering environments came out at 1.3
+       and 4.1, which is enough spread to say that no threshold here should be
+       the thing the feature rests on. */
     if (!best) return null;
+    STYLE_SEP = best.sep;
+    if (best.sep < SPLIT) return null;
     const size = g => g.reduce((t, i) => t + cl[i].members.length, 0);
     if (size(best.low) < 8 || size(best.high) < 8) return null;
     return [best.low, best.high];
@@ -763,13 +814,63 @@
      That constraint is doing real work — it is what lets a crude template set
      survive a face it has never seen, because a digit only has to beat the
      other eight rather than be recognised outright. */
-  function label(cl, group, score) {
+  /* Labelling under the same constraint the clustering works under: a digit
+     may not be given to a cluster that shares a unit with another cluster
+     already holding it. Both would be on the board at once, in one row, which
+     is the contradiction the read gets refused for.
+
+     Worth noting this is true whether or not the style split was right. If two
+     styles are really there, a printed 5 and a 5 you typed are different
+     clusters and never share a unit anyway, so the rule costs nothing. If the
+     split was spurious, the rule is what stops the two halves independently
+     spending the same nine digits on cells that sit side by side. */
+  function legal(taken, cl, ci, d) {
+    const m = cl[ci].mask;
+    return taken[d].every(x => !(x & m));
+  }
+
+  function claim(taken, cl, ci, d) {
+    cl[ci].digit = d + 1;
+    taken[d].push(cl[ci].mask);
+  }
+
+  function confOf(row, d) {
+    const copy = Array.from(row);
+    const best = copy[d];
+    copy[d] = -1;
+    const margin = best - Math.max.apply(null, copy);
+    return Math.max(0, Math.min(Math.min(1, 0.45 + 2.5 * margin), 0.35 + best));
+  }
+
+  function label(cl, group, score, taken) {
+    /* Too many clusters for one digit each — a real screen splits a digit
+       across the backgrounds it is drawn on, so this is the ordinary case, not
+       the broken one. Each cluster takes the best digit still open to it,
+       surest first, and two clusters of the same digit may share a label as
+       long as they never share a unit. */
+    if (group.length > 9) {
+      const order = group.slice().sort((a, b) => {
+        const ra = Array.from(score[a]).sort((x, y) => y - x);
+        const rb = Array.from(score[b]).sort((x, y) => y - x);
+        return (rb[0] - rb[1]) - (ra[0] - ra[1]);
+      });
+      order.forEach(ci => {
+        const row = score[ci];
+        const rank = [0, 1, 2, 3, 4, 5, 6, 7, 8].sort((a, b) => row[b] - row[a]);
+        const d = rank.find(k => legal(taken, cl, ci, k));
+        if (d === undefined) { cl[ci].digit = 0; cl[ci].conf = 0; return; }
+        claim(taken, cl, ci, d);
+        cl[ci].conf = confOf(row, d) * (d === rank[0] ? 1 : 0.7);
+      });
+      return;
+    }
+
     const pairs = [];
     group.forEach(ci => { for (let d = 0; d < 9; d++) pairs.push([ci, d, score[ci][d]]); });
     pairs.sort((a, b) => b[2] - a[2]);
     const takenC = {}, takenD = {}, out = {};
     pairs.forEach(p => {
-      if (takenC[p[0]] || takenD[p[1]]) return;
+      if (takenC[p[0]] || takenD[p[1]] || !legal(taken, cl, p[0], p[1])) return;
       takenC[p[0]] = 1; takenD[p[1]] = 1;
       out[p[0]] = p[1];
     });
@@ -781,6 +882,7 @@
         for (let b = a + 1; b < group.length; b++) {
           const ca = group[a], cb = group[b], da = out[ca], db = out[cb];
           if (da === undefined || db === undefined) continue;
+          if (!legal(taken, cl, ca, db) || !legal(taken, cl, cb, da)) continue;
           const now = score[ca][da] + score[cb][db];
           const swap = score[ca][db] + score[cb][da];
           if (swap > now + 1e-9) { out[ca] = db; out[cb] = da; moved = true; }
@@ -791,13 +893,8 @@
     group.forEach(ci => {
       const d = out[ci];
       if (d === undefined) { cl[ci].digit = 0; cl[ci].conf = 0; return; }
-      const row = Array.from(score[ci]);
-      const best = row[d];
-      row[d] = -1;
-      const second = Math.max.apply(null, row);
-      const margin = best - second;
-      cl[ci].digit = d + 1;
-      cl[ci].conf = Math.max(0, Math.min(Math.min(1, 0.45 + 2.5 * margin), 0.35 + best));
+      claim(taken, cl, ci, d);
+      cl[ci].conf = confOf(score[ci], d);
     });
   }
 
@@ -811,6 +908,26 @@
      A three-by-three block of big digits is also, unhelpfully, shaped like a
      sudoku box — which is why the board is found first, by a lattice of ten
      lines rather than four, and only the region below it is searched here. */
+  /* Is the thing found below the board actually the keypad? Nine glyph-shaped
+     blobs in a three-by-three arrangement is a weak claim — a row of controls
+     and a couple of words can satisfy it. The check is that the harvest should
+     agree with the built-in templates about roughly what it is holding: the
+     glyph in the fourth position ought to look more like a 4 than like anything
+     else. Perfect agreement is not the bar, since the whole point of harvesting
+     is that the templates are mediocre on an unfamiliar face — but a harvest
+     that agrees with them about almost nothing is not a keypad, and trusting it
+     mislabels every digit on the board at once. */
+  function seedsSane(seeds) {
+    let agree = 0;
+    for (let d = 0; d < 9; d++) {
+      const sc = templateScores(seeds[d]);
+      let bi = 0;
+      for (let k = 1; k < 9; k++) if (sc[k] > sc[bi]) bi = k;
+      if (bi === d) agree++;
+    }
+    return agree >= 5;
+  }
+
   function harvest(g, w, h, box, polarity, gh) {
     const top = Math.min(h - 1, Math.round(box.y + box.cell * 9) + 4);
     if (h - top < gh * 3) return null;
@@ -845,17 +962,30 @@
   /* Nine clusters is the most a style can honestly have. More than that means
      one digit got split — different antialiasing at two sizes, usually — so the
      closest pair is folded back together until the count is legal. */
+  /* Nine is the most a style can honestly have, so a group over that is folded
+     back together closest-pair first — but only across pairs that could be the
+     same digit. Without that test this is the step that undid the clustering's
+     one guarantee: told to reach nine at any cost, it will merge two digits
+     that sit in the same row, and every cell of both goes out wrong.
+
+     Reaching nine is therefore an aim, not a promise. Where the legal merges
+     run out the group stays large and the labelling below stops insisting each
+     digit is used once, which is the weaker but honest answer. */
   function capNine(cl, group) {
-    while (group.length > 9) {
-      let a = 0, b = 1, best = -1;
+    for (;;) {
+      if (group.length <= 9) break;
+      let a = -1, b = -1, best = -1;
       for (let i = 0; i < group.length; i++) {
         for (let j = i + 1; j < group.length; j++) {
+          if (cl[group[i]].mask & cl[group[j]].mask) continue;
           const s = jaccard(cl[group[i]].bits, cl[group[j]].bits);
           if (s > best) { best = s; a = i; b = j; }
         }
       }
+      if (a < 0) break;
       const ci = group[a], cj = group[b];
       cl[ci].members = cl[ci].members.concat(cl[cj].members);
+      cl[ci].mask |= cl[cj].mask;
       cl[ci].bits = centroid(cl[ci].members);
       cl[cj].members = [];
       group.splice(b, 1);
@@ -873,8 +1003,23 @@
 
   /* ---------------- the read ---------------- */
 
+  /* Failures carry their own numbers, in the message itself. This runs on a
+     phone, looking at a screenshot that will never leave it, and the difference
+     between "it did not work" and one readable line is the difference between
+     guessing at the cause and fixing it. */
+  function diag(d) {
+    if (!d || !d.board) return '';
+    const bits = [d.glyphs + ' digits', (d.clusters || 0) + ' groups'];
+    if (d.styles) bits.push(d.styles + (d.styles === 1 ? ' style' : ' styles'));
+    if (d.sep) bits.push('sep ' + d.sep);
+    if (d.conf !== undefined) bits.push(d.conf + '% match');
+    bits.push(d.keypad ? 'keypad found' : 'no keypad');
+    bits.push('cell ' + Math.round(d.cell) + 'px');
+    return ' <span class="dim">(' + bits.join(', ') + ')</span>';
+  }
+
   function fail(code, message, debug) {
-    return { ok: false, code: code, message: message, grid: null, notes: null,
+    return { ok: false, code: code, message: message + diag(debug), grid: null, notes: null,
              given: null, conf: null, low: [], debug: debug || {} };
   }
 
@@ -947,17 +1092,16 @@
       return fail('nodigits', 'A grid was found but only ' + glyphs.length + ' digits read out of ' +
         'it, and no sudoku has fewer than 17. Most likely the picture is cropped, or too small ' +
         'for the digits to survive — a full-resolution screenshot reads best.',
-        { board: box, glyphs: glyphs.length, cell: box.cell });
+        { board: box, glyphs: glyphs.length, cell: box.cell, keypad: false, clusters: 0 });
     }
 
     const gh = median(scan.heights);
-    const seeds = harvest(g, w, h, box, pol < 0 ? -1 : 1, gh);
+    let seeds = harvest(g, w, h, box, pol < 0 ? -1 : 1, gh);
+    if (seeds && !seedsSane(seeds)) seeds = null;
 
-    const cl = unmerge(cluster(glyphs));
-    cl.forEach(c => {
-      c.weight = median(c.members.map(m => m.weight));
-      c.slant = median(c.members.map(m => m.slant));
-    });
+    STYLE_SEP = 0;
+    const cl = cluster(glyphs);
+    cl.forEach(c => { c.slant = median(c.members.map(m => m.slant)); });
 
     const score = cl.map(c => {
       if (!seeds) return templateScores(c.bits);
@@ -972,7 +1116,8 @@
     if (split) groups = split.map(grp => grp.map(k => live[k]));
     else groups = [live.slice()];
     groups = groups.map(grp => capNine(cl, grp));
-    groups.forEach(grp => label(cl, grp, score));
+    const taken = [[], [], [], [], [], [], [], [], []];
+    groups.forEach(grp => label(cl, grp, score, taken));
 
     const grid = new Array(81).fill(0);
     const conf = new Array(81).fill(0);
@@ -1027,34 +1172,40 @@
       } else why = tries.length ? 'two styles, both solve' : 'two styles, neither solves';
     }
 
-    /* A digit twice in a unit is the read contradicting itself. A few of those
-       are a misread and the squares get marked; a lot of them mean this was
-       never a sudoku board — nine columns of prose will happily yield a lattice
-       and eighty glyphs, and refusing on the arithmetic is more reliable than
-       any amount of squinting at the picture beforehand. */
-    const clash = [];
-    for (let i = 0; i < 81; i++) {
-      if (!grid[i]) continue;
-      for (let j = i + 1; j < 81; j++) {
-        if (grid[j] !== grid[i]) continue;
-        if (ROW(i) !== ROW(j) && COL(i) !== COL(j) && BOX(i) !== BOX(j)) continue;
-        if (clash.indexOf(i) < 0) clash.push(i);
-        if (clash.indexOf(j) < 0) clash.push(j);
-      }
-    }
-    if (clash.length >= 6) {
-      return fail('notsudoku', 'That reads as a grid of ' + filledOf(grid) + ' digits, but ' +
-        clash.length + ' of them repeat inside a row, column or box, which a sudoku never does. ' +
-        'Either the picture is not a sudoku board, or too little of it survived to be worth ' +
-        'trusting — type it in instead.',
-        { board: box, glyphs: glyphs.length, clash: clash.length, cell: box.cell });
+    /* Whether this was a sudoku board at all.
+
+       It used to be answered by arithmetic: count the digits repeating inside a
+       row, column or box, and refuse when there were too many. That test is
+       gone because it can no longer fire — clustering and labelling both work
+       under the constraint now, so a repeat is not something the read is
+       capable of producing, and a check that cannot fail is not a check.
+
+       What is left is the thing the read already knows and had not been asked:
+       how well the shapes it found actually matched digits. Nine columns of
+       prose will yield a lattice and eighty glyphs and label them without
+       complaint, but it labels them badly, and it knows. A board reads in the
+       high eighties; a page of text reads at a tenth of that. The gap is wide
+       enough that no threshold inside it is delicate. The cluster count says
+       the same thing more bluntly — one style can hold nine shapes and two can
+       hold eighteen, so a picture yielding twenty-five distinct shapes is not a
+       sudoku whatever else it is. */
+    let sure = 0;
+    const filled = filledOf(grid);
+    for (let i = 0; i < 81; i++) if (grid[i]) sure += conf[i];
+    const mean = filled ? sure / filled : 0;
+    if (mean < TRUST || live.length > 20) {
+      return fail('notsudoku', 'That does not read as a sudoku board. A lattice was found and ' +
+        filled + ' shapes came out of it, but they match digits at ' + Math.round(mean * 100) +
+        '% where a real board reads above 75% — so either this is not a sudoku, or too little of ' +
+        'it survived the picture to be worth trusting. Type it in instead.',
+        { board: box, glyphs: glyphs.length, cell: box.cell, clusters: live.length,
+          styles: groups.length, keypad: !!seeds, conf: Math.round(mean * 100),
+          sep: Math.round(STYLE_SEP * 100) / 100 });
     }
 
-    const low = clash.slice();
-    for (let i = 0; i < 81; i++) if (grid[i] && conf[i] < SURE && low.indexOf(i) < 0) low.push(i);
-    low.sort((a, b) => a - b);
+    const low = [];
+    for (let i = 0; i < 81; i++) if (grid[i] && conf[i] < SURE) low.push(i);
 
-    const filled = grid.filter(v => v).length;
     return {
       ok: true, code: 'ok',
       grid: grid, notes: notes, given: given, conf: conf, low: low,
@@ -1063,7 +1214,8 @@
       message: '',
       debug: {
         board: box, glyphs: glyphs.length, clusters: live.length,
-        styles: groups.length, keypad: !!seeds, split: why, cell: box.cell
+        styles: groups.length, keypad: !!seeds, split: why, cell: box.cell,
+        sep: Math.round(STYLE_SEP * 100) / 100
       }
     };
   }
