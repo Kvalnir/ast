@@ -515,6 +515,15 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   background:var(--panel2);color:var(--text);border:1px solid #2A3D45;border-radius:2px;
   padding:9px 10px;margin:0 0 8px;
 }
+/* Sized to its content rather than to the panel: eleven characters wide is
+   what a row of the grid is, and a grid floating in a full-width box stops
+   looking like a grid. Bigger type than the panel's, because this one is read
+   a character at a time against a printed page. */
+.pastebox textarea.gridpad{
+  width:auto;max-width:100%;font-size:15px;line-height:1.55;letter-spacing:.18em;
+  padding:10px 12px;white-space:pre
+}
+.pastebox textarea.gridpad::placeholder{letter-spacing:.06em;font-size:12px;line-height:1.5}
 .pastebox textarea:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
 /* The saved list is chips, but each is a pair: the puzzle and its forget. They
    share a border so the pair reads as one object rather than two chips that

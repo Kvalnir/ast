@@ -117,7 +117,7 @@
 
     <div class="coachrow" id="iStart">
       <button class="tbtn" id="bCapture">Type in a puzzle</button>
-      <button class="tbtn" id="bPaste" title="81 characters, 0 or . for a blank">Paste it instead</button>
+      <button class="tbtn" id="bPaste" title="81 characters, 0 or . for a blank — the box lays them out as a grid">Paste it instead</button>
       <button class="tbtn" id="bImage" title="Read the digits out of a screenshot of another app">Read a screenshot <span class="flag">experimental</span></button>
     </div>
 
@@ -147,8 +147,9 @@
     </div>
 
     <div class="pastebox" id="iPasteBox" hidden>
-      <textarea id="iText" rows="3" spellcheck="false" autocapitalize="off" autocorrect="off"
-        placeholder="81 characters, row by row. 0 or . for an empty square; spaces and line breaks are ignored."></textarea>
+      <textarea id="iText" class="gridpad" rows="9" cols="12" spellcheck="false"
+        autocapitalize="off" autocorrect="off" autocomplete="off" inputmode="numeric"
+        placeholder="123 456 789&#10;nine rows like this&#10;&#10;0 or . for an empty&#10;square. Paste any 81&#10;characters and the box&#10;lays them out for you."></textarea>
       <div class="coachrow">
         <button class="tbtn" id="bPasteLoad">Load it</button>
         <button class="tbtn" id="bPasteCancel">Cancel</button>

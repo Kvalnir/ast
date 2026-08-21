@@ -703,6 +703,7 @@
     const p = res.puzzle;
     const pend = S.pending;
     $('iText').value = '';
+    held = 0;
     endCapture();
     load(p);
     /* A screenshot saw more than the puzzle — where you had got to, and what
@@ -744,6 +745,44 @@
   /* A string of the right length that is not a puzzle is worth putting on the
      board — capture mode opens on it with the bad squares marked, so the fix is
      a tap. One of the wrong length has nothing to show yet. */
+  /* The box lays itself out as you type: nine to a line, grouped in threes.
+     Everything is rebuilt from the grid characters alone, so the separators are
+     never something you have to type, delete, or get wrong — which is the point,
+     since a run of eighty-one characters cannot be read against a printed grid
+     and nine rows of nine can.
+
+     The caret is carried by COUNT rather than by position — how many grid
+     characters were in front of it — because the positions either side of a
+     relayout mean different things. */
+  let held = 0;
+
+  function relayout(e) {
+    const el = $('iText');
+    const raw = el.value;
+    const upto = el.selectionStart === null ? raw.length : el.selectionStart;
+    const chars = [];
+    let n = 0;
+    for (let k = 0; k < raw.length; k++) {
+      if (!I.gridChar(raw[k])) continue;
+      if (k < upto) n++;
+      chars.push(raw[k]);
+    }
+    /* Backspace onto a space or a line break deleted furniture, not anything
+       you typed, so the relayout puts it straight back and the key appears to
+       have done nothing. Take the digit in front of it instead — that is what
+       was meant, and a key that does nothing feels broken. */
+    if (e && /backward/i.test(e.inputType || '') && chars.length === held && n > 0) {
+      chars.splice(n - 1, 1);
+      n--;
+    }
+    const text = I.gridify(chars.join(''));
+    held = chars.length;
+    if (text === raw) return;
+    el.value = text;
+    const pos = I.gridCaret(n, text.length);
+    try { el.setSelectionRange(pos, pos); } catch (err) { /* not focused */ }
+  }
+
   function loadPasted() {
     const raw = $('iText').value;
     check(raw, I.normalise(raw));
@@ -917,7 +956,12 @@
   $('sCoach').addEventListener('change', e => { S.coach = e.target.value; render(); });
 
   $('bCapture').addEventListener('click', () => { startCapture(null); iSay(''); });
-  $('bPaste').addEventListener('click', () => { importPanel('paste'); $('iText').focus(); });
+  $('bPaste').addEventListener('click', () => {
+    importPanel('paste');
+    relayout(null);
+    $('iText').focus();
+  });
+  $('iText').addEventListener('input', relayout);
   /* No reader in the page, no button offering one. */
   if (!V) $('bImage').hidden = true;
   else {

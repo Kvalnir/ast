@@ -6,7 +6,8 @@ A three-page static site for getting past the wall in Apple News+ **Challenging*
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
 - **`trainer.html`** — a live board that behaves like News+ and names the patterns available in
   your position, one hint level at a time. Twenty verified puzzles are built in, and you can
-  **import the one you are actually stuck on** — by typing it, by pasting 81 characters, or
+  **import the one you are actually stuck on** — by typing it, by pasting 81 characters into a box
+  that lays them out as a nine-by-nine grid so you can check them against the page, or
   (experimentally) by handing it a screenshot of the app you are stuck in.
 - **`cheatsheet.html`** — the same nine patterns as a card grid: the trigger that fires each one,
   the deletion it earns, and where it goes wrong. The reference is what you read; this is what you

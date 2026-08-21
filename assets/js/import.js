@@ -33,6 +33,12 @@
     return names.slice(0, cap).join(', ') + ' and ' + (names.length - cap) + ' more';
   }
 
+  /* The characters a grid is made of: the nine digits, and the several things
+     people write for an empty square. Everything else — pipes, plus signs, the
+     line breaks a copied grid arrives wrapped in — is furniture. */
+  const BLANKS = '0.-_*?';
+  function gridChar(ch) { return (ch >= '1' && ch <= '9') || BLANKS.indexOf(ch) >= 0; }
+
   /* Anything that is not a digit is a blank. Grids get pasted with dots,
      dashes, pipes and line breaks in them, and nine digits typed on a phone
      arrive with whatever the keyboard felt like adding. */
@@ -41,10 +47,46 @@
     const s = String(text || '');
     for (let k = 0; k < s.length; k++) {
       const ch = s[k];
-      if (ch >= '1' && ch <= '9') out += ch;
-      else if (ch === '0' || ch === '.' || ch === '-' || ch === '_' || ch === '*' || ch === '?') out += '0';
+      if (!gridChar(ch)) continue;
+      out += (ch >= '1' && ch <= '9') ? ch : '0';
     }
     return out;
+  }
+
+  /* ---------------- laying it out ----------------
+     The same 81 characters, shaped like the thing they describe: nine to a
+     line, and grouped in threes so the boxes are visible. Checking a
+     transcription against a printed grid means reading them side by side, and
+     an unbroken run of eighty-one characters cannot be read side by side with
+     anything — you lose your place on the fourth row and start again.
+
+     Blanks are left as the person wrote them rather than folded to 0. Someone
+     typing dots is doing it because dots disappear and digits do not, which is
+     the whole reason to prefer them, and normalise() takes either. */
+  function gridify(text) {
+    const s = String(text || '');
+    let out = '', n = 0;
+    for (let k = 0; k < s.length; k++) {
+      const ch = s[k];
+      if (!gridChar(ch)) continue;
+      if (n && n % 9 === 0) out += '\n';
+      else if (n && n % 3 === 0) out += ' ';
+      out += ch;
+      n++;
+    }
+    return out;
+  }
+
+  /* Where the caret belongs after a relayout: the spot that still has `n` grid
+     characters in front of it. A row is eleven characters and a newline, and
+     the two spaces inside it fall after the third and the sixth. */
+  function gridCaret(n, len) {
+    if (n <= 0) return 0;
+    const rows = (n / 9) | 0, k = n % 9;
+    let pos = rows * 12 + k;
+    if (k >= 4) pos++;
+    if (k >= 7) pos++;
+    return Math.min(pos, len);
   }
 
   /* Same digit twice in a unit. Cheap, and it catches the commonest slip
@@ -291,7 +333,7 @@
   }
 
   root.SudokuImport = {
-    ADV_RANK, normalise, conflicts, repairs, walk, analyze,
+    ADV_RANK, normalise, gridChar, gridify, gridCaret, conflicts, repairs, walk, analyze,
     saved, save, forget, fromHash, setHash, clearHash
   };
 })(typeof window !== 'undefined' ? window : globalThis);
