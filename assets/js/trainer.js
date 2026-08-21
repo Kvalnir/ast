@@ -4,6 +4,11 @@
   const C = window.SudokuCore, T = window.SudokuTech, BANK = window.SUDOKU_BANK,
         I = window.SudokuImport;
   const $ = id => document.getElementById(id);
+  /* A caret that takes text: the paste box, or a text field. Checkboxes and
+     the coach's selects keep focus after a click, so they stay out of it —
+     the pad must still answer while one of them is the focused element. */
+  const isTyping = el => !!el && (el.isContentEditable || el.tagName === 'TEXTAREA' ||
+        (el.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|range)$/i.test(el.type)));
   const boardEl = $('board'), geoEl = $('geo');
 
   /* ---------------- state ---------------- */
@@ -840,6 +845,10 @@
     .forEach(id => drillEl.appendChild(makeChip(id, { onClick: () => startDrill(id) })));
 
   document.addEventListener('keydown', e => {
+    /* The paste box wants the same digits the pad does. While the caret is in a
+       field, every key belongs to that field — otherwise typing 81 characters
+       lands 1-9 on the grid and leaves only the 0s behind. */
+    if (isTyping(e.target)) return;
     if (e.metaKey || e.ctrlKey) {
       if (e.key === 'z') { e.preventDefault(); undo(); }
       return;

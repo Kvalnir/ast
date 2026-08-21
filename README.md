@@ -134,6 +134,9 @@ tap will be.
 | <kbd>H</kbd> | Show me more — the next rung of the hint ladder |
 | <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> | Undo, notes included |
 
+These belong to the board, and only to the board: while the caret is in a text field — the paste
+box, most of all — every key is that field's, so an 81-character string types in whole.
+
 **The coach is a ladder, not an answer.** Findings escalate only as far as you ask:
 
 | Level | What you get |
