@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const C = window.SudokuCore, T = window.SudokuTech, BANK = window.SUDOKU_BANK,
-        I = window.SudokuImport, V = window.SudokuVision;
+        I = window.SudokuImport;
   const $ = id => document.getElementById(id);
   /* A caret that takes text: the paste box, or a text field. Checkboxes and
      the coach's selects keep focus after a click, so they stay out of it —
@@ -21,11 +21,7 @@
     /* import: `capture` hands the board over to transcription, `mark` is the
        set of squares the validator wants looked at again, `before` is the
        puzzle capture interrupted so Cancel can put it back. */
-    capture: false, mark: [], before: null,
-    /* What a screenshot read that the capture board cannot hold: your own
-       entries, and your pencil marks. Capture is about the PRINTED digits, so
-       these wait until the puzzle has been accepted and then go back on. */
-    pending: null
+    capture: false, mark: [], before: null
   };
 
   const NAMES = {
@@ -622,13 +618,11 @@
     el.className = 'note' + (kind ? ' ' + kind : '');
   }
 
-  /* Five states, one at a time: offering, transcribing, pasting, reading a
-     picture, imported. */
+  /* Four states, one at a time: offering, transcribing, pasting, imported. */
   function importPanel(state) {
     $('iStart').hidden = state !== 'start';
     $('iCapRow').hidden = state !== 'capture';
     $('iPasteBox').hidden = state !== 'paste';
-    $('iImageBox').hidden = state !== 'image';
     $('iAfter').hidden = state !== 'after';
     $('iCount').hidden = state !== 'capture';
     $('iNote').hidden = state !== 'start';
@@ -644,7 +638,6 @@
 
   function startCapture(seed) {
     if (!S.capture) S.before = S.puzzle;
-    S.pending = null;
     S.capture = true;
     S.puzzle = null;
     S.grid = seed ? C.parse(seed) : new Array(81).fill(0);
@@ -674,10 +667,6 @@
   function endCapture() {
     S.capture = false;
     S.before = null;
-    /* A position read from a picture belongs to the transcription it came with.
-       Cancel out of capture, or load something else, and it has to go — every
-       caller that still wants it reads it before calling this. */
-    S.pending = null;
     $('boardwrap').classList.remove('capturing');
   }
 
@@ -701,23 +690,10 @@
 
   function acceptImport(res) {
     const p = res.puzzle;
-    const pend = S.pending;
     $('iText').value = '';
     held = 0;
     endCapture();
     load(p);
-    /* A screenshot saw more than the puzzle — where you had got to, and what
-       you had pencilled in. The puzzle is what gets saved and what the link
-       carries, because that is the durable thing; the position goes back on the
-       board now, and only where the puzzle left the square empty, so a digit
-       misread as an entry can never overwrite a printed one. */
-    if (pend) {
-      const g = C.parse(p.p);
-      pend.entries.forEach(e => { if (!g[e.cell]) S.grid[e.cell] = e.digit; });
-      pend.notes.forEach((set, i) => { if (!S.grid[i]) S.notes[i] = new Set(set); });
-      S.pending = null;
-      recompute();
-    }
     I.save(p);
     I.setHash(p.p);
     importPanel('after');
@@ -786,71 +762,6 @@
   function loadPasted() {
     const raw = $('iText').value;
     check(raw, I.normalise(raw));
-  }
-
-  /* ---------------- reading a screenshot ----------------
-     EXPERIMENTAL, and the code is shaped by that rather than only labelled
-     with it: nothing here calls acceptImport. A read hands its digits to
-     CAPTURE mode, which is the surface that already exists for a grid that
-     might be wrong — it tints what it doubts and waits for you to press Check
-     it. So the worst a bad read can do is waste a glance, and the validator in
-     import.js still has the last word on whether any of it is a real puzzle. */
-
-  function readSummary(res) {
-    const filled = res.filled;
-    const marks = res.noteCount ? ' Its ' + res.noteCount + ' pencil marks came across too, and go ' +
-      'back on the board once you accept the puzzle.' : '';
-    const shaky = res.low.length
-      ? ' <b>' + res.low.length + (res.low.length === 1 ? ' square is' : ' squares are') +
-        '</b> marked on the board — those are the ones it is least sure of, so check them first.'
-      : ' It is confident about every square, which is not the same as being right: read the grid ' +
-        'over before you accept it.';
-    if (res.given) {
-      const printed = res.given.filter(Boolean).length;
-      const mine = filled - printed;
-      return ['good', 'Read ' + printed + ' printed digits' +
-        (mine ? ', and ' + mine + ' more that the app draws differently because you entered them' : '') +
-        '. Only the printed ones are on the board' + (mine ? ' — your own go back on after you accept it' : '') +
-        '.' + marks + shaky];
-    }
-    return ['warn', 'Read ' + filled + ' digits, but nothing in the picture separates the ones the ' +
-      'puzzle printed from the ones you entered — this app draws them identically — so all ' +
-      filled + ' are on the board as though they were printed. That still gets you a coach on the ' +
-      'position you are stuck in, which is the point; what it cannot do is play the puzzle back ' +
-      'from its start, so <b>Catch me up</b> will have nothing to do.' + marks + shaky];
-  }
-
-  function applyRead(res) {
-    startCapture(null);
-    const grid = new Array(81).fill(0), entries = [];
-    for (let i = 0; i < 81; i++) {
-      if (!res.grid[i]) continue;
-      if (!res.given || res.given[i]) grid[i] = res.grid[i];
-      else entries.push({ cell: i, digit: res.grid[i] });
-    }
-    S.grid = grid;
-    S.given = grid.map(v => v > 0);
-    S.pending = { entries: entries, notes: res.notes };
-    S.mark = res.low.filter(i => grid[i]);
-    captureRefresh();
-    const say = readSummary(res);
-    iSay(say[1], say[0]);
-  }
-
-  function readImage(file) {
-    if (!file) return;
-    if (!/^image\//.test(file.type || '')) {
-      iSay('That is not an image. A screenshot saved as PNG, JPEG or HEIC is what this wants.', 'warn');
-      return;
-    }
-    iSay('Reading the picture… finding the grid and measuring eighty-one squares takes a moment.');
-    V.readFile(file).then(res => {
-      if (res.ok) applyRead(res);
-      else iSay(res.message, 'warn');
-    }, err => {
-      iSay('That image could not be opened — ' + (err && err.message ? err.message : 'unknown format') +
-           '. A PNG or JPEG screenshot is the safe bet.', 'warn');
-    });
   }
 
   /* Play every forced move from the printed digits and stop at the first
@@ -962,43 +873,6 @@
     $('iText').focus();
   });
   $('iText').addEventListener('input', relayout);
-  /* No reader in the page, no button offering one. */
-  if (!V) $('bImage').hidden = true;
-  else {
-    $('bImage').addEventListener('click', () => { importPanel('image'); iSay(''); });
-    $('bImageCancel').addEventListener('click', () => {
-      importPanel(S.puzzle && S.puzzle.imported ? 'after' : 'start');
-      iSay('');
-    });
-    $('iFile').addEventListener('change', e => {
-      const f = e.target.files && e.target.files[0];
-      e.target.value = '';   /* so choosing the same file twice fires again */
-      readImage(f);
-    });
-    const drop = $('iDrop');
-    ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => {
-      e.preventDefault(); drop.classList.add('over');
-    }));
-    ['dragleave', 'dragend'].forEach(t => drop.addEventListener(t, () => drop.classList.remove('over')));
-    drop.addEventListener('drop', e => {
-      e.preventDefault();
-      drop.classList.remove('over');
-      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      readImage(f);
-    });
-    /* Paste is how a screenshot actually arrives on a desktop, and on iOS it is
-       the one route that does not go through the photo library. Only while the
-       picture panel is open, so it never steals a paste meant for the text box. */
-    document.addEventListener('paste', e => {
-      if ($('iImageBox').hidden) return;
-      const items = (e.clipboardData && e.clipboardData.items) || [];
-      for (let k = 0; k < items.length; k++) {
-        if (items[k].kind !== 'file') continue;
-        const f = items[k].getAsFile();
-        if (f && /^image\//.test(f.type)) { e.preventDefault(); readImage(f); return; }
-      }
-    });
-  }
   $('bPasteLoad').addEventListener('click', loadPasted);
   $('bPasteCancel').addEventListener('click', () => {
     importPanel(S.puzzle && S.puzzle.imported ? 'after' : 'start');

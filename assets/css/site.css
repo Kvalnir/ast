@@ -487,34 +487,6 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    replaced by the instructions. Cheap, and it cannot be missed. */
 .boardwrap.capturing .board{border-color:var(--amber-ink);box-shadow:0 0 0 3px rgba(240,180,41,.12)}
 .pastebox{margin:10px 0 0}
-/* The experimental tag. Small, but it rides the button itself rather than
-   sitting in prose above it, because the prose is what gets skipped. */
-.flag{
-  display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;
-  font-size:10px;letter-spacing:.04em;text-transform:uppercase;
-  background:rgba(240,180,41,.16);color:var(--amber);border:1px solid var(--amber-ink);
-  vertical-align:1px
-}
-.drop{
-  display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;
-  padding:22px 14px;margin:10px 0 0;text-align:center;cursor:pointer;
-  border:1px dashed #3A4E57;border-radius:8px;background:rgba(255,255,255,.02)
-}
-.drop:hover,.drop.over{border-color:var(--amber);background:rgba(240,180,41,.06)}
-.drop:focus-within{outline:2px solid var(--amber);outline-offset:2px}
-.dim{opacity:.65;font-size:.92em}
-.dropmain{font-size:14px;color:var(--amber)}
-.dropsub{font-size:12px;color:var(--mist)}
-.drop kbd{
-  font:inherit;font-size:11px;padding:0 3px;border:1px solid #3A4E57;border-radius:3px;
-  background:rgba(255,255,255,.04)
-}
-.pastebox textarea{
-  width:100%;box-sizing:border-box;resize:vertical;
-  font-family:var(--mono);font-size:12px;line-height:1.7;letter-spacing:.06em;
-  background:var(--panel2);color:var(--text);border:1px solid #2A3D45;border-radius:2px;
-  padding:9px 10px;margin:0 0 8px;
-}
 /* Sized to its content rather than to the panel: eleven characters wide is
    what a row of the grid is, and a grid floating in a full-width box stops
    looking like a grid. Bigger type than the panel's, because this one is read

@@ -6,9 +6,8 @@ A three-page static site for getting past the wall in Apple News+ **Challenging*
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
 - **`trainer.html`** — a live board that behaves like News+ and names the patterns available in
   your position, one hint level at a time. Twenty verified puzzles are built in, and you can
-  **import the one you are actually stuck on** — by typing it, by pasting 81 characters into a box
-  that lays them out as a nine-by-nine grid so you can check them against the page, or
-  (experimentally) by handing it a screenshot of the app you are stuck in.
+  **import the one you are actually stuck on** — by typing it, or by pasting 81 characters into a
+  box that lays them out as a nine-by-nine grid so you can check them against the page.
 - **`cheatsheet.html`** — the same nine patterns as a card grid: the trigger that fires each one,
   the deletion it earns, and where it goes wrong. The reference is what you read; this is what you
   keep open beside the puzzle. Each card links back to its full write-up, and its figures are
@@ -65,7 +64,6 @@ assets/js/core.js       units, peers, candidates, backtracking solver
 assets/js/techniques.js the nine detectors; returns structured findings
 assets/js/bank.js       20 verified puzzles, tagged by technique required
 assets/js/import.js     read a puzzle off another screen: validate, derive, tag
-assets/js/vision.js     read a puzzle off a SCREENSHOT of another screen — experimental
 assets/js/trainer.js    board UI, News+ behaviours, hint ladder
 assets/js/pwa.js        service worker registration, update and install prompts
 assets/icons/*.png      app icons (generated — see tools/icons.py)
@@ -76,69 +74,6 @@ tools/                  Python generators (only needed to rebuild content)
 `icon.svg` is the one asset with two sources of truth: it carries the same 24-unit geometry as
 `tools/icons.py`, because a nine-cell grid does not survive a 16px downsample and browsers that
 support SVG favicons should get the vector. Edit the two together or they drift.
-
-## Reading a puzzle off a screenshot
-
-**Experimental**, and labelled that way on the button, because it is the one thing here that is
-measured rather than verified. Everything else on this site is checked against a unique solution
-before it is shown; a picture cannot offer that, so this feature is built to be wrong safely
-instead of built to be right.
-
-What that means concretely: **a read never imports anything.** It puts the digits it found onto the
-capture board — the same surface that already exists for a grid that might be wrong — tints the
-squares it is least sure of, and stops. `import.js` still has the last word on whether what is on
-the board is a real puzzle, and **Check it** is still yours to press. The worst a bad read costs
-you is a glance.
-
-It works on screenshots, not photographs. Everything happens on the device; no image is uploaded,
-and nothing is kept once the read is done.
-
-Roughly how it works, since none of it is obvious:
-
-- **The board is found as a lattice, not as a box.** Apps disagree about whether cells have
-  gridlines at all — News+ draws thin rules, Good Sudoku delimits cells by background tint alone
-  and runs the board edge to edge with the screen. What both have is ten evenly spaced
-  discontinuities per axis, because a tint change is an edge just as much as a rule is. Several
-  candidate lattices are kept and the one that turns out to hold the most digits wins, which is
-  what stops it locking onto the false lattice formed by the tops and bottoms of the digits.
-- **Every cell decides its own black.** Selection highlights, peer tints, error cells, note chips
-  and dark mode all mean the background under one digit has nothing to do with the next. The
-  threshold walks outward until the ink covers less than half the cell, which drops a coloured chip
-  behind a pencil mark without knowing anything about chips.
-- **Glyphs are clustered before they are labelled**, which turns "recognise sixty digits" into
-  "label a handful of clusters" — small enough that a crude template set plus a one-digit-each
-  assignment gets it right. Both the clustering and the labelling work under the puzzle's own
-  constraint: two glyphs may only join, and two clusters may only share a label, if they never
-  share a row, column or box. A contradiction is therefore not something a read can produce.
-  (On a drawn test board every instance of a digit is the same bitmap. On a real screen it is
-  not — the same 5 sits on a white cell, a grey one and a green highlight at whatever subpixel
-  offset its column falls on — so one digit routinely becomes several clusters, and everything
-  downstream has to expect that rather than assume nine.)
-- **The keypad is the font.** Both apps draw their own 1-9 under the board in the face the board
-  uses, which is nine perfectly labelled samples sitting in the same image as the question. When
-  they are found there is no guessing at the typeface at all.
-- **Pencil marks are read from where they are**, not from their shape — both apps place a mark in
-  the sub-square that names it. A mark struck through is dropped rather than read.
-- **Printed digits and your own are told apart by how they are drawn.** Good Sudoku uses two
-  weights, so the split is recoverable — but the stroke measurement is only ever used to *propose*
-  it. The claim is not made until one group has been solved on its own and its solution lands on
-  every digit in the other, because the same board measured in two rendering environments gave
-  separations of 1.3 and 4.1, and nothing should rest on a threshold that moves that far. News+
-  draws printed and typed digits identically, so the honest answer there is that it cannot tell:
-  it says so, puts everything on the board, and you get a coach on the position rather than on
-  the puzzle.
-
-Where it gives up, it gives up loudly, and it says why. A picture that is not a board, or one too
-cropped to hold 17 digits, is refused rather than guessed at — the deciding test being how well
-the shapes it found actually matched digits at all. A real board matches in the high eighties; nine
-columns of prose will yield a lattice and eighty glyphs and match at a tenth of that. A refusal
-also prints the numbers behind it — digits found, groups, styles, whether the keypad was located,
-cell size — because this runs on a phone looking at a picture that will never leave it, and one
-readable line is the difference between diagnosing a failure and guessing at it.
-
-The dev tests for this live outside the repo (`dev/`, gitignored) and run against boards drawn to
-behave like each app's screenshot — gridlines or none, tinted cells, chips behind marks, two type
-weights, positional marks, the board running to the frame, plus noise, blur and uneven lighting.
 
 ## Installing it as an app
 
@@ -151,7 +86,7 @@ three work with the network off.
 Two things worth knowing:
 
 - **Everything is precached on the first visit** — all three pages, the CSS, all six scripts and
-  the seven icons: 19 files, 438 KB. There is no lazy loading to go wrong later.
+  the seven icons: 18 files, 387 KB. There is no lazy loading to go wrong later.
 - **Fonts arrive one visit late.** They come from Google Fonts, and on a first visit the page has
   already requested them before the worker takes control, so they are only cached from the second
   visit onwards. Until then an offline load falls back to the system stack — the layout holds, the

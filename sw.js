@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v16';  // v16: the paste box lays itself out as a grid
+const VERSION = 'v17';  // v17: screenshot reading withdrawn; grid-shaped paste box stays
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
@@ -35,7 +35,6 @@ const PRECACHE = [
   './assets/js/techniques.js',
   './assets/js/bank.js',
   './assets/js/import.js',
-  './assets/js/vision.js',
   './assets/js/trainer.js',
   './assets/js/pwa.js',
   './assets/icons/icon-192.png',

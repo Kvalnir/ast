@@ -118,32 +118,12 @@
     <div class="coachrow" id="iStart">
       <button class="tbtn" id="bCapture">Type in a puzzle</button>
       <button class="tbtn" id="bPaste" title="81 characters, 0 or . for a blank — the box lays them out as a grid">Paste it instead</button>
-      <button class="tbtn" id="bImage" title="Read the digits out of a screenshot of another app">Read a screenshot <span class="flag">experimental</span></button>
     </div>
 
     <div class="coachrow" id="iCapRow" hidden>
       <button class="tbtn" id="bCapDone">Check it</button>
       <button class="tbtn" id="bCapClear">Clear grid</button>
       <button class="tbtn" id="bCapCancel">Cancel</button>
-    </div>
-
-    <!-- Reading a screenshot. Separated from the two paths above by more than
-         a button: those two are exact, and this one is a measurement. It never
-         imports on its own — whatever it reads lands on the capture board with
-         the doubtful squares marked, and Check it is still yours to press. -->
-    <div class="pastebox" id="iImageBox" hidden>
-      <p class="note"><b>Experimental.</b> Reading digits off a picture is guesswork in a way
-        that typing them is not, so this one lands its answer on the board for you to check
-        rather than importing it. Squares it is unsure of are marked. A screenshot works far
-        better than a photograph of a screen, and nothing leaves this device.</p>
-      <label class="drop" id="iDrop">
-        <input type="file" id="iFile" accept="image/*" hidden>
-        <span class="dropmain">Choose a screenshot</span>
-        <span class="dropsub">or drop one here, or paste one with <kbd>Ctrl</kbd>+<kbd>V</kbd></span>
-      </label>
-      <div class="coachrow">
-        <button class="tbtn" id="bImageCancel">Cancel</button>
-      </div>
     </div>
 
     <div class="pastebox" id="iPasteBox" hidden>
@@ -189,7 +169,6 @@
 <script src="assets/js/techniques.js"></script>
 <script src="assets/js/bank.js"></script>
 <script src="assets/js/import.js"></script>
-<script src="assets/js/vision.js"></script>
 <script src="assets/js/trainer.js"></script>
 <script src="assets/js/pwa.js" defer></script>
 </body>
