@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v17';  // v17: screenshot reading withdrawn; grid-shaped paste box stays
+const VERSION = 'v18';  // v18: the paste box gets its styling and its three bands
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between

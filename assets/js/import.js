@@ -62,30 +62,42 @@
 
      Blanks are left as the person wrote them rather than folded to 0. Someone
      typing dots is doing it because dots disappear and digits do not, which is
-     the whole reason to prefer them, and normalise() takes either. */
+     the whole reason to prefer them, and normalise() takes either.
+
+     The gaps go in both directions: a space after every third character and a
+     blank line after every third row, so the nine boxes are visible as nine
+     boxes. That is what you are checking against — a printed grid is read box
+     by box, not row by row.
+
+     `sep` returns what goes IN FRONT of the n-th character, and gridCaret walks
+     the same function rather than reimplementing the arithmetic, because the
+     two have to agree exactly or the caret drifts a little further from the
+     cursor with every row. */
+  function sep(n) {
+    if (!n) return '';
+    if (n % 27 === 0) return '\n\n';
+    if (n % 9 === 0) return '\n';
+    if (n % 3 === 0) return ' ';
+    return '';
+  }
+
   function gridify(text) {
     const s = String(text || '');
     let out = '', n = 0;
     for (let k = 0; k < s.length; k++) {
       const ch = s[k];
       if (!gridChar(ch)) continue;
-      if (n && n % 9 === 0) out += '\n';
-      else if (n && n % 3 === 0) out += ' ';
-      out += ch;
+      out += sep(n) + ch;
       n++;
     }
     return out;
   }
 
   /* Where the caret belongs after a relayout: the spot that still has `n` grid
-     characters in front of it. A row is eleven characters and a newline, and
-     the two spaces inside it fall after the third and the sixth. */
+     characters in front of it. */
   function gridCaret(n, len) {
-    if (n <= 0) return 0;
-    const rows = (n / 9) | 0, k = n % 9;
-    let pos = rows * 12 + k;
-    if (k >= 4) pos++;
-    if (k >= 7) pos++;
+    let pos = 0;
+    for (let i = 0; i < n; i++) pos += sep(i).length + 1;
     return Math.min(pos, len);
   }
 

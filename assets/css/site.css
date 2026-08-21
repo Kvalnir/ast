@@ -487,15 +487,25 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    replaced by the instructions. Cheap, and it cannot be missed. */
 .boardwrap.capturing .board{border-color:var(--amber-ink);box-shadow:0 0 0 3px rgba(240,180,41,.12)}
 .pastebox{margin:10px 0 0}
-/* Sized to its content rather than to the panel: eleven characters wide is
-   what a row of the grid is, and a grid floating in a full-width box stops
-   looking like a grid. Bigger type than the panel's, because this one is read
-   a character at a time against a printed page. */
-.pastebox textarea.gridpad{
-  width:auto;max-width:100%;font-size:15px;line-height:1.55;letter-spacing:.18em;
-  padding:10px 12px;white-space:pre
+/* Sized to what it holds rather than to the panel: a row of the grid is eleven
+   characters, and a grid floating in a full-width box stops looking like a
+   grid. The width is computed from that rather than set with `cols`, because
+   cols counts characters and knows nothing about the letter-spacing that makes
+   a grid readable — set it by cols and the box comes out slightly too narrow,
+   which is a horizontal scrollbar under nine lines that already fit.
+
+   Bigger type than the rest of the panel, because this is the one thing here
+   read a character at a time against a printed page. */
+.pastebox textarea{
+  --track:.14em;
+  width:calc(11 * (1ch + var(--track)) + 30px);
+  max-width:100%;box-sizing:border-box;resize:vertical;
+  font-family:var(--mono);font-size:15px;line-height:1.5;letter-spacing:var(--track);
+  background:var(--panel2);color:var(--text);border:1px solid #2A3D45;border-radius:2px;
+  padding:10px 12px;margin:0 0 8px;
+  white-space:pre;overflow-x:hidden;
 }
-.pastebox textarea.gridpad::placeholder{letter-spacing:.06em;font-size:12px;line-height:1.5}
+.pastebox textarea::placeholder{letter-spacing:.04em;font-size:12.5px;line-height:1.55}
 .pastebox textarea:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
 /* The saved list is chips, but each is a pair: the puzzle and its forget. They
    share a border so the pair reads as one object rather than two chips that
