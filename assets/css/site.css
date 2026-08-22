@@ -293,8 +293,16 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .sq.given.peer{background:#D3DCD3}
 .sq.sel{background:#BFE3B4}
 .sq.hit{background:#CFEAC2}
-.sq.unit{background:rgba(46,64,72,.10)}
-.sq.given.unit{background:#D8E0D8}
+/* Level 2's tint — "look at this row" — and the one colour on the board a
+   person has to FIND rather than merely read. It used to be a grey at .10 over
+   a paper that is itself a grey-green, which composites to within a couple of
+   points of .given and .peer: a tint you can only see by knowing where it is,
+   which is the one thing it exists to tell you. Blue instead, and solid: it is
+   the only cool hue on a board whose other three states are green (selected),
+   amber (the pattern) and red (what dies), so it cannot be mistaken for any of
+   them, and it stays out of the amber the later levels paint on top of it. */
+.sq.unit{background:#C7D7E6}
+.sq.given.unit{background:#BFD1DE}
 .sq.pat{background:#F5DFA4}
 .sq.pat.given{background:#F5DFA4}
 .sq.pivot{box-shadow:inset 0 0 0 2px var(--amber-ink)}
@@ -465,6 +473,9 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   color:var(--mist);border-left:1px solid #2A3D45;
 }
 .coachrow{display:flex;gap:8px;flex-wrap:wrap}
+/* The hint controls, which sit above the ladder rather than below it so that
+   rewriting the paragraph cannot move them. See trainer.html. */
+.coachrow.lead{margin:0 0 12px}
 .note{font-size:13px;color:var(--mist);margin:10px 0 0}
 .note.warn{color:var(--red)}
 .note.good{color:#8FD48A}

@@ -83,12 +83,18 @@
       <span class="badge" id="cCount">—</span>
     </div>
     <div class="chips" id="chips"></div>
-    <p class="ladder" id="ladder"><span class="step">Ready</span>Make a move, or press Autofill to get your notes in.</p>
-    <div class="coachrow">
+    <!-- Above the ladder rather than below it. Every press rewrites the
+         paragraph and the six levels are nothing like the same length — level 0
+         runs four lines, level 4 runs one — so a row sitting under that text
+         walks up and down the panel as you work it, and the button you are
+         pressing repeatedly is never twice in the same place. Nothing above the
+         row changes between presses, so up here it holds still. -->
+    <div class="coachrow lead">
       <button class="tbtn" id="bMore">Show me more</button>
       <button class="tbtn" id="bApply" disabled>Apply it</button>
       <button class="tbtn" id="bClearHint">Clear</button>
     </div>
+    <p class="ladder" id="ladder"><span class="step">Ready</span>Make a move, or press Autofill to get your notes in.</p>
     <p class="note" id="cNote"></p>
     <div class="setrow">
       <label><input type="checkbox" id="sAutocheck" checked> Autocheck</label>
@@ -139,6 +145,7 @@
     <div class="coachrow" id="iAfter" hidden>
       <button class="tbtn" id="bCatchUp" title="Play every forced move from the printed digits and stop at the first advanced pattern">Catch me up</button>
       <button class="tbtn" id="bCopyLink">Copy link</button>
+      <button class="tbtn" id="bFresh" title="Put an unimported puzzle back on the board — yours stays in the saved list below">New puzzle</button>
     </div>
 
     <p class="note" id="iResult"></p>

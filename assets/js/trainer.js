@@ -883,6 +883,12 @@
   $('bCapCancel').addEventListener('click', cancelCapture);
   $('bCatchUp').addEventListener('click', catchUp);
   $('bCopyLink').addEventListener('click', copyLink);
+  /* Out of the import and back to the bank. An import takes the board over —
+     hash, meta line, panel — and until now the only way off it was the New
+     puzzle button three sections down, which is not where you are looking.
+     newPuzzle() already drops the hash and returns the panel to 'start'; the
+     puzzle itself is in the saved list, so nothing is thrown away. */
+  $('bFresh').addEventListener('click', () => { endCapture(); newPuzzle(); iSay(''); });
 
   const drillEl = $('drills');
   ['pointing', 'claiming', 'naked_pair', 'hidden_pair', 'naked_triple', 'xwing', 'skyscraper', 'swordfish', 'xy_wing']
