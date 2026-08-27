@@ -308,6 +308,13 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .sq.pivot{box-shadow:inset 0 0 0 2px var(--amber-ink)}
 .sq.tgt{background:rgba(226,84,63,.22)}
 .sq:focus-visible{outline:2px solid var(--amber);outline-offset:-2px;z-index:2}
+/* A square you have pointed at while inspecting. A ring rather than a fill,
+   because the fills are all spoken for — blue unit, amber pattern, red kill —
+   and because the two answer different questions: the fills are what the coach
+   found, this is what you asked about. They have to be legible on top of each
+   other. Deep blue is the one ink on this board that is already about you
+   rather than about the puzzle (.sq.user .val wears it for a digit you placed). */
+.sq.insp{box-shadow:inset 0 0 0 3px #1D5B8C}
 
 /* The digit and the notes share one grid cell. Without this they are two grid
    items, so .sq lays them out as two rows — the digit centred in the taller
@@ -524,11 +531,28 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    `display` themselves, and an author display beats the UA sheet's. */
 [hidden]{display:none !important}
 
+/* The inspector's answer. Three kinds of line — what you have got, what you
+   nearly had, and why nothing fits — and they have to be tellable apart at a
+   glance, because the difference between the first two is the whole point. */
+.report{margin:12px 0 0;display:grid;gap:9px}
+.report p{margin:0;font-size:13.5px;line-height:1.5;padding-left:11px;border-left:2px solid #2A3D45;color:var(--mist)}
+.report b{color:#F4F8F5;font-weight:500}
+.report .found{border-left-color:#8FD48A;color:var(--text)}
+.report .miss{border-left-color:var(--amber)}
+.report .none,.report .dim{border-left-color:#2A3D45}
+/* The reason, under the verdict that needed one. Same treatment as the
+   ladder's .def: reference rather than the next thing to do. */
+.report .why{display:block;margin-top:5px;font-size:12.5px;color:var(--mist)}
+
 /* import */
 /* Capture mode borrows the whole board as a typing surface, and the only thing
    saying so is the board itself: amber rule, and the coach panel above it
    replaced by the instructions. Cheap, and it cannot be missed. */
 .boardwrap.capturing .board{border-color:var(--amber-ink);box-shadow:0 0 0 3px rgba(240,180,41,.12)}
+/* Inspect mode says so the same way capture does, in the one place you are
+   certainly looking. Blue, not amber: this mode reads the board and that one
+   writes to it, and confusing the two costs you a puzzle. */
+.boardwrap.inspecting .board{border-color:#1D5B8C;box-shadow:0 0 0 3px rgba(29,91,140,.18)}
 .pastebox{margin:10px 0 0}
 /* Sized to what it holds rather than to the panel: a row of the grid is eleven
    characters, and a grid floating in a full-width box stops looking like a

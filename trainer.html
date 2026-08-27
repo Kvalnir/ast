@@ -110,6 +110,24 @@
     </div>
   </section>
 
+  <!-- Read the board. The coach hands its answer down a ladder, one rung per
+       press; this asks the opposite way round — you point at the squares and it
+       says what they are. It is the anti-thesis of a trainer, which is why it
+       is a mode you enter deliberately rather than something the board does all
+       the time, and why the board changes colour while it is on. -->
+  <section class="coach" id="inspector">
+    <div class="coachhead">
+      <h2>Read the board</h2>
+      <span class="badge" id="nCount" hidden>—</span>
+    </div>
+    <p class="note" id="nNote">Check your own reading before the coach confirms it: turn this on, tap the squares you think make a pattern, and it says what they are. It will name a pattern that is correctly read but kills nothing — the one the coach never mentions, because there is no move in it.</p>
+    <div class="coachrow" style="margin-top:12px">
+      <button class="tbtn" id="bInspect" aria-pressed="false">Inspect the board</button>
+      <button class="tbtn" id="bInspClear" disabled>Clear selection</button>
+    </div>
+    <div class="report" id="nReport" hidden></div>
+  </section>
+
   <!-- Import. The puzzle you are actually stuck on is rarely one of the twenty
        in the bank, and everything a bank entry carries — solution, technique
        tags, level — is derivable from the printed digits alone. So this asks
@@ -164,6 +182,7 @@
       <button class="tbtn" id="bNew">New challenging puzzle</button>
       <button class="tbtn" id="bRestart">Restart this one</button>
       <button class="tbtn" id="bCheckNotes" title="The one thing News+ cannot check">Check my notes</button>
+      <button class="tbtn" id="bClearBase" title="Play out every single, pointing pair, claiming and subset, and stop at the first advanced pattern">Clear the basics</button>
     </div>
   </section>
 

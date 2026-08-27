@@ -21,7 +21,10 @@
     /* import: `capture` hands the board over to transcription, `mark` is the
        set of squares the validator wants looked at again, `before` is the
        puzzle capture interrupted so Cancel can put it back. */
-    capture: false, mark: [], before: null
+    capture: false, mark: [], before: null,
+    /* inspect: the board read the other way round. `insp` is the squares you
+       have pointed at, `report` is what SudokuTech.verify made of them. */
+    inspect: false, insp: [], report: null
   };
 
   const NAMES = {
@@ -79,7 +82,12 @@
   }
   boardEl.addEventListener('click', e => {
     const sq = e.target.closest('.sq'); if (!sq) return;
-    select(+sq.dataset.i);
+    const i = +sq.dataset.i;
+    /* Inspect mode takes the board's tap over rather than sharing it. There is
+       no caret while you are reading — a tap adds a square to the question, not
+       a destination for the next digit. */
+    if (S.inspect) { inspToggle(i); return; }
+    select(i);
   });
 
   const padEl = $('pad');
@@ -208,6 +216,7 @@
       if (still) S.pick = still; else { S.pick = null; S.level = 0; }
     }
     S.solved = S.grid.every(v => v) && S.grid.every((v, i) => v === S.sol[i]);
+    computeReport();
     render();
   }
 
@@ -241,6 +250,7 @@
     b.type = 'button';
     b.innerHTML = NAMES[id] + (opts.count ? '<span class="n">' + opts.count + '</span>' : '');
     if (opts.pressed !== undefined) b.setAttribute('aria-pressed', !!opts.pressed);
+    if (opts.title) b.title = opts.title;
     if (opts.onClick) b.addEventListener('click', opts.onClick);
     wrap.appendChild(b);
     if (EXPLAIN[id]) {
@@ -308,6 +318,112 @@
     n.className = 'note' + (kind ? ' ' + kind : '');
   }
 
+  /* ---------------- inspect ----------------
+     The coach hands its answer down a ladder, a rung per press. This asks the
+     opposite way round: you point at squares and it says what they are —
+     including a pattern that is correctly read and kills nothing, which is the
+     one the coach can never mention, because there is no move in it and every
+     detector past the singles drops it. See SudokuTech.verify.
+
+     It is a mode rather than a gesture, and deliberately so. The board is an
+     input surface the rest of the time and the pad writes into whatever is
+     selected, so a second meaning for a tap has to displace the first. It is
+     also the anti-thesis of a trainer — point, and be told — which is fine as
+     something you switch on and corrosive as something the board just does. */
+  function setInspect(on) {
+    if (S.capture) return;
+    S.inspect = on;
+    S.insp = [];
+    S.report = null;
+    /* The caret goes with it: nothing is selected-to-type-into while reading,
+       and a caret left behind would let the pad write into a square you are
+       pointing at for an entirely different reason. */
+    S.sel = null;
+    flash('');
+    render();
+  }
+
+  function inspToggle(i) {
+    const k = S.insp.indexOf(i);
+    if (k >= 0) S.insp.splice(k, 1); else S.insp.push(i);
+    computeReport();
+    render();
+  }
+
+  /* Recomputed on every position change as well as every tap, so a report does
+     not go on describing a board you have since played a move into. */
+  function computeReport() {
+    S.report = S.inspect && S.insp.length
+      ? T.verify(S.grid, S.notes.some(s => s.size) ? S.notes : null, S.insp, S.findings)
+      : null;
+  }
+
+  /* ---------------- clear the basics ----------------
+     Play out everything below the advanced patterns and stop at the wall.
+     import.js already has the walker and I.ADV_RANK already is the boundary —
+     ranks 1-6 are the singles, pointing, claiming and the subsets; 7 and up are
+     the fish and the wings. Unlike Catch me up, which restarts from the printed
+     givens because an import has no position yet, this one walks from wherever
+     you are.
+
+     It refuses rather than guesses. The walker reasons from YOUR notes, so a
+     single wrong elimination lets it prove a false single and then build on it
+     — the one error this trainer otherwise exists to catch. */
+  function clearBasics() {
+    if (S.capture || S.solved) return;
+    if (S.wrong.some(Boolean)) {
+      flash('There is a wrong digit on the board, and every basic move would be played on top of it. Fix that first.', 'warn');
+      return;
+    }
+    const anyNotes = S.notes.some(s => s.size);
+    if (anyNotes) {
+      const missing = [];
+      for (let i = 0; i < 81; i++) {
+        if (!S.grid[i] && S.notes[i].size && !S.notes[i].has(S.sol[i])) missing.push(i);
+      }
+      if (missing.length) {
+        S.noteCheck = missing;
+        render();
+        flash(missing.length + ' square' + (missing.length > 1 ? 's have' : ' has') +
+          ' lost its true digit \u2014 marked in red. The basics would be played on top of that, so fix those notes and press it again.', 'warn');
+        return;
+      }
+    }
+    /* Walk first, snapshot second. The walker builds its own copies, so nothing
+       has moved yet at this point — and a press that turns out to have nothing
+       to play must not cost an undo step, or pressing it twice silently eats
+       the position the first press earned you. */
+    const w = I.walk(S.grid, anyNotes ? S.notes : null, I.ADV_RANK);
+    if (!w.played.length) {
+      flash(w.stopped
+        ? 'Nothing basic left to clear \u2014 the cheapest move on the board is already ' +
+          article(NAMES[w.stopped.id]) + NAMES[w.stopped.id] + '.'
+        : 'Nothing fires from here at all.', w.stopped ? '' : 'warn');
+      return;
+    }
+    snapshot();
+    S.grid = w.grid;
+    S.notes = w.notes;
+    S.wrong = new Array(81).fill(false);
+    S.sel = null; S.pick = null; S.level = 0; S.noteCheck = null;
+    S.insp = []; S.report = null;
+    recompute();
+    const played = w.played.map(x => x[1] + ' \u00d7 ' + NAMES[x[0]]).join(', ');
+    const filled = ' ' + w.filled + ' of 81 squares filled.';
+    /* Walking from an empty grid of notes fills them from the placed digits,
+       which is an Autofill you did not ask for. Say so. */
+    const noted = anyNotes ? '' : ' Notes were filled in to do it, the same as pressing Autofill.';
+    if (w.stopped) {
+      flash('Played ' + played + '. What is left starts at ' + article(NAMES[w.stopped.id]) +
+        NAMES[w.stopped.id] + ' \u2014' + filled + noted);
+    } else if (w.filled === 81) {
+      flash('That solved it outright \u2014 ' + played + '. Nothing advanced was needed.' + noted, 'good');
+    } else {
+      flash('Played ' + played + ', and then nothing more fires.' + filled +
+        ' This one needs something past the nine patterns the site teaches.' + noted, 'warn');
+    }
+  }
+
   /* ---------------- drills ---------------- */
   /* Fast-forward a real puzzle to a position where `id` is the move to find.
      Pass 1 wants it to be the cheapest thing available. Pass 2 settles for a
@@ -363,7 +479,7 @@
     S.notes = d.notes.map(s => new Set(s));
     S.wrong = new Array(81).fill(false);
     S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
-    S.solved = false; S.noteCheck = null; S.mark = [];
+    S.solved = false; S.noteCheck = null; S.mark = []; S.insp = []; S.report = null;
     recompute();
     const also = (d.others || []).filter(x => x !== id);
     flash('No singles left on this board. ' + article(NAMES[id]).replace(/^./, c => c.toUpperCase()) +
@@ -383,7 +499,7 @@
     S.notes = []; for (let i = 0; i < 81; i++) S.notes.push(new Set());
     S.wrong = new Array(81).fill(false);
     S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
-    S.solved = false; S.noteCheck = null; S.mark = [];
+    S.solved = false; S.noteCheck = null; S.mark = []; S.insp = []; S.report = null;
     recompute();
     flash('');
   }
@@ -419,6 +535,7 @@
 
     const peerSet = new Set();
     if (S.peers && S.sel !== null) C.PEERS[S.sel].forEach(i => peerSet.add(i));
+    const inspSet = new Set(S.inspect ? S.insp : []);
     const noteBad = new Set(S.noteCheck || []);
 
     boardEl.classList.toggle('solo', !!(S.focus && f && lvl >= 3 && f.soloDigit === S.focus));
@@ -436,6 +553,7 @@
         (f && showCells && f.pivot === i ? ' pivot' : '') +
         (S.wrong[i] ? ' bad' : '') +
         (S.focus && v === S.focus ? ' hit' : '') +
+        (inspSet.has(i) ? ' insp' : '') +
         (S.sel === i ? ' sel' : '');
 
       c.val.textContent = v || '';
@@ -542,7 +660,7 @@
        rather than builds one steps out of the way for the duration. Undo,
        Erase and the pad stay: those are the transcription controls. */
     ['bAutofill', 'bNotes', 'bMore', 'bCheckNotes', 'bNew', 'bRestart',
-     'bCatchUp', 'bCopyLink'].forEach(id => { $(id).disabled = S.capture; });
+     'bCatchUp', 'bCopyLink', 'bClearBase'].forEach(id => { $(id).disabled = S.capture; });
     [...$('drills').querySelectorAll('.chip')].forEach(b => { b.disabled = S.capture; });
 
     /* meta */
@@ -557,7 +675,74 @@
         ? 'needs ' + S.puzzle.adv.map(x => NAMES[x]).join(' + ')
         : 'subsets only';
     }
+    $('boardwrap').classList.toggle('inspecting', S.inspect);
     renderCoach();
+    renderInspector();
+  }
+
+  /* The report. Everything it says comes out of SudokuTech.verify — this only
+     decides the order to say it in: what you have got, what you nearly had,
+     and, when neither, why nothing fits. */
+  function renderInspector() {
+    const btn = $('bInspect'), out = $('nReport'), count = $('nCount');
+    btn.setAttribute('aria-pressed', S.inspect);
+    btn.textContent = S.inspect ? 'Stop inspecting' : 'Inspect the board';
+    btn.disabled = S.capture;
+    $('bInspClear').disabled = !S.insp.length;
+    $('nNote').hidden = S.inspect;
+    count.hidden = !S.inspect;
+    count.textContent = S.insp.length
+      ? S.insp.length + ' square' + (S.insp.length === 1 ? '' : 's') + ' picked'
+      : 'tap the squares you are reading';
+
+    if (!S.report) {
+      out.innerHTML = S.inspect
+        ? '<p class="none">Tap the squares you think make a pattern. Tap one again to drop it.</p>' : '';
+      out.hidden = !S.inspect;
+      return;
+    }
+
+    const r = S.report, p = [];
+    const names = a => a.map(C.cellName).join(', ');
+    /* `kills: []` is a result, not a failure — it is the whole reason this
+       exists, so it gets the longer sentence rather than an apology. */
+    const killLine = k => k.length
+      ? 'Kills ' + k.length + ' candidate' + (k.length === 1 ? '' : 's') + ': <b>' +
+        k.map(x => x.digit + ' from ' + C.cellName(x.cell)).join(', ') + '</b>.'
+      : '<b>Kills nothing.</b> The reading is right \u2014 every square it would clear has lost those digits already, which is why the coach never lists it.';
+
+    if (r.filled.length) p.push('<p class="dim">' + names(r.filled) + ' already ' +
+      (r.filled.length === 1 ? 'holds a digit' : 'hold digits') + ', so ' +
+      (r.filled.length === 1 ? 'it is' : 'they are') + ' out of the reading.</p>');
+
+    r.shapes.forEach(sh => p.push('<p class="found"><b>' + sh.name + '</b> on ' +
+      sh.digits.join(', ') + ' \u2014 ' + sh.region + '. ' + killLine(sh.kills) +
+      '<span class="why">' + sh.why + '</span></p>'));
+
+    r.near.forEach(nr => {
+      const bits = [];
+      if (nr.missing.length) bits.push('it also needs <b>' + names(nr.missing) + '</b>');
+      if (nr.extra.length) bits.push('<b>' + names(nr.extra) + '</b> ' +
+        (nr.extra.length === 1 ? 'is not' : 'are not') + ' part of it');
+      p.push('<p class="miss">Close \u2014 there is ' + article(nr.name) + '<b>' + nr.name +
+        '</b> on ' + nr.digits.join(', ') + ' here, but ' + bits.join(', and ') + '.</p>');
+    });
+
+    /* Only when there is nothing else to say. A near miss has already explained
+       what is going on, and "no subset can live across these" printed under
+       "there is a Skyscraper here" reads as the panel contradicting itself —
+       true of subsets, irrelevant to the pattern it just named. */
+    if (!r.shapes.length && !r.near.length) {
+      let why;
+      if (!r.cells.length) why = 'Every square you picked already holds a digit.';
+      else if (r.cells.length === 1) why = C.cellName(r.cells[0]) + ' can still be ' +
+        [...r.cand[r.cells[0]]].sort((a, b) => a - b).join(', ') + ', and nothing forces it yet.';
+      else if (!r.shared.length) why = 'These squares share no row, column or box, so no subset or interaction can live across them \u2014 and they make no single-digit pattern either.';
+      else why = 'No pattern the site teaches fits these ' + r.cells.length + ' squares.';
+      p.push('<p class="none">' + why + '</p>');
+    }
+    out.innerHTML = p.join('');
+    out.hidden = false;
   }
 
   function renderCoach() {
@@ -581,8 +766,17 @@
         chipsEl.appendChild(makeChip(id, {
           count: S.coach === 'full' ? arr.length : 0,
           pressed: !!(S.pick && S.pick.id === id),
+          title: arr.length > 1 ? 'Click again for the next of the ' + arr.length : '',
           onClick: () => {
-            S.pick = arr[0]; S.level = Math.max(1, S.level);
+            /* Clicking the chip you are already on walks to the next instance.
+               Three X-Wings on the board is three different rectangles, and the
+               count printed beside the name is a promise you can reach them. */
+            const cur = S.pick && S.pick.id === id ? arr.indexOf(S.pick) : -1;
+            S.pick = arr[(cur + 1) % arr.length];
+            /* While inspecting, a chip draws. That hands out three rungs of the
+               ladder in one click, which is what the mode is for and exactly
+               why it is not what a chip does the rest of the time. */
+            S.level = S.inspect ? Math.max(3, S.level) : Math.max(1, S.level);
             if (S.level >= 3 && S.pick.soloDigit) S.focus = S.pick.soloDigit;
             render();
           }
@@ -682,6 +876,9 @@
     S.notes = []; for (let i = 0; i < 81; i++) S.notes.push(new Set());
     S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
     S.solved = false; S.noteCheck = null; S.mark = []; S.mode = 'pen';
+    /* Capture wants the board as a typing surface and the inspector wants it as
+       a question. Only one of them can have it. */
+    S.inspect = false; S.insp = []; S.report = null;
     $('boardwrap').classList.add('capturing');
     importPanel('capture');
     captureRefresh();
@@ -897,6 +1094,11 @@
   $('bNew').addEventListener('click', newPuzzle);
   $('bRestart').addEventListener('click', () => load(S.puzzle));
   $('bCheckNotes').addEventListener('click', checkNotes);
+  $('bClearBase').addEventListener('click', clearBasics);
+  $('bInspect').addEventListener('click', () => setInspect(!S.inspect));
+  $('bInspClear').addEventListener('click', () => {
+    S.insp = []; S.report = null; render();
+  });
   $('sAutocheck').addEventListener('change', e => { S.autocheck = e.target.checked; });
   $('sAutoRemove').addEventListener('change', e => { S.autoRemove = e.target.checked; });
   $('sHighlightPeers').addEventListener('change', e => { S.peers = e.target.checked; render(); });
@@ -949,7 +1151,18 @@
     }
     if (e.key === 'h' || e.key === 'H') { more(); return; }
     if (S.capture && e.key === 'Enter') { finishCapture(); e.preventDefault(); return; }
-    if (e.key === 'Escape') { deselect(); return; }
+    /* Escape backs out one layer at a time: the squares you picked first, then
+       the mode. Leaving both at once loses a selection you may have spent a
+       minute assembling. */
+    if (e.key === 'Escape') {
+      if (S.inspect) {
+        if (S.insp.length) { S.insp = []; S.report = null; render(); }
+        else setInspect(false);
+        return;
+      }
+      deselect();
+      return;
+    }
     if (S.sel === null) return;
     const moves = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 };
     if (moves[e.key] !== undefined) {

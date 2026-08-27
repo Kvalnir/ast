@@ -297,6 +297,238 @@
     return out;
   }
 
+  /* ---------------- verify ----------------
+     The board's other question, asked the other way round.
+
+     findAll answers "what can I play here?", and every detector past the
+     singles bails the moment a pattern kills nothing — a move that changes no
+     candidate is not a move. verify() answers "am I reading these squares
+     right?", where a pattern that kills nothing is still a pattern correctly
+     read. It is exactly the one findAll can never mention, so if the inspector
+     ran off findAll it would answer "nothing here" precisely when you had got
+     it right, which is the worst thing a confidence check can do.
+
+     So these tests look at shape alone and count the kills afterwards, and
+     `kills: []` is a result rather than a rejection. Everything else — which
+     patterns are one square away from what you picked — comes off findAll,
+     which already knows.                                                     */
+
+  const NAME = {
+    naked_single: 'Naked single', hidden_single: 'Hidden single',
+    pointing: 'Pointing pair', claiming: 'Claiming',
+    naked_pair: 'Naked pair', naked_triple: 'Naked triple',
+    hidden_pair: 'Hidden pair', hidden_triple: 'Hidden triple',
+    xwing: 'X-Wing', swordfish: 'Swordfish', skyscraper: 'Skyscraper', xy_wing: 'XY-Wing'
+  };
+
+  function verify(grid, notes, sel, findings) {
+    const cand = effective(grid, notes);
+    const filled = sel.filter(i => grid[i]).sort((a, b) => a - b);
+    const cells = sel.filter(i => !grid[i]).sort((a, b) => a - b);
+    const n = cells.length;
+    const shapes = [];
+    const seen = new Set();
+    const push = o => {
+      const key = o.id + '|' + o.cells.join(',') + '|' + o.digits.join(',');
+      if (seen.has(key)) return;
+      seen.add(key);
+      o.name = NAME[o.id];
+      shapes.push(o);
+    };
+    const kill = (arr, d) => arr.filter(i => !grid[i] && !cells.includes(i) && cand[i].has(d))
+                                .map(i => ({ cell: i, digit: d }));
+    /* Units every selected square is in — the thing a subset needs and the
+       commonest thing to have got wrong. */
+    const shared = n > 1 ? UNITS.filter(u => cells.every(i => u.includes(i))) : [];
+    const allHave = d => n > 0 && cells.every(i => cand[i].has(d));
+    const rows = [...new Set(cells.map(rowOf))], cols = [...new Set(cells.map(colOf))],
+          boxes = [...new Set(cells.map(boxOf))];
+
+    /* one square: what it holds, and whether it is already forced */
+    if (n === 1) {
+      const i = cells[0], ds = [...cand[i]].sort((a, b) => a - b);
+      if (ds.length === 1) push({
+        id: 'naked_single', digits: ds, cells: [i], region: cellName(i), kills: [],
+        why: ds[0] + ' is the only candidate left in ' + cellName(i) + ', so that is what it is.'
+      });
+      ds.forEach(d => UNITS.forEach(u => {
+        if (!u.includes(i)) return;
+        if (u.filter(x => !grid[x] && cand[x].has(d)).length === 1) push({
+          id: 'hidden_single', digits: [d], cells: [i], region: unitName(u), kills: [],
+          why: cellName(i) + ' is the only square in ' + unitName(u) + ' that can still take ' + d + '.'
+        });
+      }));
+    }
+
+    /* naked subset: the union of what they hold is as small as their number */
+    if (n >= 2 && n <= 3 && shared.length) {
+      const union = new Set();
+      cells.forEach(i => cand[i].forEach(d => union.add(d)));
+      if (union.size === n) {
+        const ds = [...union].sort((a, b) => a - b);
+        const kills = [];
+        shared.forEach(u => ds.forEach(d => kill(u, d).forEach(k => {
+          if (!kills.some(x => x.cell === k.cell && x.digit === k.digit)) kills.push(k);
+        })));
+        push({
+          id: n === 2 ? 'naked_pair' : 'naked_triple', digits: ds, cells, kills,
+          region: shared.map(unitName).join(' and '),
+          why: list(cells) + ' hold only ' + ds.join('/') + ' between them, so those ' + n +
+               ' digits are used up in ' + shared.map(unitName).join(' and ') + '.'
+        });
+      }
+    }
+
+    /* hidden subset: digits with nowhere else in the unit to go */
+    if (n >= 2 && n <= 3) shared.forEach(u => {
+      const ds = [];
+      for (let d = 1; d <= 9; d++) {
+        const spots = u.filter(i => !grid[i] && cand[i].has(d));
+        if (spots.length && spots.every(i => cells.includes(i))) ds.push(d);
+      }
+      if (ds.length !== n || !cells.every(i => ds.some(d => cand[i].has(d)))) return;
+      const kills = [];
+      cells.forEach(i => cand[i].forEach(d => { if (!ds.includes(d)) kills.push({ cell: i, digit: d }); }));
+      push({
+        id: n === 2 ? 'hidden_pair' : 'hidden_triple', digits: ds, cells, kills,
+        region: unitName(u),
+        why: 'In ' + unitName(u) + ', ' + ds.join(' and ') + ' can only go in ' + list(cells) +
+             ' — so those squares are reserved for them.'
+      });
+    });
+
+    /* pointing and claiming: one digit, one box, one line */
+    if (n >= 2 && n <= 3 && boxes.length === 1 && (rows.length === 1 || cols.length === 1)) {
+      const box = BOXES[boxes[0]], line = rows.length === 1 ? ROWS[rows[0]] : COLS[cols[0]];
+      for (let d = 1; d <= 9; d++) {
+        if (!allHave(d)) continue;
+        const inBox = box.filter(i => !grid[i] && cand[i].has(d));
+        if (inBox.length === n && inBox.every(i => cells.includes(i))) push({
+          id: 'pointing', digits: [d], cells, kills: kill(line.filter(i => !box.includes(i)), d),
+          region: 'box ' + (boxes[0] + 1),
+          why: 'Every remaining ' + d + ' in box ' + (boxes[0] + 1) + ' sits in ' + unitName(line) +
+               ', so the box puts its ' + d + ' on that line.'
+        });
+        const onLine = line.filter(i => !grid[i] && cand[i].has(d));
+        if (onLine.length === n && onLine.every(i => cells.includes(i))) push({
+          id: 'claiming', digits: [d], cells, kills: kill(box.filter(i => !line.includes(i)), d),
+          region: unitName(line),
+          why: 'In ' + unitName(line) + ', ' + d + ' can only go inside box ' + (boxes[0] + 1) +
+               ', so the rest of that box loses it.'
+        });
+      }
+    }
+
+    /* fish: k lines whose digit is confined to the same k crossing lines */
+    if (n >= 4 && rows.length === cols.length && (rows.length === 2 || rows.length === 3)) {
+      const k = rows.length;
+      for (let d = 1; d <= 9; d++) {
+        if (!allHave(d)) continue;
+        for (const [lines, cross, base, over, kind] of
+             [[ROWS, COLS, rows, cols, 'row'], [COLS, ROWS, cols, rows, 'column']]) {
+          const ok = base.every(li => {
+            const spots = lines[li].filter(i => !grid[i] && cand[i].has(d));
+            return spots.length >= 2 && spots.every(i => cells.includes(i));
+          });
+          if (!ok) continue;
+          const kills = [];
+          over.forEach(ci => kill(cross[ci], d).forEach(x => kills.push(x)));
+          push({
+            id: k === 2 ? 'xwing' : 'swordfish', digits: [d], cells, kills, soloDigit: d,
+            region: kind + 's ' + base.map(x => x + 1).join(', '),
+            why: 'The ' + d + 's in ' + kind + 's ' + base.map(x => x + 1).join(', ') +
+                 ' are confined to ' + (kind === 'row' ? 'columns ' : 'rows ') +
+                 over.map(x => x + 1).join(', ') + ', which need exactly ' + k + ' of them.'
+          });
+        }
+      }
+    }
+
+    /* skyscraper: two strong links sharing one end line */
+    if (n === 4) {
+      for (let d = 1; d <= 9; d++) {
+        if (!allHave(d)) continue;
+        for (const [lines, kind] of [[ROWS, 'row'], [COLS, 'column']]) {
+          const by = new Map();
+          cells.forEach(i => {
+            const li = kind === 'row' ? rowOf(i) : colOf(i);
+            if (!by.has(li)) by.set(li, []);
+            by.get(li).push(i);
+          });
+          if (by.size !== 2) continue;
+          const pairs = [...by.entries()];
+          if (!pairs.every(([li, p]) => p.length === 2 &&
+              lines[li].filter(i => !grid[i] && cand[i].has(d)).length === 2)) continue;
+          const [[l1, p1], [l2, p2]] = pairs;
+          for (const [a1, b1] of [[p1[0], p1[1]], [p1[1], p1[0]]]) {
+            for (const [a2, b2] of [[p2[0], p2[1]], [p2[1], p2[0]]]) {
+              const aligned = kind === 'row' ? colOf(a1) === colOf(a2) : rowOf(a1) === rowOf(a2);
+              const offset = kind === 'row' ? colOf(b1) !== colOf(b2) : rowOf(b1) !== rowOf(b2);
+              if (!aligned || !offset || boxOf(b1) === boxOf(b2)) continue;
+              const kills = [];
+              for (let i = 0; i < 81; i++) {
+                if (grid[i] || cells.includes(i) || !cand[i].has(d)) continue;
+                if (PEERS[b1].has(i) && PEERS[b2].has(i)) kills.push({ cell: i, digit: d });
+              }
+              push({
+                id: 'skyscraper', digits: [d], cells, kills, soloDigit: d, roof: [b1, b2],
+                region: kind + 's ' + (l1 + 1) + ' and ' + (l2 + 1),
+                why: kind.charAt(0).toUpperCase() + kind.slice(1) + 's ' + (l1 + 1) + ' and ' + (l2 + 1) +
+                     ' have two ' + d + 's each and share one end, so one of ' + cellName(b1) + ' / ' +
+                     cellName(b2) + ' is a ' + d + '.'
+              });
+            }
+          }
+        }
+      }
+    }
+
+    /* XY-Wing: a two-candidate hinge seeing two two-candidate wings */
+    if (n === 3 && cells.every(i => cand[i].size === 2)) {
+      for (const p of cells) {
+        const [a, b] = cells.filter(i => i !== p);
+        if (!PEERS[p].has(a) || !PEERS[p].has(b)) continue;
+        const P = [...cand[p]], A = [...cand[a]], B = [...cand[b]];
+        const Z = A.find(d => B.includes(d) && !P.includes(d));
+        if (Z === undefined) continue;
+        const X = A.find(d => d !== Z), Y = B.find(d => d !== Z);
+        if (X === Y || !P.includes(X) || !P.includes(Y)) continue;
+        const kills = [];
+        for (let i = 0; i < 81; i++) {
+          if (grid[i] || cells.includes(i) || !cand[i].has(Z)) continue;
+          if (PEERS[a].has(i) && PEERS[b].has(i)) kills.push({ cell: i, digit: Z });
+        }
+        push({
+          id: 'xy_wing', digits: [Z], cells, kills, pivot: p, wings: [a, b],
+          region: 'hinge ' + cellName(p),
+          why: 'Hinge ' + cellName(p) + ' is ' + X + '/' + Y + ', seeing ' + cellName(a) + ' (' + X + '/' + Z +
+               ') and ' + cellName(b) + ' (' + Y + '/' + Z + '), so one wing has to be ' + Z + '.'
+        });
+      }
+    }
+
+    /* What you nearly picked. findAll only carries patterns that kill, which is
+       the right source here: a near miss is only worth reporting if the thing
+       you were reaching for is a move. */
+    const near = [];
+    if (n) {
+      (findings || findAll(grid, notes).findings).forEach(f => {
+        const missing = f.cells.filter(i => !cells.includes(i));
+        const extra = cells.filter(i => !f.cells.includes(i));
+        if (!missing.length && !extra.length) return;          // the shape tests own an exact hit
+        if (f.cells.length - missing.length < 2) return;        // barely overlaps; not a near miss
+        if (missing.length + extra.length > 2) return;
+        near.push({ id: f.id, name: NAME[f.id], digits: f.digits, cells: f.cells, missing, extra });
+      });
+      near.sort((a, b) => (a.missing.length + a.extra.length) - (b.missing.length + b.extra.length));
+    }
+
+    return {
+      cand, cells, filled, shapes, near: near.slice(0, 3),
+      shared: shared.map(unitName)
+    };
+  }
+
   /* ---------------- aggregate ---------------- */
   function findAll(grid, notes) {
     const cand = effective(grid, notes);
@@ -317,5 +549,5 @@
     return { findings: all, candidates: cand };
   }
 
-  root.SudokuTech = { findAll, effective };
+  root.SudokuTech = { findAll, effective, verify, NAME };
 })(typeof window !== 'undefined' ? window : globalThis);

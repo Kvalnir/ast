@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v20';  // v20: connectors and cross-outs you can see on a tinted square
+const VERSION = 'v21';  // v21: clear the basics, and a board you can ask questions of
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
