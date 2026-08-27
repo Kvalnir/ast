@@ -16,7 +16,8 @@
     puzzle: null, given: [], grid: [], sol: [],
     notes: [], wrong: [], sel: null, mode: 'pen', focus: null,
     history: [], findings: [], pick: null, level: 0,
-    autocheck: true, autoRemove: true, peers: true, coach: 'names',
+    autocheck: true, autoRemove: true, peers: true, coach: 'full', autoclear: true,
+    tier: 'challenging',
     solved: false, noteCheck: null,
     /* import: `capture` hands the board over to transcription, `mark` is the
        set of squares the validator wants looked at again, `before` is the
@@ -35,6 +36,21 @@
     swordfish: 'Swordfish', xy_wing: 'XY-Wing'
   };
   const ADVANCED = ['xwing', 'skyscraper', 'swordfish', 'xy_wing'];
+
+  /* The four difficulties, named for what a puzzle asks of you rather than for
+     how it feels. Mirrors tier_of() in tools/bank.py, which is what stocks the
+     bank — change one and change the other, or the selector starts handing out
+     puzzles that do not match their label. Derived rather than read off the
+     entry so that an imported puzzle is tiered by the same rule. */
+  const SINGLES = ['naked_single', 'hidden_single'];
+  const TIERS = ['easy', 'normal', 'challenging', 'extra'];
+  const TIER_LABEL = { easy: 'Easy', normal: 'Normal', challenging: 'Challenging', extra: 'Extra' };
+  function tierOf(p) {
+    const adv = p.adv || [];
+    if (adv.length >= 2) return 'extra';
+    if (adv.length === 1) return 'challenging';
+    return (p.t || []).some(x => !SINGLES.includes(x)) ? 'normal' : 'easy';
+  }
 
   /* What each technique *is*, independent of the position on the board. The
      coach's `why` explains this instance; this explains the idea. Kept to one
@@ -171,6 +187,9 @@
            thing you want to look at next. Only on a placement: clearing a
            square above leaves you on it to type the replacement. */
         S.sel = null;
+        /* Inside the same snapshot as the entry that caused it: one thing you
+           did, one press of Undo to take it back. */
+        if (S.autoclear) autoclear();
       }
       S.focus = S.grid[i] || null;
     }
@@ -192,6 +211,40 @@
     S.noteCheck = null;
     recompute();
   }
+
+  /* ---------------- autoclear ----------------
+     A square whose notes have come down to one candidate is not a decision any
+     more, so it fills itself. Each fill strips that digit from its peers, which
+     can bring another square down to one, so this runs until the board stops
+     moving — one entry can finish most of a box.
+
+     It reads YOUR notes, not the solution. A candidate you wrongly rubbed out
+     can leave a square holding one wrong digit, and this will write it in.
+     That is the honest behaviour and the same bargain the rest of the board
+     makes: autocheck marks it red where it lands, and a helper that quietly
+     knew better would be hiding the mistake instead of showing it.
+
+     Peers are stripped whether or not `Clear notes on entry` is set, because
+     the cascade is the note-keeping — without it nothing would ever come down
+     to one and the feature would do nothing at all. */
+  function autoclear() {
+    let placed = 0;
+    for (let pass = 0; pass < 81; pass++) {
+      let moved = false;
+      for (let i = 0; i < 81; i++) {
+        if (S.grid[i] || S.notes[i].size !== 1) continue;
+        const d = [...S.notes[i]][0];
+        S.grid[i] = d;
+        S.notes[i] = new Set();
+        S.wrong[i] = S.autocheck && S.sol[i] !== d;
+        C.PEERS[i].forEach(x => S.notes[x].delete(d));
+        moved = true; placed++;
+      }
+      if (!moved) break;
+    }
+    return placed;
+  }
+  const anyForced = () => S.grid.some((v, i) => !v && S.notes[i].size === 1);
 
   function autofill() {
     if (S.capture) return;
@@ -294,6 +347,7 @@
       }
       f.elims.forEach(e => S.notes[e.cell].delete(e.digit));
     }
+    if (S.autoclear) autoclear();
     S.pick = null; S.level = 0; S.noteCheck = null;
     recompute();
   }
@@ -496,7 +550,12 @@
     S.given = g.map(v => v > 0);
     S.grid = g.slice();
     S.sol = C.parse(p.s);
-    S.notes = []; for (let i = 0; i < 81; i++) S.notes.push(new Set());
+    /* Notes in from the start. News+ makes you press Autofill and so does the
+       button, but nothing here is being taught by withholding them — the coach
+       cannot read a position without notes, so an empty board just means the
+       first thing you do on every puzzle is press the same key. */
+    const base = C.baseCandidates(g);
+    S.notes = []; for (let i = 0; i < 81; i++) S.notes.push(g[i] ? new Set() : base[i]);
     S.wrong = new Array(81).fill(false);
     S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
     S.solved = false; S.noteCheck = null; S.mark = []; S.insp = []; S.report = null;
@@ -506,7 +565,10 @@
   function newPuzzle() {
     importPanel('start');
     I.clearHash();
-    const pool = BANK.filter(p => p.level === 'advanced');
+    /* Falls back to the whole bank rather than dealing nothing, which is what a
+       tier with no puzzles left in it would otherwise do. */
+    const pool = BANK.filter(p => tierOf(p) === S.tier);
+    if (!pool.length) return load(BANK[Math.floor(Math.random() * BANK.length)]);
     let p, guard = 0;
     do { p = pool[Math.floor(Math.random() * pool.length)]; guard++; }
     while (S.puzzle && p.p === S.puzzle.p && guard < 20);
@@ -652,6 +714,7 @@
         : (notesMode ? 'Tap a number to add or remove a note'
                      : 'Tap a number to place it');
 
+    $('bAutoclear').setAttribute('aria-pressed', S.autoclear);
     $('bPen').setAttribute('aria-pressed', S.mode === 'pen');
     $('bNotes').setAttribute('aria-pressed', S.mode === 'notes');
     $('bUndo').disabled = !S.history.length;
@@ -659,7 +722,7 @@
     /* Capture mode borrows the board, so everything that acts on a position
        rather than builds one steps out of the way for the duration. Undo,
        Erase and the pad stay: those are the transcription controls. */
-    ['bAutofill', 'bNotes', 'bMore', 'bCheckNotes', 'bNew', 'bRestart',
+    ['bAutofill', 'bAutoclear', 'bNotes', 'bMore', 'bCheckNotes', 'bNew', 'bRestart',
      'bCatchUp', 'bCopyLink', 'bClearBase'].forEach(id => { $(id).disabled = S.capture; });
     [...$('drills').querySelectorAll('.chip')].forEach(b => { b.disabled = S.capture; });
 
@@ -669,7 +732,7 @@
       $('mGivens').textContent = S.grid.filter(v => v).length + ' entered';
       $('mNeeds').textContent = 'not checked yet';
     } else if (S.puzzle) {
-      $('mLevel').textContent = S.puzzle.level === 'advanced' ? 'Challenging' : 'Moderate';
+      $('mLevel').textContent = TIER_LABEL[tierOf(S.puzzle)] || 'Imported';
       $('mGivens').textContent = S.puzzle.givens + ' givens';
       $('mNeeds').textContent = S.puzzle.adv.length
         ? 'needs ' + S.puzzle.adv.map(x => NAMES[x]).join(' + ')
@@ -1093,6 +1156,14 @@
   $('bClearHint').addEventListener('click', () => { S.pick = null; S.level = 0; flash(''); render(); });
   $('bNew').addEventListener('click', newPuzzle);
   $('bRestart').addEventListener('click', () => load(S.puzzle));
+  /* Switching it on resolves what is already forced, because a toggle that
+     waits for your next entry to show what it does looks broken. Only takes an
+     undo step if it actually placed something. */
+  $('bAutoclear').addEventListener('click', () => {
+    S.autoclear = !S.autoclear;
+    if (S.autoclear && anyForced()) { snapshot(); autoclear(); recompute(); }
+    else render();
+  });
   $('bCheckNotes').addEventListener('click', checkNotes);
   $('bClearBase').addEventListener('click', clearBasics);
   $('bInspect').addEventListener('click', () => setInspect(!S.inspect));
@@ -1103,6 +1174,7 @@
   $('sAutoRemove').addEventListener('change', e => { S.autoRemove = e.target.checked; });
   $('sHighlightPeers').addEventListener('change', e => { S.peers = e.target.checked; render(); });
   $('sCoach').addEventListener('change', e => { S.coach = e.target.value; render(); });
+  $('sTier').addEventListener('change', e => { S.tier = e.target.value; newPuzzle(); });
 
   $('bCapture').addEventListener('click', () => { startCapture(null); iSay(''); });
   $('bPaste').addEventListener('click', () => {

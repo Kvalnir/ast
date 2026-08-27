@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v23';  // v23: thinner connectors, now that they need less weight
+const VERSION = 'v24';  // v24: four difficulties, autoclear, and rules that survive 125%
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between

@@ -3,7 +3,17 @@
   --panel:#111B21;
   --panel2:#16232A;
   --paper:#E9EEE8;
-  --rule:#AFBDB6;
+  /* Darker than it looks like it needs to be, and the reason is device pixels.
+     A 1px hairline only lands on a whole device pixel at 100% and 200% display
+     scaling. At 125% or 150% — Windows scaling, or browser zoom — it splits
+     across two and each gets about 60% of the ink, so the rule renders at ~207
+     luminance against 236 paper instead of 185. Three of the eight rules in
+     each direction do this at any given size, which reads as the grid losing a
+     line at random. Nothing stops the split (it is the same for a border, a
+     box-shadow, a gradient or an SVG stroke), so the floor is raised instead:
+     at this value the halved version still carries more contrast than the old
+     solid one did. */
+  --rule:#8FA199;
   --rule-strong:#2E4048;
   --pencil:#61808C;
   --given:#0F1A1E;
@@ -433,13 +443,25 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    come out a little taller than they were. The row this replaced cost ~46px of
    vertical space, and .tplay's width below converts that straight into board. */
 .padrow{display:flex;justify-content:center;align-items:stretch;gap:10px;margin:0 0 8px}
+/* Two columns of three, against the pad's three rows of keys — the tools row
+   and the key rows now line up exactly, where four tool rows against three key
+   rows never did. Pairs by kind, which is the whole point of the arrangement:
+   the two that take something back on the top row, the two that write notes for
+   you on the bottom, and the mode switch between them. */
 .tools{
-  flex:0 0 118px;display:grid;grid-template-rows:repeat(4,1fr);gap:6px;margin:0;
+  flex:0 0 150px;display:grid;
+  grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:6px;margin:0;
 }
-.tools .tbtn{padding:8px 6px;text-align:center}
-/* In the column the segmented pair has a full row to itself, so it splits it
-   rather than hugging its labels. */
-.tools .seg{display:flex}
+.tools .tbtn{padding:8px 3px;text-align:center;font-size:11px;letter-spacing:0}
+/* The basis is set by the longest label at this size — "Autoclear" is 9 mono
+   characters, and two of them plus the gap is what 150px buys. Every pixel here
+   comes straight out of the keypad beside it, which on a 390px phone is the
+   difference between a 62px key and a 67px one. */
+/* The segmented pair is the one row that means "pick one of these", so it keeps
+   the joined look and takes the full width. Undo/Erase and Autofill/Autoclear
+   are separate buttons that merely sit side by side — drawing them joined would
+   claim they were alternatives. */
+.tools .seg{display:flex;grid-column:1 / -1}
 .tools .seg .tbtn{flex:1}
 .tbtn{
   font-family:var(--mono);font-size:12px;letter-spacing:.04em;

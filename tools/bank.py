@@ -38,26 +38,46 @@ def solution(p):
         return False
     rec(); return g
 
+SINGLES = {"naked_single","hidden_single"}
+
+def tier_of(uniq, adv):
+    """The four the trainer offers, named for what the puzzle asks of you rather
+    than for how it feels: easy needs nothing but singles, normal adds the
+    interactions and subsets, and the two hard tiers are separated by how many
+    of the advanced patterns you have to find. Mirrored in JS by tierOf() —
+    change one and change the other."""
+    if len(adv) >= 2: return "extra"
+    if len(adv) == 1: return "challenging"
+    if any(x not in SINGLES for x in uniq): return "normal"
+    return "easy"
+
+PER_TIER = 8
+
 bank=[]
 rng=random.Random(4242)
-counts={}
-for t in range(600):
+tiers={}
+shapes={}
+for t in range(4000):
     p=engine.make_puzzle(rng)
     seq=trace(p)
     if not seq: continue
     uniq=sorted(set(seq))
     adv=sorted(ADV & set(uniq))
-    hardest = "advanced" if adv else ("intermediate" if any(x in uniq for x in ("naked_2","hidden_2","naked_3","hidden_3")) else "basic")
-    if hardest=="basic": continue
-    key=tuple(adv) if adv else ("subset",)
-    if counts.get(key,0)>=4: continue
-    counts[key]=counts.get(key,0)+1
+    tier=tier_of(uniq, adv)
+    if tiers.get(tier,0) >= PER_TIER: continue
+    # spread the hard tiers over different patterns rather than eight of one
+    key=(tier, tuple(adv))
+    if adv and shapes.get(key,0) >= 3: continue
+    shapes[key]=shapes.get(key,0)+1
+    tiers[tier]=tiers.get(tier,0)+1
+    hardest = "advanced" if adv else ("intermediate" if any(x not in SINGLES for x in uniq) else "basic")
     bank.append({"p":"".join(map(str,p)),"s":"".join(map(str,solution(p))),
-                 "t":uniq,"adv":adv,"level":hardest,
+                 "t":uniq,"adv":adv,"level":hardest,"tier":tier,
                  "givens":sum(1 for x in p if x)})
-    if len(bank)>=34: break
+    if len(bank) >= PER_TIER*4: break
 
-bank.sort(key=lambda b:(b["level"]!="advanced", -len(b["adv"]), b["givens"]))
+ORDER={"easy":0,"normal":1,"challenging":2,"extra":3}
+bank.sort(key=lambda b:(ORDER[b["tier"]], -len(b["adv"]), b["givens"]))
 json.dump(bank, open("bank.json","w"))
-print(len(bank))
-for b in bank[:40]: print(b["level"], b["givens"], b["adv"] or b["t"])
+print(len(bank), {k:v for k,v in sorted(tiers.items())})
+for b in bank: print(" ", b["tier"], b["givens"], b["adv"] or b["t"])
