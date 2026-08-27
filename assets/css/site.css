@@ -321,6 +321,12 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    upper row and the collapsed notes grid under it, which put every placed digit
    about 8px above the true centre of its square. */
 .sq > .val,.sq > .notes{grid-area:1/1}
+/* Above the connector overlay, for the same reason the coach's notes are: a
+   line drawn down a column runs through the middle of every digit in it, and a
+   1 is a vertical stroke the line erases outright. No fill behind it — a digit
+   is heavy enough to read as drawn over the line, and a fill would have to
+   match a square whose colour changes with the hint level. */
+.sq > .val{z-index:4}
 
 /* Second declaration wins where container queries are supported and is ignored
    where they are not, so the vw line stays as the fallback. */
@@ -353,10 +359,11 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    angle .sq.bad puts through a wrong digit, so a deletion looks like a deletion
    wherever the board makes one.
 
-   No chip behind it: a dead note only ever appears inside a .sq.tgt, which is
-   tinted red already. What the background:none is for is the green .lit chip a
-   focus digit wears — the same note cannot be both the digit you are tracking
-   and one that is simply alive. */
+   The background here only has to beat the green .lit chip a focus digit wears:
+   the same note cannot be both the digit you are tracking and one that is
+   simply alive. The chip it actually paints comes from .sq.tgt .nt.dead below,
+   which is that square's own red — see the note there about cutting the line
+   rather than tinting the digit. */
 .nt.dead{
   opacity:1;color:var(--red-ink);font-weight:600;text-decoration:none;
   background:none;padding:0 2px;margin:-1px -1px;
@@ -370,6 +377,37 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   transform:translateY(-50%) rotate(-38deg);
 }
 .nt.miss{color:var(--red-ink);font-weight:700;opacity:1}
+/* The coach's own marks sit ABOVE the connectors, not under them.
+
+   A connector runs to the CENTRE of each square it joins, and the centre of a
+   square is exactly where the 5 of the pencil grid sits. Every other digit is
+   grazed by a line passing through; 5 is destroyed by one arriving. An X-Wing
+   on 5 lands all four ends on the four notes it was drawn to point at — and a
+   junction end cannot be pulled back the way a free end can, because corners
+   that do not meet are not a rectangle.
+
+   So the line gives way instead. This is the convention a map uses where a
+   label crosses a road: the road passes behind and the label survives. Only
+   the three marks the coach is actually pointing at are raised — raise every
+   note and the line is nibbled by three dozen pale digits it has nothing to
+   say about. */
+.nt.lit,.nt.patd,.nt.dead{z-index:4}
+/* Raised is not enough on its own: without a fill the line shows through the
+   counter of a 6 or an 8 and the digit still reads as struck. The chip is the
+   colour of the square it sits on, exactly — a hole punched in the line rather
+   than a tile laid on top of it. .lit brings its own green and needs none. */
+/* :not(.lit) because a pattern square's own digit is usually the focus digit
+   too, and it wears both classes. .lit's green is already opaque and already
+   cuts the line — overriding it here would trade the most visible chip on the
+   board for amber text on an amber tile, which is the very thing this is
+   trying to fix. */
+.sq.pat .nt.patd:not(.lit){background:#F5DFA4;border-radius:2px;padding:0 2px;margin:-1px -1px}
+/* .sq.tgt beats .sq.pat on the square itself, so it has to beat it here too. A
+   hidden pair is both at once — its eliminations are inside its own cells —
+   and #E7CCC3 is what that red wash composites to over the paper. */
+.sq.tgt .nt.patd:not(.lit),.sq.tgt .nt.dead{
+  background:#E7CCC3;border-radius:2px;padding:0 2px;margin:-1px -1px;
+}
 .board.solo .nt.on:not(.solo){opacity:.13}
 .geo2{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
 /* Every connector runs through the centres of the squares it joins — which is
