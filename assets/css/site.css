@@ -415,12 +415,16 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    the ink was the same weight as those digits and merged with them. Heavier,
    opaque, and drawn over a pale casing (.case, laid down first by trainer.js)
    that lifts it off whatever the line crosses. */
-.geo2 line{stroke:var(--amber-ink);stroke-width:.062;stroke-linecap:round;opacity:1}
-.geo2 line.cross{stroke-dasharray:.16 .16;opacity:.8}
+/* .044, down from .062. The weight was doing two jobs and now only does one:
+   it no longer has to survive being read against the digits it crosses, since
+   they paint over it. What is left is the job of being seen at all, and a
+   thinner line does that with less of the board under it. */
+.geo2 line{stroke:var(--amber-ink);stroke-width:.044;stroke-linecap:round;opacity:1}
+.geo2 line.cross{stroke-dasharray:.13 .13;opacity:.8}
 /* After .cross on purpose: the casing of a dashed line is dashed too, and it
    takes that dasharray from the rule above. Same specificity, so source order
    is what stops .cross repainting the casing amber. */
-.geo2 line.case{stroke:var(--paper);stroke-width:.14;opacity:.55}
+.geo2 line.case{stroke:var(--paper);stroke-width:.11;opacity:.55}
 
 /* controls */
 
