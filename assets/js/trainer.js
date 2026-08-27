@@ -456,12 +456,48 @@
     /* geometry overlay */
     geoEl.innerHTML = '';
     if (showCells && f.lines) {
+      /* A connector runs through the centre of every square between its ends,
+         which is exactly where the 4, 5 and 6 notes sit — so both how it is
+         drawn and where it stops are about staying out of the digits' way.
+
+         How: two strokes, a pale casing first and the ink over it, so the line
+         has an edge wherever it crosses something. Both classes carry `cross`
+         on a dashed link so the casing is dashed to match — see .geo2 line.case
+         in the stylesheet.
+
+         Where: a free end stops short of the centre it points at. Drawn the
+         whole way, the cap landed on the middle note of a pattern square — the
+         digit the line exists to talk about — and buried it. An end another
+         segment also lands on is drawn full length instead, because that
+         junction IS the geometry: an X-Wing whose corners do not meet is not a
+         rectangle. */
+      const ends = new Map();
+      f.lines.forEach(([a, b]) => {
+        ends.set(a, (ends.get(a) || 0) + 1);
+        ends.set(b, (ends.get(b) || 0) + 1);
+      });
       f.lines.forEach(([a, b, style]) => {
-        const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        l.setAttribute('x1', C.colOf(a) + 0.5); l.setAttribute('y1', C.rowOf(a) + 0.5);
-        l.setAttribute('x2', C.colOf(b) + 0.5); l.setAttribute('y2', C.rowOf(b) + 0.5);
-        if (style === 'cross') l.setAttribute('class', 'cross');
-        geoEl.appendChild(l);
+        const dashed = style === 'cross';
+        let x1 = C.colOf(a) + 0.5, y1 = C.rowOf(a) + 0.5,
+            x2 = C.colOf(b) + 0.5, y2 = C.rowOf(b) + 0.5;
+        const len = Math.hypot(x2 - x1, y2 - y1);
+        /* .42 of a cell clears the outer column of pencil marks — the 3/6/9
+           or 1/4/7 stack — which is as far in as an end ever needs to sit. A
+           segment between neighbouring squares cannot afford that twice, and
+           keeps whatever is left over .4. */
+        const inset = Math.min(0.42, (len - 0.4) / 2);
+        if (inset > 0) {
+          const ux = (x2 - x1) / len * inset, uy = (y2 - y1) / len * inset;
+          if (ends.get(a) === 1) { x1 += ux; y1 += uy; }
+          if (ends.get(b) === 1) { x2 -= ux; y2 -= uy; }
+        }
+        ['case' + (dashed ? ' cross' : ''), dashed ? 'cross' : ''].forEach(cls => {
+          const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          l.setAttribute('x1', x1); l.setAttribute('y1', y1);
+          l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+          if (cls) l.setAttribute('class', cls);
+          geoEl.appendChild(l);
+        });
       });
     }
 

@@ -331,19 +331,51 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   font-family:var(--mono);font-size:clamp(6px,2vw,11px);line-height:1;color:var(--pencil);
 }
 .notes{font-size:clamp(6px,2.1cqw,11px)}
-.nt{opacity:0}
+.nt{opacity:0;position:relative}
 .nt.on{opacity:.9}
 .nt.lit{
   opacity:1;color:#14532D;font-weight:500;background:#8FD48A;
   border-radius:2px;padding:0 2px;margin:-1px -1px;
 }
 .nt.patd{color:var(--amber-ink);font-weight:500;opacity:1}
-.nt.dead{color:var(--red-ink);text-decoration:line-through;opacity:1}
+/* The one note the coach is telling you to rub out, so it has to survive being
+   read at 9px on a tinted square. text-decoration:line-through drew a hairline
+   the same weight as the glyph's own strokes, at the same height as the
+   connector lines below — a horizontal scratch across 4, 5 and 6 that left you
+   guessing which of the three the coach meant. A drawn slash instead, at the
+   angle .sq.bad puts through a wrong digit, so a deletion looks like a deletion
+   wherever the board makes one.
+
+   No chip behind it: a dead note only ever appears inside a .sq.tgt, which is
+   tinted red already. What the background:none is for is the green .lit chip a
+   focus digit wears — the same note cannot be both the digit you are tracking
+   and one that is simply alive. */
+.nt.dead{
+  opacity:1;color:var(--red-ink);font-weight:600;text-decoration:none;
+  background:none;padding:0 2px;margin:-1px -1px;
+}
+/* Wider than the glyph on purpose. A slash that starts and stops inside the
+   digit reads as part of it — 6 with a bar through it is nearly an 8 at 11px —
+   so the ends have to show outside. */
+.nt.dead::after{
+  content:"";position:absolute;left:-2px;right:-2px;top:50%;
+  height:max(1.25px,.13em);background:var(--red);border-radius:1px;
+  transform:translateY(-50%) rotate(-38deg);
+}
 .nt.miss{color:var(--red-ink);font-weight:700;opacity:1}
 .board.solo .nt.on:not(.solo){opacity:.13}
 .geo2{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
-.geo2 line{stroke:var(--amber-ink);stroke-width:.05;stroke-linecap:round;opacity:.9}
-.geo2 line.cross{stroke-dasharray:.15 .15;opacity:.55}
+/* Every connector runs through the centres of the squares it joins — which is
+   the middle row of the pencil marks, where 4, 5 and 6 live. At .05 of a cell
+   the ink was the same weight as those digits and merged with them. Heavier,
+   opaque, and drawn over a pale casing (.case, laid down first by trainer.js)
+   that lifts it off whatever the line crosses. */
+.geo2 line{stroke:var(--amber-ink);stroke-width:.062;stroke-linecap:round;opacity:1}
+.geo2 line.cross{stroke-dasharray:.16 .16;opacity:.8}
+/* After .cross on purpose: the casing of a dashed line is dashed too, and it
+   takes that dasharray from the rule above. Same specificity, so source order
+   is what stops .cross repainting the casing amber. */
+.geo2 line.case{stroke:var(--paper);stroke-width:.14;opacity:.55}
 
 /* controls */
 
