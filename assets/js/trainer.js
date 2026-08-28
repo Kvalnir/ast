@@ -19,7 +19,7 @@
        Crossing off is a real elimination — the coach reads notes minus off —
        but it is drawn rather than deleted, so it can be taken back by crossing
        it again instead of by unwinding history. See live(). */
-    notes: [], off: [], hi: [], wrong: [], sel: [], pencil: 'off', multi: false, focus: null,
+    notes: [], off: [], hi: [], wrong: [], sel: [], pencil: 'off', wasPencil: 'off', multi: false, focus: null,
     history: [], findings: [], pick: null, level: 0,
     autocheck: true, autoRemove: true, peers: true, coach: 'full', autoclear: true,
     tier: 'challenging',
@@ -1364,9 +1364,14 @@
 
   /* ---------------- wiring ---------------- */
   $('bUndo').addEventListener('click', undo);
-  $('bHi').addEventListener('click', () => { S.pencil = 'hi'; render(); });
-  $('bOff').addEventListener('click', () => { S.pencil = 'off'; render(); });
-  $('bErase').addEventListener('click', () => { S.pencil = 'erase'; render(); });
+  const setPencil = p => { if (p !== 'erase') S.wasPencil = p; S.pencil = p; render(); };
+  $('bHi').addEventListener('click', () => setPencil('hi'));
+  $('bOff').addEventListener('click', () => setPencil('off'));
+  /* Erase is not one of the pair any more, so it is a toggle: pressing it again
+     puts back whichever of Highlight and Cross off you were in, rather than
+     making you re-pick one every time you finish rubbing something out. */
+  $('bErase').addEventListener('click', () =>
+    setPencil(S.pencil === 'erase' ? S.wasPencil : 'erase'));
   /* Turning it off keeps the squares you have. Clearing them here would throw
      away the selection you turned it on to build. */
   $('bMulti').addEventListener('click', () => { S.multi = !S.multi; render(); });
@@ -1445,7 +1450,9 @@
        the mode says — and the pad would dress itself as a note toggle and lie. */
     if (e.key === 'n' || e.key === 'N') {
       if (!S.capture) {
-        S.pencil = S.pencil === 'off' ? 'hi' : S.pencil === 'hi' ? 'erase' : 'off';
+        const next = S.pencil === 'off' ? 'hi' : S.pencil === 'hi' ? 'erase' : 'off';
+        if (next !== 'erase') S.wasPencil = next;
+        S.pencil = next;
         render();
       }
       return;

@@ -503,9 +503,7 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   flex:0 0 150px;display:grid;
   grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:6px;margin:0;
 }
-/* Undo is the one control here that is not half of a pair, so it takes the row
-   rather than sitting beside a gap. */
-.tools .wide{grid-column:1 / -1}
+
 .tools .tbtn{padding:8px 3px;text-align:center;font-size:11px;letter-spacing:0}
 /* The basis is set by the longest label at this size — "Autoclear" is 9 mono
    characters, and two of them plus the gap is what 150px buys. Every pixel here
