@@ -486,8 +486,11 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    you on the bottom, and the mode switch between them. */
 .tools{
   flex:0 0 150px;display:grid;
-  grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:6px;margin:0;
+  grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);gap:6px;margin:0;
 }
+/* Full-width like the mode row, because it is a switch for the board rather
+   than one of a pair of actions. */
+.tools .wide{grid-column:1 / -1}
 .tools .tbtn{padding:8px 3px;text-align:center;font-size:11px;letter-spacing:0}
 /* The basis is set by the longest label at this size — "Autoclear" is 9 mono
    characters, and two of them plus the gap is what 150px buys. Every pixel here
@@ -498,6 +501,9 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    are separate buttons that merely sit side by side — drawing them joined would
    claim they were alternatives. */
 .tools .seg{display:flex;grid-column:1 / -1}
+/* Three across 150px, so the labels are short and the caption over the pad
+   carries the long form. */
+.tools .seg .tbtn{flex:1 1 0;min-width:0;padding:8px 1px}
 .tools .seg .tbtn{flex:1}
 .tbtn{
   font-family:var(--mono);font-size:12px;letter-spacing:.04em;
@@ -566,6 +572,11 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .padmark.himode .key.noted{
   background:#C6A9F0;border-color:#C6A9F0;color:#2E1A55;text-decoration:none;
 }
+/* Rub takes the note away instead of marking it, so the keys carry no state —
+   only the solid border, to say this pad is about to remove something rather
+   than toggle it. */
+.padmark.rubmode .key{border-style:solid;border-color:#4A3238}
+.padmark.rubmode .key:hover{border-color:var(--red)}
 .pad .key.noted::before{
   content:"";position:absolute;top:3px;right:3px;width:5px;height:5px;
   border-radius:50%;background:currentColor;opacity:.55;

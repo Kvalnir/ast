@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v25';  // v25: two pads, a selection you can build, and notes you mark rather than delete
+const VERSION = 'v26';  // v26: a tap moves the selection, a drag builds one, and Rub takes a note away
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
