@@ -163,10 +163,15 @@
 
   /* With a square selected a digit goes into it; with nothing selected it
      lights that digit across the board. Only the pen pad does the second job —
-     the marking pad has nothing to say about a board with no selection. */
+     the marking pad has nothing to say about a board with no selection.
+
+     In Erase the pen pad takes a digit back rather than writing one, and which
+     key you press does not matter: there is one digit in the square and the
+     pad's job in this mode is to remove it. */
   function press(d) {
-    if (!S.sel.length) { S.focus = S.focus === d ? null : d; render(); }
-    else enter(d);
+    if (!S.sel.length) { S.focus = S.focus === d ? null : d; render(); return; }
+    if (!S.capture && S.pencil === 'erase') { erase(); return; }
+    enter(d);
   }
 
   /* What the coach sees. A crossed-off note is still on the board — that is the
@@ -311,12 +316,12 @@
       return;
     }
     snapshot();
-    /* Rub out is the one that takes the note away rather than marking it. Same
-       effect on the position as a cross-off — the candidate is gone either way
-       — but there is nothing left on the square to press again, so getting it
-       back is Undo or Autofill. That is the trade for a board that stays
-       readable when you have finished reasoning about a square. */
-    if (S.pencil === 'rub') {
+    /* Erase takes the note away rather than marking it. Same effect on the
+       position as a cross-off — the candidate is gone either way — but nothing
+       is left on the square to press again, so getting it back is Undo or the
+       pen pad in this same mode. That is the trade for a board that stays
+       readable once you have finished reasoning about a square. */
+    if (S.pencil === 'erase') {
       cells.forEach(i => {
         S.notes[i].delete(d); S.off[i].delete(d); S.hi[i].delete(d);
       });
@@ -335,9 +340,14 @@
     recompute();
   }
 
-  /* Erase empties the selected squares outright — digit, notes and both marks.
-     It is the blunt one on purpose: the left pad in Rub takes a single note
-     out, and this is for when you want the square back to nothing. */
+  /* Takes back a digit you wrote and gives the square its notes again — the
+     other half of Erase, the half the pen pad does.
+
+     Only the emptied squares get their notes back, worked out from the digits
+     still on the board. Not their peers: a peer may have lost that candidate
+     to your own reasoning as easily as to the entry, and nothing on the board
+     says which, so putting it back everywhere would quietly undo your work.
+     Undo is the thing that restores a position exactly. */
   function erase() {
     if (!S.sel.length || S.solved) return;
     if (S.capture) {
@@ -346,12 +356,18 @@
       captureRefresh();
       return;
     }
-    const cells = S.sel.filter(i => !S.given[i]);
-    if (!cells.length) return;
+    const cells = S.sel.filter(i => !S.given[i] && S.grid[i]);
+    if (!cells.length) {
+      flash(S.sel.some(i => S.given[i])
+        ? 'That square is one of the puzzle\u2019s own digits — it cannot be erased.'
+        : 'Nothing written in there to erase. The left pad is the one that takes notes away.', 'warn');
+      return;
+    }
     snapshot();
+    cells.forEach(i => { S.grid[i] = 0; S.wrong[i] = false; });
+    const base = C.baseCandidates(S.grid);
     cells.forEach(i => {
-      S.grid[i] = 0; S.wrong[i] = false;
-      S.notes[i] = new Set(); S.off[i] = new Set(); S.hi[i] = new Set();
+      S.notes[i] = base[i]; S.off[i] = new Set(); S.hi[i] = new Set();
     });
     S.noteCheck = null;
     recompute();
@@ -857,11 +873,16 @@
        what the next tap will do, and while a square is selected the next tap is
        an entry, not a focus. */
     const focusing = !S.sel.length;
+    /* In Erase the pen pad has one job and it needs a digit to do it to, so it
+       dims when the selection holds none — the same readback the left pad
+       gives, rather than nine live keys that all answer with a refusal. */
+    const erasing = S.pencil === 'erase' && !focusing && !S.capture;
+    const canErase = erasing && S.sel.some(i => !S.given[i] && S.grid[i]);
     padPen.classList.toggle('focusmode', focusing);
     [...padPen.children].forEach((b, k) => {
       const d = k + 1;
       const placed = S.grid.filter(v => v === d).length;
-      b.classList.toggle('done', placed >= 9);
+      b.classList.toggle('done', erasing ? !canErase : placed >= 9);
       b.classList.toggle('focused', focusing && S.focus === d);
       b.querySelector('.left').textContent = placed >= 9 ? '' : (9 - placed);
     });
@@ -871,18 +892,20 @@
        selected square has the note at all, because the press would do nothing. */
     const markSet = S.pencil === 'hi' ? S.hi : S.off;
     padMark.classList.toggle('himode', S.pencil === 'hi');
-    padMark.classList.toggle('rubmode', S.pencil === 'rub');
+    padMark.classList.toggle('rubmode', S.pencil === 'erase');
+    padPen.classList.toggle('rubmode', S.pencil === 'erase');
     [...padMark.children].forEach((b, k) => {
       const d = k + 1;
       const cells = S.sel.filter(i => !S.grid[i] && S.notes[i].has(d));
       /* Nothing to light in Rub: the press takes the note away rather than
          toggling a mark, so there is no state to read back. */
-      b.classList.toggle('noted', S.pencil !== 'rub' &&
+      b.classList.toggle('noted', S.pencil !== 'erase' &&
         cells.length > 0 && cells.every(i => markSet[i].has(d)));
       b.classList.toggle('done', !cells.length);
     });
     $('capMark').textContent =
-      S.pencil === 'hi' ? 'Highlight' : S.pencil === 'rub' ? 'Rub out' : 'Cross off';
+      S.pencil === 'hi' ? 'Highlight' : S.pencil === 'erase' ? 'Erase' : 'Cross off';
+    $('capPen').textContent = S.pencil === 'erase' ? 'Erase' : 'Pen';
     /* Kept short enough to hold one line down to the 320px board floor. The
        height of this line is part of the constant .tplay sizes the board
        against, so a second line here silently costs the board 17px. */
@@ -892,24 +915,25 @@
       : focusing
         ? (S.multi ? 'Select multiple is on — tap squares to add them'
                    : 'Nothing selected — tap a square, drag across several, or tap a number on the right to light it')
-        : S.sel.length === 1
-          ? 'Left pad ' + (S.pencil === 'hi' ? 'highlights' : S.pencil === 'rub' ? 'rubs out' : 'crosses off') +
-            ' a note, right pad writes the digit'
-          : S.sel.length + ' squares — the left pad works on all of them at once';
+        : S.pencil === 'erase'
+          ? 'Left pad takes a note away, right pad takes back the digit and restores the notes'
+          : S.sel.length === 1
+            ? 'Left pad ' + (S.pencil === 'hi' ? 'highlights' : 'crosses off') +
+              ' a note, right pad writes the digit'
+            : S.sel.length + ' squares — the left pad works on all of them at once';
 
     $('bAutoclear').setAttribute('aria-pressed', S.autoclear);
     $('bHi').setAttribute('aria-pressed', S.pencil === 'hi');
     $('bOff').setAttribute('aria-pressed', S.pencil === 'off');
-    $('bRub').setAttribute('aria-pressed', S.pencil === 'rub');
+    $('bErase').setAttribute('aria-pressed', S.pencil === 'erase');
     $('bMulti').setAttribute('aria-pressed', S.multi);
     $('bUndo').disabled = !S.history.length;
-    $('bErase').disabled = !S.sel.length;
     $('bApply').disabled = !S.pick;
     /* Capture mode borrows the board, so everything that acts on a position
        rather than builds one steps out of the way for the duration. Undo,
        Erase and the pen pad stay: those are the transcription controls. The
        marking pad goes with the rest — there are no notes to mark yet. */
-    ['bAutofill', 'bAutoclear', 'bHi', 'bOff', 'bRub', 'bMore', 'bCheckNotes', 'bNew',
+    ['bAutofill', 'bAutoclear', 'bHi', 'bOff', 'bErase', 'bMore', 'bCheckNotes', 'bNew',
      'bRestart', 'bCatchUp', 'bCopyLink', 'bClearBase'].forEach(id => { $(id).disabled = S.capture; });
     [...padMark.children].forEach(b => { b.disabled = S.capture; });
     [...$('drills').querySelectorAll('.chip')].forEach(b => { b.disabled = S.capture; });
@@ -1342,7 +1366,7 @@
   $('bUndo').addEventListener('click', undo);
   $('bHi').addEventListener('click', () => { S.pencil = 'hi'; render(); });
   $('bOff').addEventListener('click', () => { S.pencil = 'off'; render(); });
-  $('bRub').addEventListener('click', () => { S.pencil = 'rub'; render(); });
+  $('bErase').addEventListener('click', () => { S.pencil = 'erase'; render(); });
   /* Turning it off keeps the squares you have. Clearing them here would throw
      away the selection you turned it on to build. */
   $('bMulti').addEventListener('click', () => { S.multi = !S.multi; render(); });
@@ -1421,7 +1445,7 @@
        the mode says — and the pad would dress itself as a note toggle and lie. */
     if (e.key === 'n' || e.key === 'N') {
       if (!S.capture) {
-        S.pencil = S.pencil === 'off' ? 'hi' : S.pencil === 'hi' ? 'rub' : 'off';
+        S.pencil = S.pencil === 'off' ? 'hi' : S.pencil === 'hi' ? 'erase' : 'off';
         render();
       }
       return;

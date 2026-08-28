@@ -486,11 +486,8 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    you on the bottom, and the mode switch between them. */
 .tools{
   flex:0 0 150px;display:grid;
-  grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);gap:6px;margin:0;
+  grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:6px;margin:0;
 }
-/* Full-width like the mode row, because it is a switch for the board rather
-   than one of a pair of actions. */
-.tools .wide{grid-column:1 / -1}
 .tools .tbtn{padding:8px 3px;text-align:center;font-size:11px;letter-spacing:0}
 /* The basis is set by the longest label at this size — "Autoclear" is 9 mono
    characters, and two of them plus the gap is what 150px buys. Every pixel here
@@ -572,11 +569,12 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .padmark.himode .key.noted{
   background:#C6A9F0;border-color:#C6A9F0;color:#2E1A55;text-decoration:none;
 }
-/* Rub takes the note away instead of marking it, so the keys carry no state —
-   only the solid border, to say this pad is about to remove something rather
-   than toggle it. */
-.padmark.rubmode .key{border-style:solid;border-color:#4A3238}
-.padmark.rubmode .key:hover{border-color:var(--red)}
+/* In Erase both pads take something away rather than putting it on, so both
+   wear the same warning edge — the keys carry no state, because there is none
+   to read back when the press removes rather than toggles. */
+.pad.rubmode .key{border-style:solid;border-color:#5A3038;color:#E8B9AE}
+.pad.rubmode .key:hover{border-color:var(--red)}
+.pad.rubmode .key .left{color:#A2837C}
 .pad .key.noted::before{
   content:"";position:absolute;top:3px;right:3px;width:5px;height:5px;
   border-radius:50%;background:currentColor;opacity:.55;

@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v26';  // v26: a tap moves the selection, a drag builds one, and Rub takes a note away
+const VERSION = 'v27';  // v27: Erase is a mode both pads answer to
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
