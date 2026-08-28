@@ -162,11 +162,16 @@ hand.
 stay scannable across eighty-one of them, and putting one behind every highlight too makes the two
 read as one signal — at which point the digit you are hunting stops jumping out of the grid.
 
-**Autoclear**, on by default, fills any square whose notes have come down to one, then again for
-whatever that forces, until the board stops moving. It reads *your* notes rather than the solution,
-so a candidate you wrongly rubbed out gets written in and Autocheck marks it red where it lands;
-the alternative is a helper that quietly knows better than you. The whole cascade sits inside the
-snapshot of the entry that caused it, so it is one press of Undo.
+**Autoclear**, on by default, fills any square whose notes have come down to one — inside the box
+you just changed, and nowhere else. It runs again for whatever that forces in the same box, so one
+entry can still finish most of a box, but a square forced three boxes away is left standing: that
+is a square you were not looking at, and filling it takes the puzzle away rather than tidying up
+behind you. The entered digit still comes off its peers' notes across the whole board, which is
+what leaves the next box forced for you to find. It reads *your* notes rather than the solution, so
+a candidate you wrongly rubbed out gets written in and Autocheck marks it red where it lands; the
+alternative is a helper that quietly knows better than you. The whole cascade sits inside the
+snapshot of the entry that caused it, so it is one press of Undo. Switching the toggle on is the
+one pass that reads the whole board — a deliberate press, with no box it could call yours.
 
 **Clear the basics** plays out every single, pointing pair, claiming and subset from where you are
 and stops at the first advanced pattern. It refuses rather than guesses: a wrong digit on the

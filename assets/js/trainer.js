@@ -291,8 +291,8 @@
          keeps ordinary play at one tap per square. */
       S.sel = [];
       /* Inside the same snapshot as the entry that caused it: one thing you
-         did, one press of Undo to take it back. */
-      if (S.autoclear) autoclear();
+         did, one press of Undo to take it back. Its box only — see autoclear. */
+      if (S.autoclear) autoclear(houseOf([i]));
     }
     S.focus = S.grid[i] || null;
     S.noteCheck = null;
@@ -325,7 +325,7 @@
       cells.forEach(i => {
         S.notes[i].delete(d); S.off[i].delete(d); S.hi[i].delete(d);
       });
-      if (S.autoclear) autoclear();
+      if (S.autoclear) autoclear(houseOf(cells));
       S.noteCheck = null;
       recompute();
       return;
@@ -335,7 +335,7 @@
     cells.forEach(i => { if (allOn) set[i].delete(d); else set[i].add(d); });
     /* Crossing off changes the position, so anything it forces should fall out
        the same way it would after an entry. Highlighting changes nothing. */
-    if (S.pencil === 'off' && !allOn && S.autoclear) autoclear();
+    if (S.pencil === 'off' && !allOn && S.autoclear) autoclear(houseOf(cells));
     S.noteCheck = null;
     recompute();
   }
@@ -375,9 +375,20 @@
 
   /* ---------------- autoclear ----------------
      A square whose notes have come down to one candidate is not a decision any
-     more, so it fills itself. Each fill strips that digit from its peers, which
-     can bring another square down to one, so this runs until the board stops
-     moving — one entry can finish most of a box.
+     more, so it fills itself.
+
+     It fills inside one house only: the box the change landed in. A fill there
+     strips the digit from its peers and can bring another square in the same
+     box down to one, so it runs until that box stops moving — one entry can
+     still finish most of a box. What it will not do any more is carry on out
+     of the box: a square forced three boxes away is a square you were never
+     looking at, and solving it for you takes the puzzle away rather than
+     tidying up behind you. Change several squares at once and each of their
+     boxes is in scope, because each one is a house you just worked in.
+
+     The digit still comes off its peers' notes across the whole board. That is
+     the board staying honest about what is possible, not a deduction made on
+     your behalf, and it is what leaves the next box forced for you to see.
 
      It reads YOUR notes, not the solution. A candidate you wrongly rubbed out
      can leave a square holding one wrong digit, and this will write it in.
@@ -388,11 +399,19 @@
      Peers are stripped whether or not `Clear notes on entry` is set, because
      the cascade is the note-keeping — without it nothing would ever come down
      to one and the feature would do nothing at all. */
-  function autoclear() {
+  const houseOf = cells => {
+    const s = new Set();
+    cells.forEach(i => C.BOXES[C.boxOf(i)].forEach(x => s.add(x)));
+    return s;
+  };
+  /* No scope means the whole board — the toggle's one-off catch-up, which has
+     no house to work in because no square was just changed. */
+  function autoclear(scope) {
+    const cells = scope ? [...scope] : Array.from({ length: 81 }, (_, i) => i);
     let placed = 0;
-    for (let pass = 0; pass < 81; pass++) {
+    for (let pass = 0; pass < cells.length; pass++) {
       let moved = false;
-      for (let i = 0; i < 81; i++) {
+      for (const i of cells) {
         if (S.grid[i]) continue;
         const c = live(i);
         if (c.size !== 1) continue;
@@ -519,7 +538,9 @@
          quietly lost candidates. */
       f.elims.forEach(e => { S.notes[e.cell].add(e.digit); S.off[e.cell].add(e.digit); });
     }
-    if (S.autoclear) autoclear();
+    if (S.autoclear) {
+      autoclear(houseOf(f.placement ? [f.placement.cell] : f.elims.map(e => e.cell)));
+    }
     S.pick = null; S.level = 0; S.noteCheck = null;
     recompute();
   }
@@ -1389,8 +1410,10 @@
   $('bNew').addEventListener('click', newPuzzle);
   $('bRestart').addEventListener('click', () => load(S.puzzle));
   /* Switching it on resolves what is already forced, because a toggle that
-     waits for your next entry to show what it does looks broken. Only takes an
-     undo step if it actually placed something. */
+     waits for your next entry to show what it does looks broken. This is the
+     one pass that reads the whole board: you pressed it deliberately, and there
+     is no box it could call yours. Only takes an undo step if it actually
+     placed something. */
   $('bAutoclear').addEventListener('click', () => {
     S.autoclear = !S.autoclear;
     if (S.autoclear && anyForced()) { snapshot(); autoclear(); recompute(); }
