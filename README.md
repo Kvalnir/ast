@@ -4,10 +4,11 @@ A three-page static site for getting past the wall in Apple News+ **Challenging*
 
 - **`index.html`** — the pattern reference. Nine patterns, each on a real position with real
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
-- **`trainer.html`** — a live board that behaves like News+ and names the patterns available in
-  your position, one hint level at a time. Twenty verified puzzles are built in, and you can
-  **import the one you are actually stuck on** — by typing it, or by pasting 81 characters into a
-  box that lays them out as a nine-by-nine grid so you can check them against the page.
+- **`trainer.html`** — a live board that keeps the News+ reflexes and names the patterns available
+  in your position, one hint level at a time. Thirty-two verified puzzles across four difficulties
+  are built in, and you can **import the one you are actually stuck on** — by typing it, or by
+  pasting 81 characters into a box that lays them out as a nine-by-nine grid so you can check them
+  against the page.
 - **`cheatsheet.html`** — the same nine patterns as a card grid: the trigger that fires each one,
   the deletion it earns, and where it goes wrong. The reference is what you read; this is what you
   keep open beside the puzzle. Each card links back to its full write-up, and its figures are
@@ -61,19 +62,25 @@ manifest.webmanifest    PWA metadata: name, icons, start URL
 sw.js                   service worker — precache, offline, update prompt
 assets/css/site.css     shared design tokens and all page styles
 assets/js/core.js       units, peers, candidates, backtracking solver
-assets/js/techniques.js the nine detectors; returns structured findings
-assets/js/bank.js       20 verified puzzles, tagged by technique required
+assets/js/techniques.js the nine detectors, plus verify() — see "Two questions" below
+assets/js/bank.js       32 verified puzzles, tagged by technique required
 assets/js/import.js     read a puzzle off another screen: validate, derive, tag
-assets/js/trainer.js    board UI, News+ behaviours, hint ladder
+assets/js/trainer.js    board UI, News+ behaviours, hint ladder, the two pads
 assets/js/pwa.js        service worker registration, update and install prompts
 assets/icons/*.png      app icons (generated — see tools/icons.py)
 assets/icons/icon.svg   the same mark as vector, for the tab favicon (hand-written)
 tools/                  Python generators (only needed to rebuild content)
 ```
 
-`icon.svg` is the one asset with two sources of truth: it carries the same 24-unit geometry as
-`tools/icons.py`, because a nine-cell grid does not survive a 16px downsample and browsers that
-support SVG favicons should get the vector. Edit the two together or they drift.
+Two things here have two sources of truth, and both are worth knowing about:
+
+- `icon.svg` carries the same 24-unit geometry as `tools/icons.py`, because a nine-cell grid does
+  not survive a 16px downsample and browsers that support SVG favicons should get the vector.
+- The **difficulty tiers** are decided by `tier_of()` in `tools/bank.py`, which stocks the bank,
+  and by `tierOf()` in `assets/js/trainer.js`, which tiers an imported puzzle by the same rule.
+  Derived rather than read off the entry, so an import is tiered like a bank puzzle.
+
+Edit each pair together or they drift.
 
 ## Installing it as an app
 
@@ -86,7 +93,7 @@ three work with the network off.
 Two things worth knowing:
 
 - **Everything is precached on the first visit** — all three pages, the CSS, all six scripts and
-  the seven icons: 18 files, 387 KB. There is no lazy loading to go wrong later.
+  the seven icons: 18 files, 451 KB. There is no lazy loading to go wrong later.
 - **Fonts arrive one visit late.** They come from Google Fonts, and on a first visit the page has
   already requested them before the worker takes control, so they are only cached from the second
   visit onwards. Until then an offline load falls back to the system stack — the layout holds, the
@@ -107,33 +114,80 @@ python3 -m http.server 8123
 
 ## The trainer
 
-**It behaves like News+ on purpose.** Pen and Notes modes, Autofill, per-square Autocheck, notes
-in fixed 3×3 slots, and — importantly — notes cleared on entry *before* the entry is judged. Enter
-a wrong digit and you will watch it get flagged **and** destroy a dozen notes, exactly as the app
-does. Undo restores both; the eraser would not. Practising on a board with different reflexes
-would be practising the wrong thing.
+**It keeps the News+ reflexes that matter.** Autofill, per-square Autocheck, notes in fixed 3×3
+slots, and — importantly — notes cleared on entry *before* the entry is judged. Enter a wrong digit
+and you will watch it get flagged **and** destroy a dozen notes, exactly as the app does. Undo
+restores both. Practising on a board with different reflexes would be practising the wrong thing.
 
-**One keypad, and the selection decides what it does.** A square is selected, so a digit goes into
-it — placed in Pen, toggled as a note in Notes. Nothing is selected, so the same key lights that
-digit everywhere instead, notes included. The pad is 3×3 because the notes inside a square are laid
-out on the same 3×3 in the same order, which makes "the 7 is bottom-left" one fact rather than two.
+**The controls deliberately go further.** News+ has one keypad and a Pen/Notes switch, which is the
+thing you are working around rather than a thing worth copying: it makes every press a question you
+answer twice. So there are two pads, one job each — **notes on the left, digits on the right** — and
+the tools between them. Both are 3×3 because the notes inside a square are laid out on the same 3×3
+in the same order, which makes "the 7 is bottom-left" one fact rather than two.
 
-Getting to the second mode is a matter of letting go of the square: click the selected one again,
-or press <kbd>Esc</kbd>. Placing a digit releases it for you, so the digit you just entered is lit
-across the board without your asking. The line under the pad always says which of the two the next
-tap will be.
+With nothing selected, the right pad lights that digit across the board instead. That is the one
+place the old rule survives, and it is what the focus square on a note means everywhere else.
+
+**A selection is a set.** A tap moves it; adding takes something deliberate — the **multi** toggle
+beside the left pad's caption, a held <kbd>Shift</kbd> or <kbd>Ctrl</kbd>, or a drag across the
+board. One-square play still costs one tap, because writing a digit lets go of the selection. A
+finger only drags while multi is on: claiming the gesture the rest of the time would mean the board
+could not be scrolled past on a phone.
+
+The pen writes into one square and refuses a multiple selection rather than obliging it — the same
+digit in two selected squares is never a legal position, so obeying would only ever make a board to
+undo. The left pad is the one that takes several at once.
+
+**Three things the left pad can do**, chosen with the mode buttons and named in the caption above
+the pad:
+
+| Mode | The left pad | The right pad |
+|------|--------------|---------------|
+| **Cross off** | Strikes a note out. A real elimination — the coach reads notes *minus* crossed-off — but drawn rather than deleted, so crossing it again puts it back | Writes the digit |
+| **Highlight** | Marks a note in violet, changing nothing about the position | Writes the digit |
+| **Erase** | Removes the note outright | Takes back a digit you wrote and gives the square its notes again |
+
+One press decides its direction from the whole selection: if every selected square already carries
+the mark it comes off, otherwise it goes on. That is what makes a second press clear a highlight,
+and it stops a mixed selection flickering half on and half off.
+
+**Crossing off rather than deleting is the point of the split.** An elimination you can see is an
+elimination you can check, argue with, and take back without unwinding history — and **Check my
+notes** can tell you that you struck a true digit while it is still one press from being restored.
+Automatic removal still deletes, because that is the board keeping itself rather than a deduction
+of yours, and a grid wearing three dozen automatic cross-offs would bury the handful you made by
+hand.
+
+**The filled square means focus, and only focus.** A highlight is colour alone. The square has to
+stay scannable across eighty-one of them, and putting one behind every highlight too makes the two
+read as one signal — at which point the digit you are hunting stops jumping out of the grid.
+
+**Autoclear**, on by default, fills any square whose notes have come down to one, then again for
+whatever that forces, until the board stops moving. It reads *your* notes rather than the solution,
+so a candidate you wrongly rubbed out gets written in and Autocheck marks it red where it lands;
+the alternative is a helper that quietly knows better than you. The whole cascade sits inside the
+snapshot of the entry that caused it, so it is one press of Undo.
+
+**Clear the basics** plays out every single, pointing pair, claiming and subset from where you are
+and stops at the first advanced pattern. It refuses rather than guesses: a wrong digit on the
+board, or a note that has lost its true digit, stops it before it can prove a false single and
+build on it.
 
 **It is fully playable from the keyboard.**
 
 | Key | Does |
 |-----|------|
-| <kbd>1</kbd>–<kbd>9</kbd> | Enter the digit, or light it if no square is selected — the same rule as the pad |
+| <kbd>1</kbd>–<kbd>9</kbd> | Write the digit, or light it if no square is selected |
+| <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>9</kbd> | The left pad's job instead — mark, cross off or erase the note |
 | <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> | Move the selection (needs a square selected to start) |
-| <kbd>Esc</kbd> | Let go of the square |
-| <kbd>Backspace</kbd> | Erase the square |
-| <kbd>N</kbd> | Switch between Pen and Notes |
+| <kbd>Esc</kbd> | Drop the selection; again to leave Read the board |
+| <kbd>Backspace</kbd> | Take back the digit and restore the square's notes |
+| <kbd>N</kbd> | Cycle Cross off → Highlight → Erase |
+| <kbd>M</kbd> | Select multiple on or off |
 | <kbd>H</kbd> | Show me more — the next rung of the hint ladder |
-| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> | Undo, notes included |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> | Undo, notes and marks included |
+
+<kbd>Shift</kbd> is read off `event.code` rather than `event.key`, because shift+5 arrives as `%`.
 
 These belong to the board, and only to the board: while the caret is in a text field — the paste
 box, most of all — every key is that field's, so an 81-character string types in whole.
@@ -150,8 +204,24 @@ box, most of all — every key is that field's, so an 81-character string types 
 | 5 | Why it works, linked to the full write-up |
 
 Set **Coach** to *Off* to hunt unaided, *Names only* to know a technique exists without knowing
-where, or *Names + counts* to see how many of each. *Names only* is the useful default: knowing an
-X-Wing is on the board turns an unbounded search into a bounded one, which is the whole problem.
+where, or *Names + counts* to see how many of each. Knowing an X-Wing is on the board turns an
+unbounded search into a bounded one, which is the whole problem; the counts tell you whether the
+one you found is the only one. Clicking a technique picks it, and clicking it again walks to its
+next instance.
+
+**Notes arrive with the puzzle.** Autofill is still there for rebuilding them, but the board no
+longer opens empty: the coach cannot read a position without notes, so starting blank only meant
+the first thing you did on every puzzle was press the same key. **Difficulty** picks which of the
+four tiers the next puzzle comes from — Easy needs nothing but singles, Normal adds pointing and
+subsets, Challenging needs one advanced pattern, Extra needs two or more.
+
+**Read the board** is the coach asked backwards. Turn it on, select the squares you think make a
+pattern, and it says what they are — including a pattern read correctly that kills nothing, which
+the coach itself can never mention because every detector past the singles drops a finding with no
+eliminations. It also names what you nearly had: "there is an X-Wing on 6 here, but it also needs
+r7c2". While it is on, clicking a technique chip draws its geometry rather than naming it — three
+rungs of the ladder in one click, which is what the mode is for and why it is not what a chip does
+the rest of the time.
 
 **Drills** fast-forward a real puzzle to the exact position where one technique is the move —
 everything cheaper already played. This is the fastest way to train the eye, because you get the
@@ -161,8 +231,8 @@ pattern in isolation without solving forty squares first.
 lost its real digit. This is the one error News+ cannot catch: Autocheck validates answers and never
 notes, so an elimination you made in error is invisible until the grid dies twenty moves later.
 
-**Importing the puzzle you are stuck on** is the point of the whole thing: the twenty in the bank
-are for practice, and the one beating you is on another screen. Press **Type in a puzzle** and the
+**Importing the puzzle you are stuck on** is the point of the whole thing: the thirty-two in the
+bank are for practice, and the one beating you is on another screen. Press **Type in a puzzle** and the
 board becomes the entry surface — tap a square, tap the printed digit, one tap each. There is a
 paste box for the desktop case, and an imported puzzle rides in the URL (`trainer.html#p=…`), so
 a link moves it between the phone and the desk.
@@ -222,6 +292,7 @@ Only needed if you want different puzzles or edited lesson text.
 ```bash
 cd tools
 python3 bank.py        # regenerate the puzzle bank (slow — it verifies uniqueness)
+                       # 8 puzzles per tier; tier_of() decides which tier each lands in
 python3 build.py       # regenerate ../index.html from template.html
 python3 cheatsheet.py  # regenerate ../cheatsheet.html
 ```
@@ -273,7 +344,34 @@ console.log('solved',solved+'/'+bank.length,'assertions',checked,'fails',fails);
 "
 ```
 
-Expected: `solved 20/20 assertions 1384 fails 0`.
+Expected: `solved 32/32 assertions 2047 fails 0`.
+
+The same snippet runs in a browser console on any page of the site, where `SudokuCore`,
+`SudokuTech` and `SUDOKU_BANK` are already globals — drop the three `require` lines and read the
+bank from `SUDOKU_BANK`. Useful when the machine in front of you has no node.
+
+### Two questions, two code paths
+
+`findAll` answers *what can I play here?* and every detector past the singles bails the moment a
+pattern kills nothing, because a move that changes no candidate is not a move. `verify` — what
+**Read the board** runs on — answers *am I reading these squares right?*, where a pattern that
+kills nothing is still a pattern correctly read.
+
+That is why it is a separate pass rather than a filter over `findAll`: an inspector built on
+`findAll` would answer "nothing here" precisely when you had got it right and the pattern happened
+to be sterile, which is the worst thing a confidence check can do. So `verify` tests shape alone
+and counts the kills afterwards, and an empty kill list is a result rather than a rejection.
+
+Checked the same way as the detectors — every finding in every banked puzzle, played to the wall,
+each one handed back to `verify` as a bare set of cells, and then handed back again with its own
+eliminations already applied so that it kills nothing:
+
+```
+shapes 33793   missed 0   still-named-when-sterile 19098   vanished 0
+```
+
+Nineteen thousand of those thirty-four thousand shapes are invisible to the coach. That is the
+feature, not a rounding error.
 
 ## Notes on scope
 
