@@ -484,10 +484,18 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    tools, where it was the one control that was not half of a pair and made the
    column look crowded for it. Sized to the caption it sits beside: this is a
    switch you set once and forget, not one of the things you are pressing. */
+/* A flex box with a fixed height rather than padding around a line: at 8.5px
+   with line-height 1 the uppercase glyphs sit high in their own box, and the
+   pill reads as sitting above the caption beside it even when the box itself
+   is centred. Centring the glyphs inside the pill is what actually fixes it.
+   The trailing letter-spacing is padded out on the right so the word looks
+   centred rather than nudged left by the space after its last letter. */
 .minitog{
   font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;
   background:transparent;color:var(--mist);border:1px solid #2A3D45;
-  border-radius:9px;padding:2px 7px;cursor:pointer;line-height:1;
+  border-radius:9px;cursor:pointer;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+  height:16px;padding:0 6px 0 7px;
 }
 .minitog:hover{border-color:var(--amber-ink);color:var(--text)}
 .minitog[aria-pressed="true"]{
@@ -509,15 +517,6 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    characters, and two of them plus the gap is what 150px buys. Every pixel here
    comes straight out of the keypad beside it, which on a 390px phone is the
    difference between a 62px key and a 67px one. */
-/* The segmented pair is the one row that means "pick one of these", so it keeps
-   the joined look and takes the full width. Undo/Erase and Autofill/Autoclear
-   are separate buttons that merely sit side by side — drawing them joined would
-   claim they were alternatives. */
-.tools .seg{display:flex;grid-column:1 / -1}
-/* Three across 150px, so the labels are short and the caption over the pad
-   carries the long form. */
-.tools .seg .tbtn{flex:1 1 0;min-width:0;padding:8px 1px}
-.tools .seg .tbtn{flex:1}
 .tbtn{
   font-family:var(--mono);font-size:12px;letter-spacing:.04em;
   background:var(--panel);color:var(--text);border:1px solid #2A3D45;
@@ -527,9 +526,6 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 .tbtn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .tbtn[aria-pressed="true"]{background:var(--amber);color:#1A1205;border-color:var(--amber);font-weight:500}
 .tbtn:disabled{opacity:.35;cursor:default}
-.seg{display:inline-flex;border:1px solid #2A3D45;border-radius:2px;overflow:hidden}
-.seg .tbtn{border:none;border-radius:0}
-.seg .tbtn+.tbtn{border-left:1px solid #2A3D45}
 
 /* Three by three, the shape News+ uses, and not an arbitrary one: the notes
    inside a square are laid out on the same 3x3 with the same digit order, so
@@ -997,8 +993,10 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
   .tools{
     order:3;flex:1 1 100%;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;
   }
-  .tools .tbtn{padding:9px 12px;font-size:12px}
-  .tools .seg,.tools .wide{grid-column:auto}
+  /* Three to a row, all one width. Content-sized buttons in a wrapped bar are
+     conventional enough, but the whole point of the grid above is that these
+     six are interchangeable in weight, and six different widths says otherwise. */
+  .tools .tbtn{padding:9px 4px;font-size:12px;flex:1 1 calc((100% - 12px) / 3);min-width:0}
 }
 
 @media (max-width:400px){

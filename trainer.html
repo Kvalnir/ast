@@ -75,12 +75,14 @@
     <div class="tools">
       <button class="tbtn" id="bUndo" title="Undo (also restores notes an entry removed)">Undo</button>
       <button class="tbtn" id="bErase" aria-pressed="false" title="Erase — the left pad takes notes away, the right pad takes back a digit you wrote and gives the square its notes again. Press again to go back to marking.">Erase</button>
-      <!-- What the marking pad does when Erase is off. The caption above the
-           pad itself always says which of the three is live. -->
-      <span class="seg">
-        <button class="tbtn" id="bHi" aria-pressed="false" title="Highlight — mark a note without changing what it means">Highlight</button>
-        <button class="tbtn" id="bOff" aria-pressed="true" title="Cross off — a real elimination, drawn rather than deleted, and put back by crossing again">Cross off</button>
-      </span>
+      <!-- What the marking pad does when Erase is off. Six plain buttons on one
+           grid rather than a joined pair among singles: the pair used to be
+           wrapped in a segmented control, which made those two wider than the
+           four beside them and their fill run edge to edge, so the same amber
+           looked like two different sizes depending on which button wore it.
+           aria-pressed already says which is live, on all three of these. -->
+      <button class="tbtn" id="bHi" aria-pressed="false" title="Highlight — mark a note without changing what it means">Highlight</button>
+      <button class="tbtn" id="bOff" aria-pressed="true" title="Cross off — a real elimination, drawn rather than deleted, and put back by crossing again">Cross off</button>
       <button class="tbtn" id="bAutofill" title="Fill every empty square with its possible numbers">Autofill</button>
       <button class="tbtn" id="bAutoclear" aria-pressed="true" title="After every entry, fill any square whose notes have come down to one">Autoclear</button>
     </div>
