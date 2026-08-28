@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v30';  // v30: six tool buttons that are actually the same button
+const VERSION = 'v31';  // v31: multi clears on the way out, and its label sits straight
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between

@@ -484,10 +484,20 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    tools, where it was the one control that was not half of a pair and made the
    column look crowded for it. Sized to the caption it sits beside: this is a
    switch you set once and forget, not one of the things you are pressing. */
-/* A flex box with a fixed height rather than padding around a line: at 8.5px
-   with line-height 1 the uppercase glyphs sit high in their own box, and the
-   pill reads as sitting above the caption beside it even when the box itself
-   is centred. Centring the glyphs inside the pill is what actually fixes it.
+/* Centring a line box is not the same as centring the letters in it, and at
+   this size the difference shows. The line box reserves descender depth that
+   an all-caps word never uses, so align-items:center leaves the glyphs high:
+   measured off a 4x screenshot, the ink sat 1.88px above the middle of a 16px
+   pill. The padding-top puts it back.
+
+   The value is measured, not derived — the shift per pixel of padding is not
+   the half you would expect, and .44em overshot to 1.12px low. Anything from
+   about .16em to .27em lands within an eighth of a pixel, because the result
+   snaps to device pixels; .22em sits in the middle of that band.
+
+   To re-measure: screenshot at dpr 4, find the amber blob, and compare the
+   vertical middle of the dark pixels against the middle of the blob.
+
    The trailing letter-spacing is padded out on the right so the word looks
    centred rather than nudged left by the space after its last letter. */
 .minitog{
@@ -495,7 +505,7 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   background:transparent;color:var(--mist);border:1px solid #2A3D45;
   border-radius:9px;cursor:pointer;line-height:1;
   display:inline-flex;align-items:center;justify-content:center;
-  height:16px;padding:0 6px 0 7px;
+  height:16px;padding:.22em 6px 0 7px;
 }
 .minitog:hover{border-color:var(--amber-ink);color:var(--text)}
 .minitog[aria-pressed="true"]{

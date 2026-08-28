@@ -1372,9 +1372,15 @@
      making you re-pick one every time you finish rubbing something out. */
   $('bErase').addEventListener('click', () =>
     setPencil(S.pencil === 'erase' ? S.wasPencil : 'erase'));
-  /* Turning it off keeps the squares you have. Clearing them here would throw
-     away the selection you turned it on to build. */
-  $('bMulti').addEventListener('click', () => { S.multi = !S.multi; render(); });
+  /* Turning it off drops the selection. The squares you gathered were gathered
+     for a reason, and the next tap in single mode would replace the lot of them
+     anyway — leaving them selected only makes the first tap after the switch
+     behave differently from every tap after that. */
+  $('bMulti').addEventListener('click', () => {
+    S.multi = !S.multi;
+    if (!S.multi) { S.sel = []; computeReport(); }
+    render();
+  });
   $('bErase').addEventListener('click', erase);
   $('bAutofill').addEventListener('click', autofill);
   $('bMore').addEventListener('click', more);
@@ -1458,7 +1464,11 @@
       return;
     }
     if (e.key === 'm' || e.key === 'M') {
-      if (!S.capture) { S.multi = !S.multi; render(); }
+      if (!S.capture) {
+        S.multi = !S.multi;
+        if (!S.multi) { S.sel = []; computeReport(); }
+        render();
+      }
       return;
     }
     if (e.key === 'h' || e.key === 'H') { more(); return; }
