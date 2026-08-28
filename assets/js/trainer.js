@@ -14,7 +14,12 @@
   /* ---------------- state ---------------- */
   const S = {
     puzzle: null, given: [], grid: [], sol: [],
-    notes: [], wrong: [], sel: null, mode: 'pen', focus: null,
+    /* Three layers over one square. `notes` is what is drawn, `off` is the
+       subset of it you have crossed out and `hi` the subset you have marked.
+       Crossing off is a real elimination — the coach reads notes minus off —
+       but it is drawn rather than deleted, so it can be taken back by crossing
+       it again instead of by unwinding history. See live(). */
+    notes: [], off: [], hi: [], wrong: [], sel: [], pencil: 'off', focus: null,
     history: [], findings: [], pick: null, level: 0,
     autocheck: true, autoRemove: true, peers: true, coach: 'full', autoclear: true,
     tier: 'challenging',
@@ -98,31 +103,47 @@
   }
   boardEl.addEventListener('click', e => {
     const sq = e.target.closest('.sq'); if (!sq) return;
-    const i = +sq.dataset.i;
-    /* Inspect mode takes the board's tap over rather than sharing it. There is
-       no caret while you are reading — a tap adds a square to the question, not
-       a destination for the next digit. */
-    if (S.inspect) { inspToggle(i); return; }
-    select(i);
+    select(+sq.dataset.i);
   });
 
-  const padEl = $('pad');
+  const padPen = $('padPen'), padMark = $('padMark');
   for (let d = 1; d <= 9; d++) {
-    const b = document.createElement('button');
-    b.className = 'key'; b.type = 'button';
-    b.innerHTML = d + '<span class="left" data-left="' + d + '"></span>';
-    b.addEventListener('click', () => press(d));
-    padEl.appendChild(b);
+    const pen = document.createElement('button');
+    pen.className = 'key'; pen.type = 'button';
+    pen.innerHTML = d + '<span class="left" data-left="' + d + '"></span>';
+    pen.addEventListener('click', () => press(d));
+    padPen.appendChild(pen);
+
+    const mk = document.createElement('button');
+    mk.className = 'key'; mk.type = 'button';
+    mk.textContent = d;
+    mk.addEventListener('click', () => mark(d));
+    padMark.appendChild(mk);
   }
 
-  /* The one rule the whole pad runs on: with a square selected a digit goes
-     into it, with nothing selected it lights that digit across the board. Two
-     jobs, one pad, and the selection is what says which — so deselecting a
-     square is also how you reach the focus. */
+  /* With a square selected a digit goes into it; with nothing selected it
+     lights that digit across the board. Only the pen pad does the second job —
+     the marking pad has nothing to say about a board with no selection. */
   function press(d) {
-    if (S.sel === null) { S.focus = S.focus === d ? null : d; render(); }
+    if (!S.sel.length) { S.focus = S.focus === d ? null : d; render(); }
     else enter(d);
   }
+
+  /* What the coach sees. A crossed-off note is still on the board — that is the
+     whole point of crossing rather than deleting — but it is not a candidate,
+     so every reader of the position goes through here. */
+  function live(i) {
+    const c = new Set(S.notes[i]);
+    S.off[i].forEach(d => c.delete(d));
+    return c;
+  }
+  function liveAll() {
+    const out = [];
+    for (let i = 0; i < 81; i++) out.push(S.grid[i] ? new Set() : live(i));
+    return out;
+  }
+  const lastSel = () => (S.sel.length ? S.sel[S.sel.length - 1] : null);
+  const blank = () => { const a = []; for (let i = 0; i < 81; i++) a.push(new Set()); return a; };
 
   /* ---------------- history ---------------- */
   function snapshot() {
@@ -131,7 +152,9 @@
       /* `given` never moves during play, but it is what capture mode is
          editing, so undo has to carry it. */
       given: S.given.slice(),
-      notes: S.notes.map(s => [...s])
+      notes: S.notes.map(s => [...s]),
+      off: S.off.map(s => [...s]),
+      hi: S.hi.map(s => [...s])
     });
     if (S.history.length > 200) S.history.shift();
   }
@@ -139,6 +162,8 @@
     const h = S.history.pop(); if (!h) return;
     S.grid = h.grid; S.wrong = h.wrong; S.given = h.given;
     S.notes = h.notes.map(a => new Set(a));
+    S.off = h.off.map(a => new Set(a));
+    S.hi = h.hi.map(a => new Set(a));
     S.solved = false; S.noteCheck = null;
     if (S.capture) { captureRefresh(); return; }
     recompute();
@@ -148,66 +173,123 @@
   /* Clicking the selected square again drops the selection. The focus goes with
      it only when this square is what lit it — a focus you set deliberately on
      the focus pad outlives the square you happened to be sitting on. */
+  /* A tap adds a square to the selection and a second tap takes it out. No
+     modifier key, because half the point of the marking pads is doing four
+     squares at once and there is no shift key on a phone. Ordinary one-square
+     play still costs one tap, because writing a digit clears the selection. */
   function select(i) {
-    if (S.sel === i) {
+    const k = S.sel.indexOf(i);
+    if (k >= 0) {
       if (S.focus && S.focus === S.grid[i]) S.focus = null;
-      S.sel = null;
+      S.sel.splice(k, 1);
     } else {
-      S.sel = i;
+      S.sel.push(i);
       if (S.grid[i]) S.focus = S.grid[i];
     }
+    computeReport();
+    render();
+  }
+
+  function moveTo(i) {
+    S.sel = [i];
+    if (S.grid[i]) S.focus = S.grid[i];
+    computeReport();
     render();
   }
 
   function deselect() {
-    if (S.sel === null) return;
-    if (S.focus && S.focus === S.grid[S.sel]) S.focus = null;
-    S.sel = null;
+    if (!S.sel.length) return;
+    const l = lastSel();
+    if (S.focus && S.focus === S.grid[l]) S.focus = null;
+    S.sel = [];
+    computeReport();
     render();
   }
 
+  /* The pen writes into one square. It refuses a multiple selection rather
+     than obliging it: the same digit in two selected squares is never a legal
+     position, so obeying would only ever produce a board to undo. */
   function enter(d) {
     if (S.capture) { captureEnter(d); return; }
-    if (S.sel === null || S.given[S.sel] || S.solved) return;
-    const i = S.sel;
-    snapshot();
-    if (S.mode === 'notes') {
-      if (S.grid[i]) { S.history.pop(); return; }
-      if (S.notes[i].has(d)) S.notes[i].delete(d); else S.notes[i].add(d);
-    } else {
-      if (S.grid[i] === d) { S.grid[i] = 0; S.wrong[i] = false; }
-      else {
-        S.grid[i] = d;
-        S.notes[i] = new Set();
-        S.wrong[i] = S.autocheck && S.sol[i] !== d;
-        /* News clears notes on entry, before judging whether the entry was right. */
-        if (S.autoRemove) C.PEERS[i].forEach(p => S.notes[p].delete(d));
-        /* The square is done, so the selection lets go of it. That also hands
-           the pad back to focus mode on the digit just placed, which is the
-           thing you want to look at next. Only on a placement: clearing a
-           square above leaves you on it to type the replacement. */
-        S.sel = null;
-        /* Inside the same snapshot as the entry that caused it: one thing you
-           did, one press of Undo to take it back. */
-        if (S.autoclear) autoclear();
-      }
-      S.focus = S.grid[i] || null;
+    if (S.solved) return;
+    if (S.sel.length !== 1) {
+      flash(S.sel.length
+        ? 'The pen writes one square at a time — ' + S.sel.length + ' are selected. The left pad is the one that takes several.'
+        : 'Tap a square to write into.', 'warn');
+      return;
     }
+    const i = S.sel[0];
+    if (S.given[i]) return;
+    snapshot();
+    if (S.grid[i] === d) { S.grid[i] = 0; S.wrong[i] = false; }
+    else {
+      S.grid[i] = d;
+      S.notes[i] = new Set(); S.off[i] = new Set(); S.hi[i] = new Set();
+      S.wrong[i] = S.autocheck && S.sol[i] !== d;
+      /* News clears notes on entry, before judging whether the entry was right.
+         Deleted rather than crossed off: this is the board keeping itself, not
+         a deduction of yours, and a board wearing three dozen automatic
+         cross-offs would bury the handful you made yourself. */
+      if (S.autoRemove) C.PEERS[i].forEach(p => {
+        S.notes[p].delete(d); S.off[p].delete(d); S.hi[p].delete(d);
+      });
+      /* The square is done, so the selection lets go of it — which is also what
+         keeps ordinary play at one tap per square. */
+      S.sel = [];
+      /* Inside the same snapshot as the entry that caused it: one thing you
+         did, one press of Undo to take it back. */
+      if (S.autoclear) autoclear();
+    }
+    S.focus = S.grid[i] || null;
     S.noteCheck = null;
     recompute();
   }
 
+  /* The left pad. Highlight or cross off digit d in every selected square that
+     actually has it as a note.
+
+     One press decides its direction from the whole selection: if every square
+     in it already carries the mark the press takes the mark off, otherwise it
+     puts it on. That is what makes a second press on a highlighted note clear
+     it, and it stops a mixed selection flickering half on and half off. */
+  function mark(d) {
+    if (S.capture || S.solved) return;
+    const set = S.pencil === 'hi' ? S.hi : S.off;
+    const cells = S.sel.filter(i => !S.grid[i] && S.notes[i].has(d));
+    if (!cells.length) {
+      flash(S.sel.length
+        ? 'No selected square has a ' + d + ' to mark.'
+        : 'Tap the squares you want to mark first.', 'warn');
+      return;
+    }
+    snapshot();
+    const allOn = cells.every(i => set[i].has(d));
+    cells.forEach(i => { if (allOn) set[i].delete(d); else set[i].add(d); });
+    /* Crossing off changes the position, so anything it forces should fall out
+       the same way it would after an entry. Highlighting changes nothing. */
+    if (S.pencil === 'off' && !allOn && S.autoclear) autoclear();
+    S.noteCheck = null;
+    recompute();
+  }
+
+  /* Erase takes the whole selection, marks included: with several squares in
+     hand the thing you usually want undone is the marking you just did to all
+     of them. */
   function erase() {
-    if (S.sel === null || S.solved) return;
+    if (!S.sel.length || S.solved) return;
     if (S.capture) {
       snapshot();
-      S.grid[S.sel] = 0; S.given[S.sel] = false;
+      S.sel.forEach(i => { S.grid[i] = 0; S.given[i] = false; });
       captureRefresh();
       return;
     }
-    if (S.given[S.sel]) return;
+    const cells = S.sel.filter(i => !S.given[i]);
+    if (!cells.length) return;
     snapshot();
-    S.grid[S.sel] = 0; S.wrong[S.sel] = false; S.notes[S.sel] = new Set();
+    cells.forEach(i => {
+      S.grid[i] = 0; S.wrong[i] = false;
+      S.off[i] = new Set(); S.hi[i] = new Set();
+    });
     S.noteCheck = null;
     recompute();
   }
@@ -232,35 +314,39 @@
     for (let pass = 0; pass < 81; pass++) {
       let moved = false;
       for (let i = 0; i < 81; i++) {
-        if (S.grid[i] || S.notes[i].size !== 1) continue;
-        const d = [...S.notes[i]][0];
+        if (S.grid[i]) continue;
+        const c = live(i);
+        if (c.size !== 1) continue;
+        const d = [...c][0];
         S.grid[i] = d;
-        S.notes[i] = new Set();
+        S.notes[i] = new Set(); S.off[i] = new Set(); S.hi[i] = new Set();
         S.wrong[i] = S.autocheck && S.sol[i] !== d;
-        C.PEERS[i].forEach(x => S.notes[x].delete(d));
+        C.PEERS[i].forEach(x => {
+          S.notes[x].delete(d); S.off[x].delete(d); S.hi[x].delete(d);
+        });
         moved = true; placed++;
       }
       if (!moved) break;
     }
     return placed;
   }
-  const anyForced = () => S.grid.some((v, i) => !v && S.notes[i].size === 1);
+  const anyForced = () => S.grid.some((v, i) => !v && live(i).size === 1);
 
   function autofill() {
     if (S.capture) return;
     snapshot();
     const base = C.baseCandidates(S.grid);
     for (let i = 0; i < 81; i++) S.notes[i] = S.grid[i] ? new Set() : base[i];
+    S.off = blank(); S.hi = blank();
     S.noteCheck = null;
     recompute();
-    flash('Notes filled from the digits on the board. Anything you eliminated by logic is gone — that is what a second Autofill costs you in News+ too.');
+    flash('Notes filled from the digits on the board. Every cross-off and highlight goes with it — that is what a second Autofill costs you in News+ too.');
   }
 
   /* ---------------- coach ---------------- */
   function recompute() {
     if (S.capture) { captureRefresh(); return; }
-    const anyNotes = S.notes.some(s => s.size);
-    const res = T.findAll(S.grid, anyNotes ? S.notes : null);
+    const res = T.findAll(S.grid, S.notes.some(s => s.size) ? liveAll() : null);
     S.findings = res.findings;
     S.cand = res.candidates;
     if (S.pick) {
@@ -338,14 +424,21 @@
     snapshot();
     if (f.placement) {
       const { cell, digit } = f.placement;
-      S.grid[cell] = digit; S.notes[cell] = new Set(); S.wrong[cell] = false;
-      if (S.autoRemove) C.PEERS[cell].forEach(p => S.notes[p].delete(digit));
+      S.grid[cell] = digit;
+      S.notes[cell] = new Set(); S.off[cell] = new Set(); S.hi[cell] = new Set();
+      S.wrong[cell] = false;
+      if (S.autoRemove) C.PEERS[cell].forEach(p => {
+        S.notes[p].delete(digit); S.off[p].delete(digit); S.hi[p].delete(digit);
+      });
     } else {
       if (!S.notes.some(s => s.size)) {
         const base = C.baseCandidates(S.grid);
         for (let i = 0; i < 81; i++) S.notes[i] = S.grid[i] ? new Set() : base[i];
       }
-      f.elims.forEach(e => S.notes[e.cell].delete(e.digit));
+      /* Crossed off, not deleted — the same mark you would have made yourself,
+         so Apply it leaves a board you can read back rather than one that has
+         quietly lost candidates. */
+      f.elims.forEach(e => { S.notes[e.cell].add(e.digit); S.off[e.cell].add(e.digit); });
     }
     if (S.autoclear) autoclear();
     S.pick = null; S.level = 0; S.noteCheck = null;
@@ -357,13 +450,14 @@
     const missing = [];
     for (let i = 0; i < 81; i++) {
       if (S.grid[i] || !S.notes[i].size) continue;
-      if (!S.notes[i].has(S.sol[i])) missing.push(i);
+      if (!live(i).has(S.sol[i])) missing.push(i);
     }
     S.noteCheck = missing;
     render();
     if (!missing.length) flash('Every note still contains its true digit. Nothing you eliminated was wrong.', 'good');
     else flash(missing.length + ' square' + (missing.length > 1 ? 's have' : ' has') +
-      ' lost its true digit — marked in red. This is the one error News+ cannot catch for you.', 'warn');
+      ' lost ' + (missing.length > 1 ? 'their' : 'its') + ' true digit — marked in red. ' +
+      'Cross the digit again to put it back; this is the one error News+ cannot catch for you.', 'warn');
   }
 
   function flash(msg, kind) {
@@ -384,31 +478,24 @@
      selected, so a second meaning for a tap has to displace the first. It is
      also the anti-thesis of a trainer — point, and be told — which is fine as
      something you switch on and corrosive as something the board just does. */
+  /* No selection of its own any more. The board took multi-select for the
+     marking pads, and two independent multi-selects on one grid — one to write
+     to, one to ask about — would be two identical-looking rings meaning
+     different things. So this reads whatever is selected, and the only thing
+     the mode changes is whether the panel answers. */
   function setInspect(on) {
     if (S.capture) return;
     S.inspect = on;
-    S.insp = [];
-    S.report = null;
-    /* The caret goes with it: nothing is selected-to-type-into while reading,
-       and a caret left behind would let the pad write into a square you are
-       pointing at for an entirely different reason. */
-    S.sel = null;
-    flash('');
-    render();
-  }
-
-  function inspToggle(i) {
-    const k = S.insp.indexOf(i);
-    if (k >= 0) S.insp.splice(k, 1); else S.insp.push(i);
     computeReport();
+    flash('');
     render();
   }
 
   /* Recomputed on every position change as well as every tap, so a report does
      not go on describing a board you have since played a move into. */
   function computeReport() {
-    S.report = S.inspect && S.insp.length
-      ? T.verify(S.grid, S.notes.some(s => s.size) ? S.notes : null, S.insp, S.findings)
+    S.report = S.inspect && S.sel.length
+      ? T.verify(S.grid, S.notes.some(s => s.size) ? liveAll() : null, S.sel, S.findings)
       : null;
   }
 
@@ -433,7 +520,7 @@
     if (anyNotes) {
       const missing = [];
       for (let i = 0; i < 81; i++) {
-        if (!S.grid[i] && S.notes[i].size && !S.notes[i].has(S.sol[i])) missing.push(i);
+        if (!S.grid[i] && S.notes[i].size && !live(i).has(S.sol[i])) missing.push(i);
       }
       if (missing.length) {
         S.noteCheck = missing;
@@ -447,7 +534,7 @@
        has moved yet at this point — and a press that turns out to have nothing
        to play must not cost an undo step, or pressing it twice silently eats
        the position the first press earned you. */
-    const w = I.walk(S.grid, anyNotes ? S.notes : null, I.ADV_RANK);
+    const w = I.walk(S.grid, anyNotes ? liveAll() : null, I.ADV_RANK);
     if (!w.played.length) {
       flash(w.stopped
         ? 'Nothing basic left to clear \u2014 the cheapest move on the board is already ' +
@@ -456,11 +543,20 @@
       return;
     }
     snapshot();
+    /* The walker hands back a plain candidate grid, so its eliminations are
+       folded in as cross-offs rather than swapped in wholesale — the marks you
+       made by hand survive, and everything it worked out is readable as the
+       same kind of mark. Done before S.grid moves, since a square it filled has
+       no notes left to compare. */
+    for (let i = 0; i < 81; i++) {
+      if (w.grid[i]) { S.notes[i] = new Set(); S.off[i] = new Set(); S.hi[i] = new Set(); continue; }
+      if (!S.notes[i].size) S.notes[i] = new Set(w.notes[i]);
+      S.notes[i].forEach(d => { if (!w.notes[i].has(d)) S.off[i].add(d); });
+    }
     S.grid = w.grid;
-    S.notes = w.notes;
     S.wrong = new Array(81).fill(false);
-    S.sel = null; S.pick = null; S.level = 0; S.noteCheck = null;
-    S.insp = []; S.report = null;
+    S.sel = []; S.pick = null; S.level = 0; S.noteCheck = null;
+    S.report = null;
     recompute();
     const played = w.played.map(x => x[1] + ' \u00d7 ' + NAMES[x[0]]).join(', ');
     const filled = ' ' + w.filled + ' of 81 squares filled.';
@@ -531,9 +627,10 @@
     S.grid = d.grid.slice();
     S.sol = d.sol.slice();
     S.notes = d.notes.map(s => new Set(s));
+    S.off = blank(); S.hi = blank();
     S.wrong = new Array(81).fill(false);
-    S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
-    S.solved = false; S.noteCheck = null; S.mark = []; S.insp = []; S.report = null;
+    S.history = []; S.sel = []; S.focus = null; S.pick = null; S.level = 0;
+    S.solved = false; S.noteCheck = null; S.mark = []; S.report = null;
     recompute();
     const also = (d.others || []).filter(x => x !== id);
     flash('No singles left on this board. ' + article(NAMES[id]).replace(/^./, c => c.toUpperCase()) +
@@ -556,9 +653,10 @@
        first thing you do on every puzzle is press the same key. */
     const base = C.baseCandidates(g);
     S.notes = []; for (let i = 0; i < 81; i++) S.notes.push(g[i] ? new Set() : base[i]);
+    S.off = blank(); S.hi = blank();
     S.wrong = new Array(81).fill(false);
-    S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
-    S.solved = false; S.noteCheck = null; S.mark = []; S.insp = []; S.report = null;
+    S.history = []; S.sel = []; S.focus = null; S.pick = null; S.level = 0;
+    S.solved = false; S.noteCheck = null; S.mark = []; S.report = null;
     recompute();
     flash('');
   }
@@ -596,8 +694,10 @@
     S.mark.forEach(i => tgtSet.add(i));
 
     const peerSet = new Set();
-    if (S.peers && S.sel !== null) C.PEERS[S.sel].forEach(i => peerSet.add(i));
-    const inspSet = new Set(S.inspect ? S.insp : []);
+    /* Only for a single square. Peers of four squares is most of the board. */
+    if (S.peers && S.sel.length === 1) C.PEERS[S.sel[0]].forEach(i => peerSet.add(i));
+    const selSet = new Set(S.sel);
+    const last = lastSel();
     const noteBad = new Set(S.noteCheck || []);
 
     boardEl.classList.toggle('solo', !!(S.focus && f && lvl >= 3 && f.soloDigit === S.focus));
@@ -615,8 +715,8 @@
         (f && showCells && f.pivot === i ? ' pivot' : '') +
         (S.wrong[i] ? ' bad' : '') +
         (S.focus && v === S.focus ? ' hit' : '') +
-        (inspSet.has(i) ? ' insp' : '') +
-        (S.sel === i ? ' sel' : '');
+        (selSet.has(i) ? ' sel' : '') +
+        (last === i ? ' last' : '');
 
       c.val.textContent = v || '';
       c.val.style.display = v ? '' : 'none';
@@ -625,8 +725,11 @@
         const d = k + 1;
         const on = showNotes && S.notes[i].has(d);
         const flagged = showNotes && noteBad.has(i) && d === S.sol[i];
+        const crossed = on && S.off[i].has(d);
         sp.className = 'nt' + (on || flagged ? ' on' : '') +
-          (on && S.focus === d ? ' lit solo' : '') +
+          (crossed ? ' xoff' : '') +
+          (on && !crossed && S.hi[i].has(d) ? ' hi' : '') +
+          (on && !crossed && S.focus === d ? ' lit solo' : '') +
           (on && showCells && patSet.has(i) && f.digits.includes(d) ? ' patd' : '') +
           (on && elimMap.has(i) && elimMap.get(i).has(d) ? ' dead' : '') +
           (flagged ? ' miss' : '');
@@ -690,19 +793,28 @@
        survives selecting a square — the board keeps it lit — but the pad shows
        what the next tap will do, and while a square is selected the next tap is
        an entry, not a focus. */
-    const focusing = S.sel === null;
-    const notesMode = S.mode === 'notes';
-    const selNotes = (notesMode && !focusing && !S.grid[S.sel]) ? S.notes[S.sel] : null;
-    padEl.classList.toggle('notesmode', notesMode && !focusing);
-    padEl.classList.toggle('focusmode', focusing);
-    [...padEl.children].forEach((b, k) => {
+    const focusing = !S.sel.length;
+    padPen.classList.toggle('focusmode', focusing);
+    [...padPen.children].forEach((b, k) => {
       const d = k + 1;
       const placed = S.grid.filter(v => v === d).length;
       b.classList.toggle('done', placed >= 9);
-      b.classList.toggle('noted', !!(selNotes && selNotes.has(d)));
       b.classList.toggle('focused', focusing && S.focus === d);
       b.querySelector('.left').textContent = placed >= 9 ? '' : (9 - placed);
     });
+    /* The marking pad reads back the selection: a key is lit when every
+       selected square that has that note already carries the mark, which is
+       also exactly when pressing it would take the mark off. Dimmed when no
+       selected square has the note at all, because the press would do nothing. */
+    const markSet = S.pencil === 'hi' ? S.hi : S.off;
+    padMark.classList.toggle('himode', S.pencil === 'hi');
+    [...padMark.children].forEach((b, k) => {
+      const d = k + 1;
+      const cells = S.sel.filter(i => !S.grid[i] && S.notes[i].has(d));
+      b.classList.toggle('noted', cells.length > 0 && cells.every(i => markSet[i].has(d)));
+      b.classList.toggle('done', !cells.length);
+    });
+    $('capMark').textContent = S.pencil === 'hi' ? 'Highlight' : 'Cross off';
     /* Kept short enough to hold one line down to the 320px board floor. The
        height of this line is part of the constant .tplay sizes the board
        against, so a second line here silently costs the board 17px. */
@@ -710,20 +822,24 @@
       ? (focusing ? 'Importing — tap a square, or a number to light it'
                   : 'Tap the number printed in this square')
       : focusing
-        ? 'Nothing selected — tap to light a digit'
-        : (notesMode ? 'Tap a number to add or remove a note'
-                     : 'Tap a number to place it');
+        ? 'Nothing selected — tap squares to pick them, or a number on the right to light it'
+        : S.sel.length === 1
+          ? 'Left pad ' + (S.pencil === 'hi' ? 'highlights' : 'crosses off') + ' a note, right pad writes the digit'
+          : S.sel.length + ' squares — the left pad marks all of them at once';
 
     $('bAutoclear').setAttribute('aria-pressed', S.autoclear);
-    $('bPen').setAttribute('aria-pressed', S.mode === 'pen');
-    $('bNotes').setAttribute('aria-pressed', S.mode === 'notes');
+    $('bHi').setAttribute('aria-pressed', S.pencil === 'hi');
+    $('bOff').setAttribute('aria-pressed', S.pencil === 'off');
     $('bUndo').disabled = !S.history.length;
+    $('bErase').disabled = !S.sel.length;
     $('bApply').disabled = !S.pick;
     /* Capture mode borrows the board, so everything that acts on a position
        rather than builds one steps out of the way for the duration. Undo,
-       Erase and the pad stay: those are the transcription controls. */
-    ['bAutofill', 'bAutoclear', 'bNotes', 'bMore', 'bCheckNotes', 'bNew', 'bRestart',
+       Erase and the pen pad stay: those are the transcription controls. The
+       marking pad goes with the rest — there are no notes to mark yet. */
+    ['bAutofill', 'bAutoclear', 'bHi', 'bOff', 'bMore', 'bCheckNotes', 'bNew', 'bRestart',
      'bCatchUp', 'bCopyLink', 'bClearBase'].forEach(id => { $(id).disabled = S.capture; });
+    [...padMark.children].forEach(b => { b.disabled = S.capture; });
     [...$('drills').querySelectorAll('.chip')].forEach(b => { b.disabled = S.capture; });
 
     /* meta */
@@ -751,11 +867,11 @@
     btn.setAttribute('aria-pressed', S.inspect);
     btn.textContent = S.inspect ? 'Stop inspecting' : 'Inspect the board';
     btn.disabled = S.capture;
-    $('bInspClear').disabled = !S.insp.length;
+    $('bInspClear').disabled = !S.sel.length;
     $('nNote').hidden = S.inspect;
     count.hidden = !S.inspect;
-    count.textContent = S.insp.length
-      ? S.insp.length + ' square' + (S.insp.length === 1 ? '' : 's') + ' picked'
+    count.textContent = S.sel.length
+      ? S.sel.length + ' square' + (S.sel.length === 1 ? '' : 's') + ' selected'
       : 'tap the squares you are reading';
 
     if (!S.report) {
@@ -913,6 +1029,10 @@
 
   /* Four states, one at a time: offering, transcribing, pasting, imported. */
   function importPanel(state) {
+    /* Anything past 'start' means the panel is being used, so it opens itself —
+       a collapsed panel silently swallowing the board into capture mode would
+       look like the board had broken. */
+    if (state !== 'start') $('importer').open = true;
     $('iStart').hidden = state !== 'start';
     $('iCapRow').hidden = state !== 'capture';
     $('iPasteBox').hidden = state !== 'paste';
@@ -936,12 +1056,12 @@
     S.grid = seed ? C.parse(seed) : new Array(81).fill(0);
     S.given = S.grid.map(v => v > 0);
     S.sol = new Array(81).fill(0);
-    S.notes = []; for (let i = 0; i < 81; i++) S.notes.push(new Set());
-    S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
-    S.solved = false; S.noteCheck = null; S.mark = []; S.mode = 'pen';
+    S.notes = blank(); S.off = blank(); S.hi = blank();
+    S.history = []; S.sel = []; S.focus = null; S.pick = null; S.level = 0;
+    S.solved = false; S.noteCheck = null; S.mark = [];
     /* Capture wants the board as a typing surface and the inspector wants it as
        a question. Only one of them can have it. */
-    S.inspect = false; S.insp = []; S.report = null;
+    S.inspect = false; S.report = null;
     $('boardwrap').classList.add('capturing');
     importPanel('capture');
     captureRefresh();
@@ -951,8 +1071,8 @@
   /* Same digit twice clears the square, which is the fastest correction for the
      commonest slip — you tapped 6 where the puzzle prints 8. */
   function captureEnter(d) {
-    if (S.sel === null) return;
-    const i = S.sel;
+    if (S.sel.length !== 1) return;
+    const i = S.sel[0];
     snapshot();
     if (S.grid[i] === d) { S.grid[i] = 0; S.given[i] = false; }
     else { S.grid[i] = d; S.given[i] = true; }
@@ -1071,9 +1191,10 @@
     const w = I.walk(given, null, I.ADV_RANK);
     S.grid = w.grid;
     S.notes = w.notes;
+    S.off = blank(); S.hi = blank();
     S.given = given.map(v => v > 0);
     S.wrong = new Array(81).fill(false);
-    S.history = []; S.sel = null; S.focus = null; S.pick = null; S.level = 0;
+    S.history = []; S.sel = []; S.focus = null; S.pick = null; S.level = 0;
     S.solved = false; S.noteCheck = null; S.mark = [];
     recompute();
     const played = w.played.map(x => x[1] + ' × ' + NAMES[x[0]]).join(', ') || 'nothing';
@@ -1147,8 +1268,8 @@
 
   /* ---------------- wiring ---------------- */
   $('bUndo').addEventListener('click', undo);
-  $('bPen').addEventListener('click', () => { S.mode = 'pen'; render(); });
-  $('bNotes').addEventListener('click', () => { S.mode = 'notes'; render(); });
+  $('bHi').addEventListener('click', () => { S.pencil = 'hi'; render(); });
+  $('bOff').addEventListener('click', () => { S.pencil = 'off'; render(); });
   $('bErase').addEventListener('click', erase);
   $('bAutofill').addEventListener('click', autofill);
   $('bMore').addEventListener('click', more);
@@ -1167,9 +1288,7 @@
   $('bCheckNotes').addEventListener('click', checkNotes);
   $('bClearBase').addEventListener('click', clearBasics);
   $('bInspect').addEventListener('click', () => setInspect(!S.inspect));
-  $('bInspClear').addEventListener('click', () => {
-    S.insp = []; S.report = null; render();
-  });
+  $('bInspClear').addEventListener('click', deselect);
   $('sAutocheck').addEventListener('change', e => { S.autocheck = e.target.checked; });
   $('sAutoRemove').addEventListener('change', e => { S.autoRemove = e.target.checked; });
   $('sHighlightPeers').addEventListener('change', e => { S.peers = e.target.checked; render(); });
@@ -1213,12 +1332,19 @@
       if (e.key === 'z') { e.preventDefault(); undo(); }
       return;
     }
-    if (e.key >= '1' && e.key <= '9') { press(+e.key); e.preventDefault(); return; }
+    /* e.code, not e.key: shift+5 arrives as '%'. Shift is the marking pad, so
+       the two hands on screen are the two hands on the keyboard. */
+    const dig = /^Digit([1-9])$/.exec(e.code || '');
+    if (dig) {
+      if (e.shiftKey) mark(+dig[1]); else press(+dig[1]);
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'Backspace' || e.key === 'Delete') { erase(); e.preventDefault(); return; }
     /* Notes mean nothing while transcribing — capture writes givens whatever
        the mode says — and the pad would dress itself as a note toggle and lie. */
     if (e.key === 'n' || e.key === 'N') {
-      if (!S.capture) { S.mode = S.mode === 'pen' ? 'notes' : 'pen'; render(); }
+      if (!S.capture) { S.pencil = S.pencil === 'hi' ? 'off' : 'hi'; render(); }
       return;
     }
     if (e.key === 'h' || e.key === 'H') { more(); return; }
@@ -1226,20 +1352,21 @@
     /* Escape backs out one layer at a time: the squares you picked first, then
        the mode. Leaving both at once loses a selection you may have spent a
        minute assembling. */
+    /* Escape backs out one layer at a time: the squares you picked first, then
+       the reading mode. Leaving both at once loses a selection you may have
+       spent a minute assembling. */
     if (e.key === 'Escape') {
-      if (S.inspect) {
-        if (S.insp.length) { S.insp = []; S.report = null; render(); }
-        else setInspect(false);
-        return;
-      }
-      deselect();
+      if (S.sel.length) deselect();
+      else if (S.inspect) setInspect(false);
       return;
     }
-    if (S.sel === null) return;
+    if (!S.sel.length) return;
     const moves = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 };
     if (moves[e.key] !== undefined) {
-      const n = S.sel + moves[e.key];
-      if (n >= 0 && n < 81) select(n);
+      /* An arrow moves the selection rather than adding to it — otherwise
+         crossing the board would select every square on the way. */
+      const n = lastSel() + moves[e.key];
+      if (n >= 0 && n < 81) moveTo(n);
       e.preventDefault();
     }
   });

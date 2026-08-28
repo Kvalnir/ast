@@ -61,17 +61,28 @@
        selected, so the hint under it is not decoration — it is the only thing
        telling you which of the two the next tap will be. -->
   <div class="padrow">
+    <!-- Two keypads, one job each, and the tools between them. One pad that
+         changed meaning with a mode was a question you had to answer before
+         every press — this way the left hand marks notes and the right hand
+         writes digits, and neither can be mistaken for the other. -->
+    <div class="padside">
+      <p class="padcap" id="capMark">Cross off</p>
+      <div class="pad padmark" id="padMark"></div>
+    </div>
     <div class="tools">
       <button class="tbtn" id="bUndo" title="Undo (also restores notes an entry removed)">Undo</button>
       <button class="tbtn" id="bErase">Erase</button>
       <span class="seg">
-        <button class="tbtn" id="bPen" aria-pressed="true">Pen</button>
-        <button class="tbtn" id="bNotes" aria-pressed="false">Notes</button>
+        <button class="tbtn" id="bHi" aria-pressed="false" title="The left pad highlights a note">Highlight</button>
+        <button class="tbtn" id="bOff" aria-pressed="true" title="The left pad crosses a note off — a real elimination, drawn rather than deleted">Cross off</button>
       </span>
       <button class="tbtn" id="bAutofill" title="Fill every empty square with its possible numbers">Autofill</button>
       <button class="tbtn" id="bAutoclear" aria-pressed="true" title="After every entry, fill any square whose notes have come down to one">Autoclear</button>
     </div>
-    <div class="pad" id="pad"></div>
+    <div class="padside">
+      <p class="padcap">Pen</p>
+      <div class="pad padpen" id="padPen"></div>
+    </div>
   </div>
   <p class="padlabel" id="padHint"></p>
 
@@ -116,28 +127,28 @@
        says what they are. It is the anti-thesis of a trainer, which is why it
        is a mode you enter deliberately rather than something the board does all
        the time, and why the board changes colour while it is on. -->
-  <section class="coach" id="inspector">
-    <div class="coachhead">
+  <details class="coach" id="inspector">
+    <summary class="coachhead">
       <h2>Read the board</h2>
       <span class="badge" id="nCount" hidden>—</span>
-    </div>
-    <p class="note" id="nNote">Check your own reading before the coach confirms it: turn this on, tap the squares you think make a pattern, and it says what they are. It will name a pattern that is correctly read but kills nothing — the one the coach never mentions, because there is no move in it.</p>
+    </summary>
+    <p class="note" id="nNote">Select squares and it says what they are — including a pattern read correctly that kills nothing, which the coach never mentions because there is no move in it.</p>
     <div class="coachrow" style="margin-top:12px">
       <button class="tbtn" id="bInspect" aria-pressed="false">Inspect the board</button>
       <button class="tbtn" id="bInspClear" disabled>Clear selection</button>
     </div>
     <div class="report" id="nReport" hidden></div>
-  </section>
+  </details>
 
   <!-- Import. The puzzle you are actually stuck on is rarely one of the twenty
        in the bank, and everything a bank entry carries — solution, technique
        tags, level — is derivable from the printed digits alone. So this asks
        for those and nothing else. See assets/js/import.js. -->
-  <section class="coach" id="importer">
-    <div class="coachhead">
+  <details class="coach" id="importer">
+    <summary class="coachhead">
       <h2>Import a puzzle</h2>
       <span class="badge" id="iCount" hidden>—</span>
-    </div>
+    </summary>
     <p class="note" id="iNote">Stuck on a puzzle somewhere else — News+, a paper, an app? Type in the digits it prints and the coach reads that one. It works out the solution and which techniques the puzzle needs; you only enter the givens.</p>
 
     <div class="coachrow" id="iStart">
@@ -169,13 +180,13 @@
 
     <p class="note" id="iResult"></p>
     <div class="chips" id="iSaved"></div>
-  </section>
+  </details>
 
-  <section class="coach">
-    <div class="coachhead"><h2>Drill one technique</h2></div>
+  <details class="coach" id="driller">
+    <summary class="coachhead"><h2>Drill one technique</h2></summary>
     <p class="note" id="drillNote">Jumps to a real position where that technique is the move to find. Everything simpler has already been played.</p>
     <div class="chips" id="drills"></div>
-  </section>
+  </details>
 
   <section class="coach">
     <div class="coachhead"><h2>Puzzle</h2></div>
