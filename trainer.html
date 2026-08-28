@@ -66,12 +66,14 @@
          every press — this way the left hand marks notes and the right hand
          writes digits, and neither can be mistaken for the other. -->
     <div class="padside">
-      <p class="padcap" id="capMark">Cross off</p>
+      <p class="padcap">
+        <span id="capMark">Cross off</span>
+        <button class="minitog" id="bMulti" aria-pressed="false" title="Keep every square you tap. Off, a tap moves the selection; on, it adds to it — and a mouse can always drag across the board instead.">multi</button>
+      </p>
       <div class="pad padmark" id="padMark"></div>
     </div>
     <div class="tools">
-      <button class="tbtn" id="bUndo" title="Undo (also restores notes an entry removed)">Undo</button>
-      <button class="tbtn" id="bMulti" aria-pressed="false" title="Keep every square you tap. Off, a tap moves the selection; on, it adds to it — and you can always drag across the board with a mouse.">Multi</button>
+      <button class="tbtn wide" id="bUndo" title="Undo (also restores notes an entry removed)">Undo</button>
       <!-- What the pads do. Short labels because three of them share the row;
            the caption above the left pad spells the current one out. -->
       <span class="seg">

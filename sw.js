@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v27';  // v27: Erase is a mode both pads answer to
+const VERSION = 'v28';  // v28: multi is a small toggle on the note pad's caption
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between

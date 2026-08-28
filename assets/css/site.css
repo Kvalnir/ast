@@ -477,8 +477,23 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    mode indicator somewhere else. */
 .padcap{
   margin:0;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--mist);text-align:center;
+  text-transform:uppercase;color:var(--mist);
+  display:flex;align-items:center;justify-content:center;gap:8px;min-height:17px;
 }
+/* Multi rides with the pad it matters most to rather than taking a slot in the
+   tools, where it was the one control that was not half of a pair and made the
+   column look crowded for it. Sized to the caption it sits beside: this is a
+   switch you set once and forget, not one of the things you are pressing. */
+.minitog{
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;
+  background:transparent;color:var(--mist);border:1px solid #2A3D45;
+  border-radius:9px;padding:2px 7px;cursor:pointer;line-height:1;
+}
+.minitog:hover{border-color:var(--amber-ink);color:var(--text)}
+.minitog[aria-pressed="true"]{
+  background:var(--amber);border-color:var(--amber);color:#1A1205;font-weight:500;
+}
+.minitog:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 /* Two columns of three, against the pad's three rows of keys — the tools row
    and the key rows now line up exactly, where four tool rows against three key
    rows never did. Pairs by kind, which is the whole point of the arrangement:
@@ -488,6 +503,9 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   flex:0 0 150px;display:grid;
   grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:6px;margin:0;
 }
+/* Undo is the one control here that is not half of a pair, so it takes the row
+   rather than sitting beside a gap. */
+.tools .wide{grid-column:1 / -1}
 .tools .tbtn{padding:8px 3px;text-align:center;font-size:11px;letter-spacing:0}
 /* The basis is set by the longest label at this size — "Autoclear" is 9 mono
    characters, and two of them plus the gap is what 150px buys. Every pixel here
@@ -982,7 +1000,7 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
     order:3;flex:1 1 100%;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;
   }
   .tools .tbtn{padding:9px 12px;font-size:12px}
-  .tools .seg{grid-column:auto}
+  .tools .seg,.tools .wide{grid-column:auto}
 }
 
 @media (max-width:400px){
