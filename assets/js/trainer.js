@@ -1457,6 +1457,23 @@
   ['pointing', 'claiming', 'naked_pair', 'hidden_pair', 'naked_triple', 'xwing', 'skyscraper', 'swordfish', 'xy_wing']
     .forEach(id => drillEl.appendChild(makeChip(id, { onClick: () => startDrill(id) })));
 
+  /* A press on the page at large lets the selection go. Everything that reads
+     or acts on selected squares lives in one of the two columns — the board
+     with its pads and tools on the left, the coach and the panels under it on
+     the right — so a press inside either keeps what you gathered, including
+     the hint line that is telling you what the next tap will do. Anywhere else
+     (the masthead, the standfirst, the margins either side, the space below)
+     there is nothing a selection could be for, and holding on to it only
+     leaves squares lit while you read something unrelated.
+
+     pointerdown rather than click, so the squares let go the moment you touch
+     down — the same event that picks a square in the first place. */
+  document.addEventListener('pointerdown', e => {
+    const t = e.target;
+    if (t && t.closest && t.closest('.tplay, .tside')) return;
+    deselect();
+  });
+
   document.addEventListener('keydown', e => {
     /* The paste box wants the same digits the pad does. While the caret is in a
        field, every key belongs to that field — otherwise typing 81 characters

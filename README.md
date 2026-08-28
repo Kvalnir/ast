@@ -134,6 +134,11 @@ board. One-square play still costs one tap, because writing a digit lets go of t
 finger only drags while multi is on: claiming the gesture the rest of the time would mean the board
 could not be scrolled past on a phone.
 
+Back to nothing selected: tap the one selected square again, press <kbd>Esc</kbd>, or press
+anywhere off the two columns — the masthead, the standfirst, the margins either side. Everything
+inside the board, the pads and tools, or the panels down the right acts on the selection, so a
+press there keeps it.
+
 The pen writes into one square and refuses a multiple selection rather than obliging it — the same
 digit in two selected squares is never a legal position, so obeying would only ever make a board to
 undo. The left pad is the one that takes several at once.
