@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v31';  // v31: multi clears on the way out, and its label sits straight
+const VERSION = 'v32';  // v32: the square means focus, a highlight is just a colour
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between

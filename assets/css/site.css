@@ -391,9 +391,19 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
 }
 /* Your own two marks on a note. Violet for a highlight, because every other
    colour on this board is already the coach talking: green is the focus digit,
-   amber the pattern, red what dies, blue the unit. This one is yours. */
-.nt.hi{
-  opacity:1;color:#2E1A55;font-weight:500;background:#C6A9F0;
+   amber the pattern, red what dies, blue the unit. This one is yours.
+
+   Colour only, no chip. The filled square is what says "this is the digit you
+   are hunting", and it has to stay scannable across eighty-one squares — put
+   one behind every highlight too and the two read as the same signal, so the
+   focus digit stops jumping out of the grid the moment you highlight anything.
+   A highlight you can pick out by hue alone; the focus digit you can pick out
+   without reading at all. */
+.nt.hi{opacity:1;color:#6435C9;font-weight:600;background:none;padding:0;margin:0}
+/* Except when the highlighted note IS the focus digit, which is the one time
+   the square belongs on it — in its own violet, so it still reads as yours. */
+.nt.hi.lit{
+  color:#2E1A55;background:#C6A9F0;
   border-radius:2px;padding:0 2px;margin:-1px -1px;
 }
 /* Crossed off. A real elimination — the coach reads notes minus these — but
