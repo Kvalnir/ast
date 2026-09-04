@@ -48,7 +48,13 @@
   <div class="tplay">
 
   <div class="boardwrap" id="boardwrap">
-    <div class="board" id="board" role="grid" aria-label="Sudoku board"></div>
+    <!-- The grid lines are the svg inside the board, not borders on the squares:
+         a border lands wherever the layout puts it and splits across two device
+         pixels at 125% scaling, which is what made rules go missing. Filled by
+         trainer.js; see .grid2 in the stylesheet for why. -->
+    <div class="board" id="board" role="grid" aria-label="Sudoku board">
+      <svg class="grid2" id="gridlines" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
     <svg class="geo2" id="geo" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"></svg>
   </div>
 

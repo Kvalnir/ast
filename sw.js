@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v35';  // v35: a press off the two columns drops the selection
+const VERSION = 'v36';  // v36: the board's grid lines are drawn, not bordered
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between

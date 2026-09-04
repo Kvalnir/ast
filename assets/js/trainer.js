@@ -82,12 +82,24 @@
   };
 
   /* ---------------- build DOM once ---------------- */
+  /* The eight rules each way, drawn once into the overlay that sits on the
+     board. The viewBox is 9x9, one unit per square, so a rule is simply at
+     x=k — and every third one is a box rule and heavier. The squares carry no
+     borders at all now: see .grid2 in the stylesheet for what borders did at
+     125% scaling and why this is drawn rather than laid out. */
+  const gridEl = $('gridlines');
+  let rules = '';
+  for (let k = 1; k < 9; k++) {
+    const box = k % 3 === 0 ? ' class="box"' : '';
+    rules += '<line' + box + ' x1="' + k + '" y1="0" x2="' + k + '" y2="9"/>' +
+             '<line' + box + ' x1="0" y1="' + k + '" x2="9" y2="' + k + '"/>';
+  }
+  gridEl.innerHTML = rules;
+
   const cells = [];
   for (let i = 0; i < 81; i++) {
     const d = document.createElement('div');
     d.className = 'sq';
-    if (C.colOf(i) % 3 === 0 && C.colOf(i)) d.classList.add('bl');
-    if (C.rowOf(i) % 3 === 0 && C.rowOf(i)) d.classList.add('bt');
     d.tabIndex = -1;
     d.setAttribute('role', 'gridcell');
     d.dataset.i = i;
@@ -805,8 +817,6 @@
     for (let i = 0; i < 81; i++) {
       const c = cells[i], el = c.el, v = S.grid[i];
       el.className = 'sq' +
-        (C.colOf(i) % 3 === 0 && C.colOf(i) ? ' bl' : '') +
-        (C.rowOf(i) % 3 === 0 && C.rowOf(i) ? ' bt' : '') +
         (S.given[i] ? ' given' : (v ? ' user' : '')) +
         (peerSet.has(i) ? ' peer' : '') +
         (unitSet.has(i) ? ' unit' : '') +

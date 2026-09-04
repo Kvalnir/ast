@@ -9,10 +9,12 @@
      across two and each gets about 60% of the ink, so the rule renders at ~207
      luminance against 236 paper instead of 185. Three of the eight rules in
      each direction do this at any given size, which reads as the grid losing a
-     line at random. Nothing stops the split (it is the same for a border, a
-     box-shadow, a gradient or an SVG stroke), so the floor is raised instead:
-     at this value the halved version still carries more contrast than the old
-     solid one did. */
+     line at random. Raising the floor is the half-measure that still applies
+     wherever a rule is a border — the figures on the patterns page, the minis
+     on the cheat sheet: at this value a halved rule carries more contrast than
+     the old solid one did. The trainer's board no longer needs it, because the
+     lines there are drawn rather than laid out and never split at all; see
+     .grid2. */
   --rule:#8FA199;
   --rule-strong:#2E4048;
   --pencil:#61808C;
@@ -283,21 +285,40 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   position:relative;aspect-ratio:1;width:100%;margin:0 0 14px;touch-action:manipulation;
   container-type:inline-size;
 }
+/* The grid is drawn as one SVG laid over the squares, not as borders on them,
+   and every line in it is marked shape-rendering:crispEdges.
+
+   A border is a band the browser paints wherever the layout says, and at 125%
+   or 150% scaling that place is half a device pixel out: the band splits over
+   two rows of pixels, each takes a share of the ink, and three of the eight
+   rules in each direction come out pale enough to read as absent. Darkening
+   the colour (which is why --rule is what it is) made the pale ones darker; it
+   could not stop the split. Neither can a gap in a coloured background —
+   measured at 125%, the same three rules land at 175 against 236 paper instead
+   of 155, because the squares either side of the gap are not snapped either.
+
+   crispEdges is the one thing that says do not antialias this: the line is
+   moved onto whole device pixels and drawn at full strength. Measured at 100%,
+   125% and 150%, on boards 459, 517.33 and 620.5px wide, all sixteen rules
+   come out at their exact colour every time.
+
+   vector-effect:non-scaling-stroke because the viewBox is 9x9 — one unit per
+   square, so a line sits at x=3 rather than at some pixel figure that changes
+   with the board — and without it the stroke would scale with the board too. */
+.grid2{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+.grid2 line{stroke:var(--rule);stroke-width:1;shape-rendering:crispEdges;vector-effect:non-scaling-stroke}
+.grid2 line.box{stroke:var(--rule-strong);stroke-width:2}
 .board{
   display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(9,1fr);
+  position:relative;
   width:100%;height:100%;background:var(--paper);
   border:2px solid var(--rule-strong);border-radius:3px;overflow:hidden;
   user-select:none;-webkit-user-select:none;
 }
 .sq{
-  border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);
   display:grid;place-items:center;position:relative;min-width:0;min-height:0;cursor:pointer;
   background:var(--paper);transition:background .12s ease;
 }
-.sq:nth-child(9n){border-right:none}
-.sq:nth-child(n+73){border-bottom:none}
-.sq.bl{border-left:2px solid var(--rule-strong)}
-.sq.bt{border-top:2px solid var(--rule-strong)}
 .sq.given{background:#DFE6DE}
 .sq.peer{background:#DDE4DD}
 .sq.given.peer{background:#D3DCD3}
@@ -451,7 +472,7 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   background:#E7CCC3;border-radius:2px;padding:0 2px;margin:-1px -1px;
 }
 .board.solo .nt.on:not(.solo){opacity:.13}
-.geo2{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+.geo2{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
 /* Every connector runs through the centres of the squares it joins — which is
    the middle row of the pencil marks, where 4, 5 and 6 live. At .05 of a cell
    the ink was the same weight as those digits and merged with them. Heavier,
