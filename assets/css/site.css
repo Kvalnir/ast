@@ -1147,8 +1147,8 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
    lies to you — so it stays beside the nine rather than scrolling away above
    them. */
 .galsec{
-  display:grid;grid-template-columns:minmax(240px,290px) minmax(0,1fr);
-  gap:18px 30px;align-items:start;
+  display:grid;grid-template-columns:minmax(240px,290px) max-content;
+  gap:18px 30px;align-items:start;justify-content:center;
   padding:26px 0 30px;border-top:1px solid #1D2B33;
   scroll-margin-top:calc(var(--bar) + var(--nav) + 8px);
 }
@@ -1158,7 +1158,12 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
 .galsec .what{font-size:13.5px;color:var(--mist);margin:0 0 12px}
 .galsec .guard{margin-bottom:14px}
 .galall{margin-top:2px}
-.spots{display:grid;grid-template-columns:repeat(3,max-content);gap:18px 16px;justify-content:start}
+/* max-content on the figures column above, and centred here, so the pair of
+   them is one centred block rather than a left-hugging one with 240px of dead
+   page beside it. The nine are a fixed pixel width -- nine cells of --gcell,
+   three across -- so the track can be sized to them exactly and the slack
+   split evenly either side of the whole section. */
+.spots{display:grid;grid-template-columns:repeat(3,max-content);gap:18px 16px;justify-content:center}
 .spot{margin:0;display:flex;flex-direction:column;gap:6px}
 /* The whole figure is the control. A row of nine small `Show` buttons under
    nine grids reads as chrome, and the thing you want to press is the picture
