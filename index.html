@@ -18,17 +18,17 @@
 <meta name="apple-mobile-web-app-title" content="AST">
 <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
+<body data-page="patterns" data-tier="advanced">
 <div class="wrap">
 
 <div class="sitebar">
     <span class="mark"><span class="mark-long">Advanced Sudoku <em>Techniques</em></span><span class="mark-short">AST</span></span>
     <nav>
-      <a href="index.html" aria-current="page">Patterns</a>
-      <a href="trainer.html">Trainer</a>
-      <a href="cheatsheet.html">Cheat sheet</a>
-      <a href="gallery.html">Gallery</a>
-      <a href="check.html">Check</a>
+      <a data-page="patterns" aria-current="page" href="index.html">Patterns</a>
+      <a data-page="trainer" href="trainer.html">Trainer</a>
+      <a data-page="cheatsheet" href="cheatsheet.html">Cheat sheet</a>
+      <a data-page="gallery" href="gallery.html">Gallery</a>
+      <a data-page="check" href="check.html">Check</a>
     </nav>
   </div>
 
@@ -37,6 +37,7 @@
   <h1>You are not missing a number. You are missing a <em>pattern</em>.</h1>
   <p class="lede">Easy puzzles fall to scanning. Hard puzzles don't — they are built so that no single cell can be solved directly. Progress comes from proving that a digit <i>cannot</i> go somewhere, and that proof always takes the form of a pattern. Here are nine of them, each shown on a real position with real pencil marks, each with a search routine for finding it — and, for each one, how to run that search inside the News app, where the notes are a snapshot rather than a live engine and there is no colouring to lean on.</p>
   <p class="lede" style="margin-bottom:20px"><a href="trainer.html" style="color:var(--amber)">Open the pattern trainer &rarr;</a> to practise these on a live board that behaves like News+ and names what is available in your position, or take <a href="cheatsheet.html" style="color:var(--amber)">the cheat sheet &rarr;</a> if you want all nine on one screen while you play. To train the recognition rather than the logic, the <a href="gallery.html" style="color:var(--amber)">gallery &rarr;</a> shows each pattern on nine boards, three of which are lying; and when you are unsure about the squares in front of you right now, the <a href="check.html" style="color:var(--amber)">pattern check &rarr;</a> audits them one condition at a time.</p>
+  <p class="lede" style="margin-bottom:20px">Already through these? There is a second tier &mdash; <a href="master.html" style="color:var(--amber)">Master &rarr;</a>, switched from the bar at the top of every page: unique rectangles, finned fish, kites, colouring, wings and chains, for the extreme end of a generator rather than the News+ grid. It is nine more techniques and, mostly, one idea.</p>
   <div class="legend">
     <p><span class="swatch b"></span> Amber cells are the pattern doing the work</p>
     <p><span class="swatch l"></span> Amber lines show how the pattern connects</p>
@@ -391,6 +392,7 @@ document.querySelectorAll(".reveal").forEach(function(btn){
   });
 });
 </script>
+<script src="assets/js/tier.js"></script>
 <script src="assets/js/pwa.js" defer></script>
 </body>
 </html>

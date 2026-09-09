@@ -1,6 +1,17 @@
 # Advanced Sudoku Techniques
 
-A five-page static site for getting past the wall in Apple News+ **Challenging** sudoku.
+A static site for getting past the wall in Apple News+ **Challenging** sudoku, and then past the
+wall above that. It has **two tiers**, switched from the site bar and remembered between visits:
+
+- **Advanced** — the nine patterns that break the News+ challenging grid. The site's original
+  subject, and the tier to read first.
+- **Master** — nine more for the extreme end of a generator (Good Sudoku's hardest, and the like):
+  unique rectangles, BUG+1, finned fish, kites, empty rectangles, colouring, W-Wings, XY-chains,
+  and the alternating inference chain that generates most of the others.
+
+Three pages exist once per tier — the reference, the cheat sheet and the gallery. The trainer and
+the pattern check exist once and change what they detect. The switch carries you to the same place
+in the other tier where there is one, and re-reads the board where there is not.
 
 - **`index.html`** — the pattern reference. Nine patterns, each on a real position with real
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
@@ -16,6 +27,10 @@ A five-page static site for getting past the wall in Apple News+ **Challenging**
 - **`gallery.html`** — recognition practice. Nine figures per technique, **six real and three near
   misses**, shuffled, with the answer hidden until you tap. Generated: real positions, real
   detectors, and every near miss checked to contain no instance of the technique it is filed under.
+- **`master.html`**, **`master-cheatsheet.html`**, **`master-gallery.html`** — the same three pages
+  for the tier above. The lesson page is shorter than `index.html` and spends its length on *why
+  each technique is true*, because a chain you cannot reconstruct at the board is a chain you will
+  not act on.
 - **`check.html`** — a blank board for the four or five squares you are actually looking at. Copy in
   their pencil marks, name the technique you think it is, and it reads that pattern's conditions
   back one at a time — ticked where your marks settle them, and named as **yours to check** where
@@ -64,10 +79,13 @@ untouched.
 
 ```
 index.html              pattern reference (generated — see tools/)
-trainer.html            interactive board
+trainer.html            interactive board, both tiers
 cheatsheet.html         one-page crib of the nine (generated — see tools/)
 gallery.html            nine figures per technique, six real (generated — see tools/)
-check.html              scratch board: audit a pattern from a handful of marks
+check.html              scratch board: audit a pattern from a handful of marks, both tiers
+master.html             master-tier lessons (generated — see tools/)
+master-cheatsheet.html  master-tier crib (generated — see tools/)
+master-gallery.html     master-tier drill (generated — see tools/)
 manifest.webmanifest    PWA metadata: name, icons, start URL
 sw.js                   service worker — precache, offline, update prompt
 assets/css/site.css     shared design tokens and all page styles
@@ -77,6 +95,8 @@ assets/js/bank.js       32 verified puzzles, tagged by technique required
 assets/js/import.js     read a puzzle off another screen: validate, derive, tag
 assets/js/trainer.js    board UI, News+ behaviours, hint ladder, the two pads
 assets/js/check.js      the scratch board: marks in, conditions out
+assets/js/master.js     the master tier's nine detectors, plus its audits
+assets/js/tier.js       the Advanced/Master switch, and which page is which
 assets/js/pwa.js        service worker registration, update and install prompts
 assets/icons/*.png      app icons (generated — see tools/icons.py)
 assets/icons/icon.svg   the same mark as vector, for the tab favicon (hand-written)
@@ -98,13 +118,13 @@ Edit each pair together or they drift.
 The site is a PWA, which matters here because a sudoku trainer is something you reach for on a
 phone, on a train, without a signal. Open it, then **Add to Home Screen** (iOS Share menu) or take
 the **Install** offer the site makes on Chromium browsers. It opens without browser chrome and
-starts on the trainer; the other four are one tap away in the site bar, and all five work with the
-network off.
+starts on the trainer; everything else is one tap away in the site bar, and all of it works with
+the network off.
 
 Two things worth knowing:
 
-- **Everything is precached on the first visit** — all five pages, the CSS, all seven scripts and
-  the seven icons: 21 files. There is no lazy loading to go wrong later.
+- **Everything is precached on the first visit** — all eight pages, the CSS, all nine scripts and
+  the seven icons: 26 files. Both tiers work offline; there is no lazy loading to go wrong later.
 - **Fonts arrive one visit late.** They come from Google Fonts, and on a first visit the page has
   already requested them before the worker takes control, so they are only cached from the second
   visit onwards. Until then an offline load falls back to the system stack — the layout holds, the
@@ -349,6 +369,42 @@ refusal. Mark everything and the answer becomes as definite as the trainer's.
 **No pen, no solver, no hints.** A digit placed in a square is a fact about the puzzle, and this
 board is about candidates only: the pattern lives in the marks.
 
+## The master tier
+
+**Nine more techniques, and really one idea.** Seven of the nine are the *strong link* — a unit
+where a digit has exactly two homes — in different geometry. The skyscraper on the Advanced tier is
+already two of them; a kite is two whose near ends share a box, colouring is the whole network at
+once, a W-Wing is one link between two identical pairs, and an AIC is the general form that
+produces the rest. The lesson page leads with that rather than with nine separate facts.
+
+**The two exceptions reason from the puzzle, not from the grid**, and they are the reason the
+Advanced tier does not have them. The unique rectangle and BUG+1 argue from the puzzle having one
+solution, so unlike every other technique on the site they keep working — confidently, and wrongly
+— on a grid you have already corrupted. `SudokuMaster.findAll` gates both: neither is offered
+unless the digits currently on the board still lead to exactly one solution. That is the check the
+*Notes on scope* section below asked for if anyone ever added them, and it is why they could be
+added at all. It cannot catch a candidate you struck by mistake, and the pages say so.
+
+**One implementation, not two.** The Advanced figures are generated by `tools/engine.py`, a second
+copy of the nine detectors written in Python. That was tolerable for nine shapes and is not for
+nine chains, so the master tier has exactly one implementation — `assets/js/master.js`, the file
+the trainer runs — and `tools/harvest-master.js` walks real puzzles with it and writes the
+positions to `tools/master-examples.json`. The Python generators render from that JSON and detect
+nothing themselves.
+
+**How the switch works.** `assets/js/tier.js` owns the mapping from page name to file per tier, and
+it is the only place that knows `patterns` means `index.html` down here and `master.html` up there.
+Nav links carry `data-page`; the body carries `data-page` and, on a page that exists in one tier
+only, `data-tier`. Visiting such a page directly sets the switch rather than arguing with it. The
+tier lives in `localStorage`, not the URL: it is a setting about you, and a link someone sends you
+should open at the tier you read in.
+
+**What the trainer does with it.** `recompute()` appends master findings to the Advanced ones and
+re-sorts by rank, so a naked single still comes before a chain and the coach's ladder, chips and
+drills work unchanged. The AIC search is the one thing that is conditional: it only runs when
+nothing cheaper exists anywhere on the board, because a chain that duplicates a pointing pair is
+not information and costs more to find than everything else combined.
+
 ## Rebuilding the content
 
 Only needed if you want different puzzles or edited lesson text.
@@ -360,7 +416,23 @@ python3 bank.py        # regenerate the puzzle bank (slow — it verifies unique
 python3 build.py       # regenerate ../index.html from template.html
 python3 cheatsheet.py  # regenerate ../cheatsheet.html
 python3 gallery.py     # regenerate ../gallery.html (slow — it generates its own puzzles)
+
+# master tier — figures come from the JS detectors, so this one needs a JS runtime
+node ../tools/harvest-master.js > master-examples.json   # from the repo root: node tools/...
+python3 master_build.py       # ../master.html
+python3 master_cheatsheet.py  # ../master-cheatsheet.html
+python3 master_gallery.py     # ../master-gallery.html
 ```
+
+The three master generators read `master-examples.json` and do no detecting of their own, so
+redrawing those pages needs nothing but Python. Re-harvesting needs node — or, with none to hand,
+a browser: load the four scripts and `tools/harvest-master.js` on a page and call
+`harvestMaster(SudokuCore, SudokuTech, SudokuMaster, SUDOKU_BANK)`. The JSON is committed precisely
+so that this is a rare errand.
+
+Prose for the master tier lives in `tools/master_data.py`, shared by all three of its pages, and
+`tools/masterfig.py` turns a harvested position into a figure. One technique, one description, one
+renderer.
 
 `build.py` takes its prose from `template.html` and its figures from `examples.json`.
 `cheatsheet.py` carries its own copy of the positions in the `TECH` table at the top of the file,
@@ -438,6 +510,31 @@ The same snippet runs in a browser console on any page of the site, where `Sudok
 `SudokuTech` and `SUDOKU_BANK` are already globals — drop the three `require` lines and read the
 bank from `SUDOKU_BANK`. Useful when the machine in front of you has no node.
 
+### Checking the master detectors
+
+Eighteen detectors is twice as many chances to be confidently wrong, and the master nine include
+four that reason over chains rather than shapes. They are checked the same way and harder: every
+banked puzzle is walked with both tiers running, every finding's eliminations and placements are
+asserted against the known solution, and then the whole run is repeated over the bank's own
+symmetries — transposed and relabelled, which is where a row/column bug hides.
+
+```
+puzzles 96   states 5739   assertions 231571   solved 96/96   FAILS 0
+```
+
+Two real bugs turned up that way and are worth recording, because both were the same kind of
+mistake — a rule that looked right and was one condition short:
+
+- **BUG+1** identified the extra digit as the one appearing three times in the odd cell's own
+  units. A unit whose counts run 1, 3, 2 also has a three in it, and also has a hidden single, and
+  is nothing like a grave. The test now is the definition itself: remove the digit and check that
+  every digit left has exactly two homes in every unit.
+- **The AIC audit** accepted chains that *ended on a weak link*, which proves nothing at all. The
+  flag it tested said "the next link must be strong" and it read as "the last link was".
+
+Neither would have been caught by reading the code, and both were caught in the first hundred
+puzzles.
+
 ### Three questions, three code paths
 
 `findAll` answers *what can I play here?* and every detector past the singles bails the moment a
@@ -487,21 +584,28 @@ pattern.
 
 ## Notes on scope
 
-The trainer detects naked and hidden singles, pointing pairs, claiming, naked pairs and triples,
-hidden pairs and triples, X-Wing, swordfish, skyscraper and XY-Wing. That is comfortably enough for
-the News+ challenging tier — every puzzle in the bank solves with them alone.
+**On the Advanced tier** the trainer detects naked and hidden singles, pointing pairs, claiming,
+naked pairs and triples, hidden pairs and triples, X-Wing, swordfish, skyscraper and XY-Wing. That
+is comfortably enough for the News+ challenging tier — every puzzle in the bank solves with them
+alone, and the tier stops there on purpose: a coach that answers with a chain a position you should
+have solved with a pointing pair is teaching you the wrong reflex.
 
-Chains beyond the skyscraper (colouring, kites, W-wings, forcing chains) are deliberately absent:
-they are rarely the move at this tier, and adding them would let the coach answer positions you
-should be solving with something cheaper.
+**The Master tier** adds the unique rectangle, BUG+1, the finned X-Wing, the 2-string kite, the
+empty rectangle, simple colouring, the W-Wing, the XY-chain and the AIC. It is switched off by
+default and switched on from the site bar, which is the whole of the answer to *should this be
+here* — the two audiences never have to see each other's techniques.
 
-Uniqueness (the unique rectangle, BUG+1) is documented as a footnote at the foot of the lesson and
-deliberately not detected. It is never needed here, and it is the one argument on the site that
-reasons from the puzzle having a single solution rather than from the grid in front of you. Every
-detector above degrades safely on a grid the player has corrupted — it finds nothing, or it
-contradicts itself. A uniqueness detector would keep working and name a confident, wrong
-elimination, on the exact failure mode the News+ section spends its length warning about. If you
-ever add one, gate it on the position still being solvable.
+Uniqueness was documented as a footnote and deliberately not detected for the site's first years,
+because it is the one argument that reasons from the puzzle having a single solution rather than
+from the grid in front of you. Every other detector degrades safely on a corrupted grid: it finds
+nothing, or it contradicts itself, and you learn that you made a mistake. A uniqueness detector
+keeps working and names a confident, wrong elimination. The note here used to end *if you ever add
+one, gate it on the position still being solvable* — and that is exactly what
+`SudokuMaster.findAll` does before it will offer either of the two.
+
+Still deliberately absent, on both tiers: almost locked sets, Sue de Coq, death blossom, grouped
+and finned chains, forcing chains and Nishio. They are past what any generator's hardest tier
+asks for, and each is rarer than the mistake you would make hunting it.
 
 ## Words
 

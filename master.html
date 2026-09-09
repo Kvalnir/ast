@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Master techniques — Advanced Sudoku Techniques</title>
+<meta name="description" content="The tier above the nine: unique rectangles, BUG+1, finned fish, kites, empty rectangles, colouring, W-Wings, XY-chains and the alternating inference chain that generates them all.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400;12..96,75..100,700;12..96,75..100,800&family=Instrument+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0A1014">
+<link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="AST">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body data-page="patterns" data-tier="master">
+<div class="wrap">
+
+<div class="sitebar">
+    <span class="mark"><span class="mark-long">Advanced Sudoku <em>Techniques</em></span><span class="mark-short">AST</span></span>
+    <nav>
+      <a data-page="patterns" aria-current="page" href="master.html">Patterns</a>
+      <a data-page="trainer" href="trainer.html">Trainer</a>
+      <a data-page="cheatsheet" href="master-cheatsheet.html">Cheat sheet</a>
+      <a data-page="gallery" href="master-gallery.html">Gallery</a>
+      <a data-page="check" href="check.html">Check</a>
+    </nav>
+  </div>
+
+  <header class="hero">
+  <p class="kicker">Master tier · beyond the News+ challenging grid</p>
+  <h1>Nine more, and really <em>one idea</em>.</h1>
+  <p class="lede">The nine on the <a href="index.html" style="color:var(--amber)">Advanced tier</a> will take you through every Apple News+ challenging puzzle and most of what an app calls expert. Past that — Good Sudoku's hardest, the extreme end of any generator — a puzzle will occasionally hold exactly one move that none of them can find. These are those moves. There are nine of them here too, and seven are the same idea wearing different geometry.</p>
+  <p class="lede">That idea is the <b>strong link</b>: a unit where a digit has exactly two possible squares, so one of them is true. You already use it — the skyscraper is two strong links sharing an end. A kite is two whose near ends share a box. Colouring is the whole network of them at once. A W-Wing is one link between two identical pairs. An AIC is the general form, and it produces all of the others as special cases. Learn the primitive properly and the names stop being nine things to remember.</p>
+  <p class="lede" style="margin-bottom:20px">The other two are different in kind: the <a href="#unique-rectangle" style="color:var(--amber)">unique rectangle</a> and <a href="#bug" style="color:var(--amber)">BUG+1</a> reason from the puzzle having exactly one answer rather than from the grid in front of you. They are cheap, they fire often, and they are the only techniques on this site that can be confidently wrong on a grid you have already broken. There is a section on that below, and the trainer refuses to offer either one unless your board still leads to a single solution.</p>
+  <div class="legend">
+    <p><span class="swatch b"></span> Amber cells are the pattern doing the work</p>
+    <p><span class="swatch l"></span> Amber lines show how the pattern connects</p>
+    <p><span class="swatch p"></span> Ringed cells are the ends, fins or wings</p>
+    <p><span class="swatch k"></span> Struck red digits are the candidates it kills</p>
+  </div>
+</header>
+
+<nav aria-label="Techniques"><a href="#unique-rectangle">Unique rectangle</a><a href="#bug">BUG+1</a><a href="#finned-fish">Finned X-Wing</a><a href="#kite">2-string kite</a><a href="#empty-rectangle">Empty rectangle</a><a href="#colouring">Simple colouring</a><a href="#w-wing">W-Wing</a><a href="#xy-chain">XY-chain</a><a href="#aic">AIC</a></nav>
+
+<section class="block mblock" id="links">
+  <span class="eyebrow"><i>10</i> Groundwork</span>
+  <h2>Strong links, weak links, and what a chain is</h2>
+  <p>Two sentences hold the whole tier up, and they are worth being able to say exactly.</p>
+  <ul>
+    <li><b>A strong link</b> joins two candidates where <i>at least one is true</i>. Two of them: a unit with exactly two homes for a digit, and a cell with exactly two candidates. Both are things you can count, and counting them is the entire skill.</li>
+    <li><b>A weak link</b> joins two candidates where <i>at most one is true</i>. Two cells in a unit holding the same digit; two digits in one cell. These are free — they are just what a sudoku grid is.</li>
+  </ul>
+  <p>Alternate them, starting and ending on a strong one, and you have a chain that proves <b>at least one of its two ends is true</b>. That single sentence is the whole of the <a href="#aic">AIC</a>, and every named pattern below is one particular short chain that people found often enough to give a name to. You do not have to think of them that way to use them — but when a position refuses all nine, thinking of them that way is what lets you build the tenth yourself.</p>
+  <h3>What this changes about scanning</h3>
+  <p>On the Advanced tier the scan is <i>where can this digit go</i>. Up here it is <i>which lines have exactly two spots</i> — a different question about the same board, and one you can answer while you are already counting for X-Wings. Write the two-spot lines down as you find them. Half the techniques below are two entries from that list, held up next to each other.</p>
+</section>
+
+<section class="block mblock" id="unique-rectangle">
+  <span class="eyebrow"><i>11</i> Uniqueness</span>
+  <h2>Unique rectangle</h2>
+  <p class="mwhat">Four cells at the corners of a rectangle, spanning exactly two boxes, all four able to take the same two digits.</p>
+  <div class="mrow">
+      <figure class="mfig">
+        <div class="miniwrap"><div class="mini" role="img" aria-label="four corners"><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class="b">59</i><i class="b">59</i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class="xk">1<s>5</s><s>9</s></i><i class="b">59</i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i></div><svg class="geo3" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"><line class="lead" x1="7.5" y1="1.5" x2="8.5" y2="1.5"/><line class="lead" x1="7.5" y1="4.5" x2="8.5" y2="4.5"/><line class="lead" x1="7.5" y1="1.5" x2="7.5" y2="4.5"/><line class="lead" x1="8.5" y1="1.5" x2="8.5" y2="4.5"/></svg></div>
+        <figcaption class="figcap"><b>rows 2 and 5, columns 8 and 9.</b> 5 from r5c8, 9 from r5c8.</figcaption>
+      </figure>
+    <div class="mbody">
+      <p class="mwhy">If all four corners held nothing but <b>A</b> and <b>B</b>, the two ways of filling
+             them would both be legal: swap the diagonals and every row, column and box still
+             reads the same. That is two solutions, and a published puzzle has one. So the
+             position you are looking at cannot be that position &mdash; whatever it is that
+             stops the swap has to be true.</p>
+      <p class="mcase"><span>On the board beside this</span>r2c8, r2c9, r5c9 are all 5/9 on a rectangle in two boxes. If r5c8 were 5 or 9 as well, the four could swap and the puzzle would have two answers — so it is one of its other candidates.</p>
+      <dl class="kv">
+        <dt>Find it</dt><dd>Every time you write a bi-value pair, glance along its row and its column for the
+             same pair again. Two matching pairs on one line is the trigger; then look at the
+             two cells that finish the rectangle, and count the boxes.</dd>
+        <dt>Then delete</dt><dd><b>Type 1</b> &mdash; three corners bare and the fourth carrying extras: the fourth
+             loses both pair digits, which usually solves it outright. <b>Type 2</b> &mdash; all
+             four bare but two of them carrying the same single extra: one of those two is that
+             extra, so everything seeing both loses it.</dd>
+      </dl>
+      <p class="guard"><span>Where it goes wrong</span><b>Two boxes, not four.</b> Over four boxes the swap would leave a box short of a
+             digit, so there is nothing deadly about it and no argument at all. Four corners
+             reading the same pair across four boxes is the commonest false positive up here, and
+             it looks exactly as convincing as the real thing.</p>
+      <p class="mcost">The only two techniques on the site that reason from the puzzle rather than from
+             the grid. On a grid where you have already made a mistake they keep working and hand
+             you a confident wrong answer, so the trainer refuses to offer either unless the
+             digits currently on the board still lead to exactly one solution.</p>
+    </div>
+  </div>
+</section>
+<section class="block mblock" id="bug">
+  <span class="eyebrow"><i>12</i> Uniqueness</span>
+  <h2>BUG+1</h2>
+  <p class="mwhat">Every unsolved cell is down to two candidates except one, which has three.</p>
+  <div class="mrow">
+      <figure class="mfig">
+        <div class="miniwrap"><div class="mini" role="img" aria-label="one square with three marks"><i class="p">3</i><i class="p">9</i><i class="p">5</i><i class="bl p">1</i><i class="p">4</i><i class="d">·</i><i class="bl p">8</i><i class="p">6</i><i class="d">·</i><i class="p">7</i><i class="p">1</i><i class="p">8</i><i class="bl p">6</i><i class="p">3</i><i class="d">·</i><i class="bl p">5</i><i class="p">4</i><i class="d">·</i><i class="p">4</i><i class="p">2</i><i class="p">6</i><i class="bl p">5</i><i class="d">·</i><i class="p">8</i><i class="bl d">·</i><i class="p">3</i><i class="p">1</i><i class="bt p">6</i><i class="bt p">8</i><i class="bt p">2</i><i class="bl bt p">4</i><i class="bt p">1</i><i class="bt d">·</i><i class="bl bt d">·</i><i class="bt p">5</i><i class="bt b">379</i><i class="p">9</i><i class="p">4</i><i class="d">·</i><i class="bl p">8</i><i class="p">2</i><i class="p">5</i><i class="bl p">6</i><i class="p">1</i><i class="d">·</i><i class="p">1</i><i class="p">5</i><i class="d">·</i><i class="bl d">·</i><i class="d">·</i><i class="p">6</i><i class="bl p">2</i><i class="p">8</i><i class="p">4</i><i class="bt p">5</i><i class="bt p">7</i><i class="bt p">1</i><i class="bl bt d">·</i><i class="bt p">6</i><i class="bt d">·</i><i class="bl bt p">4</i><i class="bt p">2</i><i class="bt p">8</i><i class="p">8</i><i class="p">3</i><i class="p">9</i><i class="bl p">2</i><i class="p">5</i><i class="p">4</i><i class="bl p">1</i><i class="p">7</i><i class="p">6</i><i class="p">2</i><i class="p">6</i><i class="p">4</i><i class="bl p">7</i><i class="p">8</i><i class="p">1</i><i class="bl p">3</i><i class="p">9</i><i class="p">5</i></div></div>
+        <figcaption class="figcap"><b>r4c9.</b> r4c9 is the 7.</figcaption>
+      </figure>
+    <div class="mbody">
+      <p class="mwhy">A grid where every unsolved cell holds two candidates and every digit has exactly
+             two homes in every unit is a <i>bivalue universal grave</i>: its solutions come in
+             pairs, because you can flip every cell to its other candidate and still have a legal
+             grid. One extra candidate is all that stands between the position in front of you
+             and that grave. Take it away and the puzzle would have an even number of answers;
+             it has one; so the extra candidate is the answer in its cell.</p>
+      <p class="mcase"><span>On the board beside this</span>Every unsolved square holds two candidates except r4c9, which holds three. Take the 7 out of it and every digit left would have exactly two homes in every unit — a grid whose answers come in pairs, and this puzzle has one. So r4c9 is the 7.</p>
+      <dl class="kv">
+        <dt>Find it</dt><dd>You do not hunt for this one &mdash; you notice it. Late in a hard puzzle, when
+             the marks have thinned out to pairs everywhere, look for the single cell still
+             carrying three.</dd>
+        <dt>Then delete</dt><dd>A digit placed outright, which is rare enough on this tier to be worth the look.</dd>
+      </dl>
+      <p class="guard"><span>Where it goes wrong</span>Three candidates in one cell is not enough on its own. <b>Every other unsolved
+             cell must hold exactly two</b>, and taking the digit out has to leave every digit
+             with exactly two homes in every unit &mdash; a unit reading one, three, two has a
+             hidden single in it and is nothing like a grave. The trainer checks the whole board
+             before it offers this, and so should you.</p>
+      <p class="mcost">An endgame move, and it will not arrive twice in one puzzle. Worth knowing
+             because when it does arrive it is instant, and because it is the clearest small
+             proof in sudoku that uniqueness is information.</p>
+    </div>
+  </div>
+</section>
+<section class="block mblock" id="finned-fish">
+  <span class="eyebrow"><i>13</i> Single digit</span>
+  <h2>Finned X-Wing</h2>
+  <p class="mwhat">An X-Wing with one or two extra spots in a base line, all of them inside a single box.</p>
+  <div class="mrow">
+      <figure class="mfig">
+        <div class="miniwrap"><div class="mini" role="img" aria-label="the 1s"><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl p">1</i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl b">1</i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="d">1</i><i class="bl d">1</i><i class=""></i><i class="d">1</i><i class="bl"></i><i class=""></i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt d">1</i><i class="bt d">1</i><i class="bt d">1</i><i class="bl bt"></i><i class="bt d">1</i><i class="bt d">1</i><i class=""></i><i class=""></i><i class=""></i><i class="bl d">1</i><i class="d">1</i><i class=""></i><i class="bl"></i><i class="d">1</i><i class="d">1</i><i class="p">1</i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt x">1</i><i class="bt d">1</i><i class="bl bt"></i><i class="bt d">1</i><i class="bt d">1</i><i class=""></i><i class=""></i><i class=""></i><i class="bl b">1</i><i class="b">1</i><i class="r">1</i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class="p">1</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i></div><svg class="geo3" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"><line class="cross" x1="3.5" y1="1.5" x2="4.5" y2="7.5"/></svg></div>
+        <figcaption class="figcap"><b>rows 2 and 8.</b> 1 from r7c5.</figcaption>
+      </figure>
+    <div class="mbody">
+      <p class="mwhy">Either those extra spots are all false &mdash; in which case what is left is a
+             plain X-Wing and its eliminations hold &mdash; or one of them is the digit. Both
+             branches cost something: a cell that sits in the X-Wing's crossing lines <i>and</i>
+             sees every fin loses the digit either way. Since the fins share a box, seeing all of
+             them means being in that box.</p>
+      <p class="mcase"><span>On the board beside this</span>The 1s in rows 2 and 8 would be an X-Wing on columns 4 and 5 but for r8c6. Those sit in box 8, so either the X-Wing holds or the 1 is on a fin — and anything in that box and those columns loses it either way.</p>
+      <dl class="kv">
+        <dt>Find it</dt><dd>This is the pattern you already half-found and threw away. Whenever a line has
+             three spots instead of two, do not abandon the fish &mdash; ask whether the third
+             spot sits in the same box as one of the corners. If it does, you have a move.</dd>
+        <dt>Then delete</dt><dd>The digit, from the crossing lines &mdash; but only inside the fin's box. That is
+             usually one or two cells, and they are the cells the plain X-Wing would have killed
+             anyway.</dd>
+      </dl>
+      <p class="guard"><span>Where it goes wrong</span><b>All the fins in one box.</b> Two leftover spots in different boxes and there
+             is no cell that sees both, so nothing survives the second branch. Also check you
+             have the right box: the eliminations are the intersection of the crossing lines with
+             the fin's box, not the whole crossing line.</p>
+      <p class="mcost">The best value on this tier. It costs nothing extra to look for &mdash; you are
+             already counting spots per line for the X-Wing &mdash; and it converts a scan that
+             usually fails into one that often pays.</p>
+    </div>
+  </div>
+</section>
+<section class="block mblock" id="kite">
+  <span class="eyebrow"><i>14</i> Single digit</span>
+  <h2>2-string kite</h2>
+  <p class="mwhat">A row and a column with exactly two spots each for one digit, whose near ends share a box.</p>
+  <div class="mrow">
+      <figure class="mfig">
+        <div class="miniwrap"><div class="mini" role="img" aria-label="the 5s"><i class="b">5</i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class="r">5</i><i class=""></i><i class=""></i><i class="b">5</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class="d">5</i><i class="d">5</i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class="p">5</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bt d">5</i><i class="bt"></i><i class="bt"></i><i class="bl bt d">5</i><i class="bt"></i><i class="bt d">5</i><i class="bl bt"></i><i class="bt d">5</i><i class="bt d">5</i><i class=""></i><i class="r">5</i><i class=""></i><i class="bl d">5</i><i class=""></i><i class=""></i><i class="bl"></i><i class="x">5</i><i class="d">5</i><i class=""></i><i class=""></i><i class=""></i><i class="bl d">5</i><i class=""></i><i class="d">5</i><i class="bl"></i><i class="d">5</i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt p">5</i><i class="bt"></i><i class="bt"></i><i class=""></i><i class=""></i><i class="p">5</i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl d">5</i><i class=""></i><i class="d">5</i><i class="bl"></i><i class=""></i><i class=""></i></div><svg class="geo3" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"><line class="lead" x1="7.5" y1="0.5" x2="0.5" y2="0.5"/><line class="lead" x1="1.5" y1="1.5" x2="1.5" y2="4.5"/><line class="cross" x1="0.5" y1="0.5" x2="1.5" y2="1.5"/></svg></div>
+        <figcaption class="figcap"><b>row 1 and column 2.</b> 5 from r5c8.</figcaption>
+      </figure>
+    <div class="mbody">
+      <p class="mwhy">Each line is a strong link: one of its two spots is the digit. The two near ends
+             sit in the same box, so they cannot both be it. Kill one and its line's other end
+             becomes the digit; kill the other and the same happens on the other line. Whichever
+             way it falls, <b>one of the two far ends is the digit</b> &mdash; so anything seeing
+             both far ends cannot be.</p>
+      <p class="mcase"><span>On the board beside this</span>Row 1 and column 2 have two 5s each, and their near ends r1c1, r2c2 share box 1 — so they cannot both be the 5. One of r1c8, r5c2 is, and anything seeing both loses it.</p>
+      <dl class="kv">
+        <dt>Find it</dt><dd>Light one digit and write down every line with exactly two spots. Then look for a
+             row and a column from that list with one spot each inside the same box. The far ends
+             are the ones that do the work, and they are usually nowhere near each other.</dd>
+        <dt>Then delete</dt><dd>The digit, from every cell that sees both far ends &mdash; often just one cell.</dd>
+      </dl>
+      <p class="guard"><span>Where it goes wrong</span>If the near ends share a <i>line</i> rather than a box, this is the skyscraper
+             you already know. If the far ends also line up, it is an X-Wing. And if the near ends
+             share nothing at all, there is no pattern here &mdash; two strong links that never
+             meet prove nothing.</p>
+      <p class="mcost">The same scan as the skyscraper, one box-check further on. Learn them as one
+             habit: two strong links, and the question is only where their ends meet.</p>
+    </div>
+  </div>
+</section>
+<section class="block mblock" id="empty-rectangle">
+  <span class="eyebrow"><i>15</i> Single digit</span>
+  <h2>Empty rectangle</h2>
+  <p class="mwhat">A box whose spots for one digit all fall on one row and one column of it, joined to a strong link elsewhere.</p>
+  <div class="mrow">
+      <figure class="mfig">
+        <div class="miniwrap"><div class="mini" role="img" aria-label="the 5s"><i class="d">5</i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl tint"></i><i class="tint b">5</i><i class="tint"></i><i class=""></i><i class="b">5</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl tint"></i><i class="tint b">5</i><i class="tint b">5</i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class="p">5</i><i class=""></i><i class="bl tint"></i><i class="tint"></i><i class="tint"></i><i class="bt d">5</i><i class="bt"></i><i class="bt"></i><i class="bl bt d">5</i><i class="bt"></i><i class="bt d">5</i><i class="bl bt"></i><i class="bt d">5</i><i class="bt d">5</i><i class=""></i><i class="b">5</i><i class=""></i><i class="bl d">5</i><i class=""></i><i class=""></i><i class="bl"></i><i class="x">5</i><i class="d">5</i><i class=""></i><i class=""></i><i class=""></i><i class="bl d">5</i><i class=""></i><i class="d">5</i><i class="bl"></i><i class="d">5</i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt p">5</i><i class="bt"></i><i class="bt"></i><i class=""></i><i class=""></i><i class="p">5</i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl d">5</i><i class=""></i><i class="d">5</i><i class="bl"></i><i class=""></i><i class=""></i></div><svg class="geo3" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"><line class="lead" x1="1.5" y1="1.5" x2="1.5" y2="4.5"/><line class="cross" x1="1.5" y1="4.5" x2="7.5" y2="4.5"/></svg></div>
+        <figcaption class="figcap"><b>box 3, row 2 and column 8.</b> 5 from r5c8.</figcaption>
+      </figure>
+    <div class="mbody">
+      <p class="mwhy">The box has to contain the digit somewhere, and everywhere it could go is on that
+             row or that column: so <b>the box's digit is on one line or the other</b>. Now take
+             a strong link on the same digit with one end on the box's row. If that end is the
+             digit, the box cannot use its row and must use its column; if it is not, the link's
+             far end is the digit. Either way the cell where the far end's line crosses the box's
+             column is finished.</p>
+      <p class="mcase"><span>On the board beside this</span>Box 3 keeps its 5s inside row 2 and column 8, so its 5 is on one of them. r2c2 and r5c2 are a strong link: if r2c2 is the 5 the box takes the column, and if it is not then r5c2 is — and r5c8 loses the 5 both ways.</p>
+      <dl class="kv">
+        <dt>Find it</dt><dd>Light a digit and look at each box in turn with three or four spots left. Ask
+             whether they fit an L &mdash; one row plus one column, leaving a 2&times;2 block of
+             the box empty. That empty block is what the name is about. Then look along the row
+             and the column for a line with exactly two spots.</dd>
+        <dt>Then delete</dt><dd>One cell, almost always. It is a precise move rather than a broad one.</dd>
+      </dl>
+      <p class="guard"><span>Where it goes wrong</span>The box's spots must genuinely need both lines. All of them on one line is a
+             pointing pair, which is cheaper and which you should have found already. And the
+             link has to reach the box's row or column with its <i>near</i> end, outside the box
+             itself.</p>
+      <p class="mcost">Fiddlier to see than the kite and worth it: empty rectangles are common, and this
+             is the one master technique that reads a box rather than a line.</p>
+    </div>
+  </div>
+</section>
+<section class="block mblock" id="colouring">
+  <span class="eyebrow"><i>16</i> Single digit</span>
+  <h2>Simple colouring</h2>
+  <p class="mwhat">Every strong link for one digit, followed at once and coloured in two alternating colours.</p>
+  <div class="mrow">
+      <figure class="mfig">
+        <div class="miniwrap"><div class="mini" role="img" aria-label="the 2s"><i class="b">2</i><i class=""></i><i class=""></i><i class="bl d">2</i><i class="d">2</i><i class="d">2</i><i class="bl"></i><i class=""></i><i class=""></i><i class="b">2</i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl b">2</i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl d">2</i><i class=""></i><i class="d">2</i><i class="bl b">2</i><i class=""></i><i class=""></i><i class="bt"></i><i class="bt p">2</i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class=""></i><i class=""></i><i class=""></i><i class="bl d">2</i><i class="d">2</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class="p">2</i><i class="bt x">2</i><i class="bt"></i><i class="bt d">2</i><i class="bl bt"></i><i class="bt d">2</i><i class="bt d">2</i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class="p">2</i><i class=""></i><i class="x">2</i><i class=""></i><i class="d">2</i><i class="bl d">2</i><i class=""></i><i class="d">2</i><i class="bl"></i><i class=""></i><i class=""></i></div><svg class="geo3" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"><line class="lead" x1="0.5" y1="1.5" x2="6.5" y2="1.5"/><line class="lead" x1="6.5" y1="1.5" x2="6.5" y2="2.5"/><line class="lead" x1="0.5" y1="0.5" x2="0.5" y2="1.5"/></svg></div>
+        <figcaption class="figcap"><b>4 linked squares on the 2.</b> 2 from r7c1, 2 from r9c1.</figcaption>
+      </figure>
+    <div class="mbody">
+      <p class="mwhy">Along a strong link exactly one end is the digit, so a chain of them alternates:
+             true, false, true, false. Colour the alternation and one colour is entirely true and
+             the other entirely false &mdash; you just do not know which. Two things follow.
+             <b>If two cells of one colour share a unit</b>, that colour cannot be the true one,
+             so every cell wearing it loses the digit. <b>If a cell outside the chain sees both
+             colours</b>, it loses the digit whichever colour wins.</p>
+      <p class="mcase"><span>On the board beside this</span>The 2’s strong links chain 4 squares together, alternating. One colour is the truth, and r7c1, r9c1 see both colours — so whichever it is, that 2 is gone.</p>
+      <dl class="kv">
+        <dt>Find it</dt><dd>Pick a digit, find any line or box with exactly two spots, and start walking:
+             from each end, look for another two-spot unit through it. Mark alternately as you
+             go &mdash; on paper, circles and crosses. Four or five cells in you usually have
+             your answer.</dd>
+        <dt>Then delete</dt><dd>Either an entire colour, which can be half a dozen candidates at once, or every
+             cell that sees both colours. This is the widest-reaching move on the tier.</dd>
+      </dl>
+      <p class="guard"><span>Where it goes wrong</span>Only ever chain through <b>strong</b> links &mdash; units with exactly two spots.
+             A unit with three is not a link and will colour your grid into nonsense. If following
+             the links round gives one cell both colours, stop: the position is already
+             contradictory, which means an earlier elimination was wrong.</p>
+      <p class="mcost">The one to learn if you learn only one. The skyscraper, the kite and half the
+             fish are special cases of it, and it costs a pencil rather than a new idea.</p>
+    </div>
+  </div>
+</section>
+<section class="block mblock" id="w-wing">
+  <span class="eyebrow"><i>17</i> Chain</span>
+  <h2>W-Wing</h2>
+  <p class="mwhat">Two cells holding the same two candidates, joined by a strong link on one of them.</p>
+  <div class="mrow">
+      <figure class="mfig">
+        <div class="miniwrap"><div class="mini" role="img" aria-label="4 squares and their marks"><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class="b">58</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class="r">59</i><i class="xk">5<s>9</s></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt xk">135<s>9</s></i><i class="bt"></i><i class=""></i><i class="b">58</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class="xk">15<s>9</s></i><i class="r">59</i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i></div><svg class="geo3" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"><line class="cross" x1="7.5" y1="1.5" x2="1.5" y2="1.5"/><line class="lead" x1="1.5" y1="1.5" x2="1.5" y2="4.5"/><line class="cross" x1="1.5" y1="4.5" x2="8.5" y2="4.5"/></svg></div>
+        <figcaption class="figcap"><b>r2c8 and r5c9, linked on the 5.</b> 9 from r2c9, 9 from r4c8, 9 from r5c8.</figcaption>
+      </figure>
+    <div class="mbody">
+      <p class="mwhy">Call the pair <b>A</b>/<b>B</b>, and let the link be on B, with one end seeing the
+             first cell and the other end seeing the second. One of those two ends is a B. Say it
+             is the one next to the first cell: then that cell cannot be B, so it is A. Say it is
+             the other: then the second cell is A. <b>One of the pair is an A either way</b>, so
+             anything seeing both of them cannot be.</p>
+      <p class="mcase"><span>On the board beside this</span>r2c8 and r5c9 both read 9/5, and r2c2/r5c2 are the only 5s in column 2. One of those two is the 5, which knocks the 5 out of r2c8 or r5c9 — so one of the pair is the 9, and anything seeing both loses it.</p>
+      <dl class="kv">
+        <dt>Find it</dt><dd>Bi-value cells are already on your list. Look for the same pair twice, in cells
+             that do <i>not</i> see each other &mdash; then ask whether some unit has exactly two
+             spots for one of the two digits, positioned to reach both.</dd>
+        <dt>Then delete</dt><dd>The other digit, from every cell seeing both of the matching pair.</dd>
+      </dl>
+      <p class="guard"><span>Where it goes wrong</span>The two cells must read <b>exactly</b> the same two digits, and must be strangers
+             to each other. If they see each other you have a naked pair and should have used it
+             already. And the link must be a real strong link on one of the pair's own digits.</p>
+      <p class="mcost">Cheap once bi-value cells are circled, and it reaches across the board in a way
+             the XY-Wing cannot &mdash; the two cells never need to see anything of each other.</p>
+    </div>
+  </div>
+</section>
+<section class="block mblock" id="xy-chain">
+  <span class="eyebrow"><i>18</i> Chain</span>
+  <h2>XY-chain</h2>
+  <p class="mwhat">A run of two-candidate cells, each seeing the next and sharing a digit with it, that begins and ends on the same digit.</p>
+  <div class="mrow">
+      <figure class="mfig">
+        <div class="miniwrap"><div class="mini" role="img" aria-label="4 squares and their marks"><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class="r">58</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl xk">26<s>8</s></i><i class="xk">56<s>8</s>9</i><i class=""></i><i class=""></i><i class="b">48</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class="r">48</i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class=""></i><i class="b">58</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i></div><svg class="geo3" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"><line class="lead" x1="1.5" y1="1.5" x2="1.5" y2="4.5"/><line class="lead" x1="1.5" y1="4.5" x2="1.5" y2="2.5"/><line class="lead" x1="1.5" y1="2.5" x2="7.5" y2="2.5"/></svg></div>
+        <figcaption class="figcap"><b>4 two-mark squares, r2c2 to r3c8.</b> 8 from r2c7, 8 from r2c8.</figcaption>
+      </figure>
+    <div class="mbody">
+      <p class="mwhy">Suppose the first cell is not <b>Z</b>. Then it is its other digit; the next cell
+             sees it and shares that digit, so it must be its own other digit; and so on down the
+             chain. Follow it to the end and the last cell is forced to Z. So <b>either the first
+             cell is Z or the last one is</b> &mdash; and anything seeing both ends loses Z.</p>
+      <p class="mcase"><span>On the board beside this</span>Follow the chain r2c2 → r5c2 → r3c2 → r3c8: each square shares a digit with the next, and both ends can be 8. If r2c2 is not the 8 the whole chain flips and r3c8 is — so one of them is, and anything seeing both loses the 8.</p>
+      <dl class="kv">
+        <dt>Find it</dt><dd>Start from a bi-value cell and treat one of its digits as the one you are chasing.
+             Step to a neighbour that shares the other digit, and keep stepping. Four links is a
+             normal length; if you have not come back to your starting digit by six, start
+             somewhere else.</dd>
+        <dt>Then delete</dt><dd>The chased digit, from every cell seeing both ends of the chain.</dd>
+      </dl>
+      <p class="guard"><span>Where it goes wrong</span>Every cell in the chain must have <b>exactly two</b> candidates &mdash; a cell
+             with three breaks the cascade, because being denied one digit no longer forces the
+             other. And the chain has to come back to the digit it started on: ending on a
+             different one proves nothing.</p>
+      <p class="mcost">The XY-Wing with more links, and the same scan. It is also the easiest chain to
+             check afterwards, which makes it the right one to trust first.</p>
+    </div>
+  </div>
+</section>
+<section class="block mblock" id="aic">
+  <span class="eyebrow"><i>19</i> Chain</span>
+  <h2>AIC</h2>
+  <p class="mwhat">A chain that alternates strong and weak links and begins and ends on a strong one.</p>
+  <div class="mrow">
+      <figure class="mfig">
+        <div class="miniwrap"><div class="mini" role="img" aria-label="4 squares and their marks"><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class="r">358</i><i class="b">1238</i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class="xk"><s>3</s>478</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class="bl bt"></i><i class="bt"></i><i class="bt"></i><i class=""></i><i class="r">3467</i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class="b">2367</i><i class="bl"></i><i class=""></i><i class=""></i><i class="bl"></i><i class=""></i><i class=""></i></div><svg class="geo3" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"><line class="lead" x1="1.5" y1="1.5" x2="2.5" y2="1.5"/><line class="cross" x1="2.5" y1="1.5" x2="2.5" y2="8.5"/><line class="lead" x1="2.5" y1="8.5" x2="1.5" y2="7.5"/></svg></div>
+        <figcaption class="figcap"><b>4 links, r2c2 to r8c2.</b> 3 from r3c2.</figcaption>
+      </figure>
+    <div class="mbody">
+      <p class="mwhy">A <b>strong</b> link says at least one of these two is true; a <b>weak</b> link
+             says at most one of these two is true. Alternate them, starting and ending strong,
+             and the chain proves <b>at least one of its two ends is true</b>. That is the whole
+             of it, and it is why the eight techniques above are variations rather than facts:
+             each is an AIC of some particular shape. From the two ends: if both ends are the
+             same digit, everything seeing both loses it; if they are different digits in cells
+             that see each other, neither end can hold the other's digit; if they are two digits
+             in one cell, every other candidate in that cell dies.</p>
+      <p class="mcase"><span>On the board beside this</span>The chain 3 in r2c2 = 3 in r2c3 = 3 in r9c3 = 3 in r8c2 alternates strong and weak links, so at least one of its two ends is true. Both ends are the 3, so everything seeing both loses it.</p>
+      <dl class="kv">
+        <dt>Find it</dt><dd>Not by sweeping &mdash; by starting somewhere interesting and walking. Take a
+             candidate that sits in a strong link, follow the link, then leave the cell you land
+             on by a weak link, and repeat. Keep the chain short enough to check: three links is
+             a normal find, five is a long one.</dd>
+        <dt>Then delete</dt><dd>Whatever the two ends allow, which is why the ends are the only part worth writing down.</dd>
+      </dl>
+      <p class="guard"><span>Where it goes wrong</span>The links must genuinely alternate, and the chain must both start and end on a
+             strong link &mdash; a chain that ends weak proves nothing whatever it looks like. A
+             strong link is a unit with <b>exactly two</b> spots for the digit, or a cell with
+             exactly two candidates; anything looser is a weak link wearing a disguise.</p>
+      <p class="mcost">The general case, and the last thing to reach for. The trainer only searches for
+             one when nothing cheaper exists on the board, because an AIC that duplicates a
+             pointing pair is not information.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block mblock" id="uniqueness">
+  <span class="eyebrow"><i>20</i> Honesty</span>
+  <h2>The two that trust the puzzle</h2>
+  <p>Every other technique on this site — both tiers — reasons only from the grid in front of you. Give one a position you have corrupted with a wrong digit or a mistaken elimination and it finds nothing, or it finds something that contradicts something else, and you discover the mistake. That is a property worth naming: they <b>degrade safely</b>.</p>
+  <p>The unique rectangle and BUG+1 do not. They reason from the puzzle having exactly one solution, which is a fact about the puzzle rather than about your marks, and it stays true no matter how badly you have mangled the grid. So they keep working after you have made an error, and what they produce is a confident, specific, wrong elimination — on exactly the failure mode this site spends its length warning about.</p>
+  <p>Two things follow, and they are why these two are here at all rather than left out as they are on the Advanced tier:</p>
+  <ul>
+    <li><b>The trainer gates them.</b> Neither is offered unless the digits currently on your board still lead to exactly one solution. That catches a wrong digit outright. It cannot catch a candidate you struck by mistake, because nothing can — your notes are your own claim about the position.</li>
+    <li><b>Use them where the puzzle is guaranteed.</b> An app-generated puzzle has one answer by construction, and an app that checks your entries as you go removes the other half of the risk. On a printed grid of unknown provenance, or one you have been fighting for an hour, treat them as the last thing you reach for rather than the first.</li>
+  </ul>
+  <p>The <a href="index.html#uniqueness">note at the foot of the Advanced page</a> says the same thing from the other side, and explains why the deadly pattern is a footnote there and a technique here.</p>
+</section>
+
+<section class="block mblock" id="order">
+  <span class="eyebrow"><i>21</i> Method</span>
+  <h2>The order to attack in, master edition</h2>
+  <p>The Advanced loop still runs first, all of it, every time. Nothing here is worth a minute of your attention while a pointing pair is unplayed — and on this tier the overwhelmingly likely explanation for a stall is still a missed cheap move or a wrong digit several steps back.</p>
+  <ol class="order">
+    <li>Run the <a href="index.html#order">Advanced order</a> to its end: singles, locked candidates, subsets, X-Wing, skyscraper, swordfish, XY-Wing.</li>
+    <li><b>Unique rectangle.</b> Free to spot if your bi-value cells are circled — you are looking for the same pair twice on one line.</li>
+    <li><b>Finned X-Wing.</b> You already counted the lines; now go back to the ones with three spots.</li>
+    <li><b>Kite, then empty rectangle.</b> Both come off the list of two-spot lines you built during the fish scan.</li>
+    <li><b>Colouring</b>, one digit at a time, starting with whichever digit has the most two-spot units.</li>
+    <li><b>W-Wing</b>, then <b>XY-chain</b>, both starting from the bi-value cells.</li>
+    <li><b>AIC</b>, built by hand from wherever the position looks tightest. If you have got this far, expect one or two links, not six.</li>
+    <li><b>BUG+1</b> is not on this list because you do not hunt it. You notice it, late, when every square is down to two.</li>
+  </ol>
+  <h3>What comes after these</h3>
+  <p>Almost nothing you will need. The next tier up is about <b>sets</b> rather than chains — almost locked sets, Sue de Coq, death blossom — and then about search: forcing chains, Nishio, and eventually just trying a digit and seeing what breaks. They are deliberately absent here for the same reason the Advanced page stops where it does: at the point where a technique is rarer than the mistake you would make trying to spot it, it costs you more than it pays.</p>
+  <p>If a puzzle beats every technique on both pages, the honest possibilities are, in order: a missed cheap move, a wrong digit, an elimination you made by hand that was not sound, or a puzzle that genuinely needs a search. The first three cover almost all of it.</p>
+</section>
+
+<footer>
+  <p>Every position on this page is a real state of a real puzzle with a unique solution, and every elimination shown has been checked against that solution — by the same detectors the <a href="trainer.html">trainer</a> runs, which is where these are worth practising. Square references use <code>r5c3</code> for row 5, column 3. The nine that come before these are on the <a href="index.html">Advanced tier</a>.</p>
+</footer>
+
+</div>
+<script src="assets/js/tier.js"></script>
+<script src="assets/js/pwa.js" defer></script>
+</body>
+</html>

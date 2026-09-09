@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v37';  // v37: the shape gallery and the pattern check
+const VERSION = 'v38';  // v38: the master tier — a second set of nine, and the switch
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
@@ -22,7 +22,7 @@ const PREFIX = 'ast-';
 const SHELL = `${PREFIX}shell-${VERSION}`;  // our files, replaced on bump
 const FONTS = `${PREFIX}fonts`;             // Google Fonts, kept across versions
 
-// Everything the five pages need to run with the network off. `./` is left
+// Everything the eight pages need to run with the network off — both tiers. `./` is left
 // out on purpose: it is byte-for-byte index.html, and the navigation handler
 // already falls back to the cached copy.
 const PRECACHE = [
@@ -31,10 +31,15 @@ const PRECACHE = [
   './cheatsheet.html',
   './gallery.html',
   './check.html',
+  './master.html',
+  './master-cheatsheet.html',
+  './master-gallery.html',
   './manifest.webmanifest',
   './assets/css/site.css',
   './assets/js/core.js',
   './assets/js/techniques.js',
+  './assets/js/master.js',
+  './assets/js/tier.js',
   './assets/js/bank.js',
   './assets/js/import.js',
   './assets/js/trainer.js',

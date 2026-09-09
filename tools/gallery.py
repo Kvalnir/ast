@@ -874,17 +874,17 @@ PAGE = '''<!DOCTYPE html>
 .spot .mini i.x{background:rgba(226,84,63,.20);color:var(--red-ink);text-decoration:line-through}
 .spot .geo3{display:block}</style></noscript>
 </head>
-<body>
+<body data-page="gallery" data-tier="advanced">
 <div class="gal">
 
   <div class="sitebar">
     <span class="mark"><span class="mark-long">Advanced Sudoku <em>Techniques</em></span><span class="mark-short">AST</span></span>
     <nav>
-      <a href="index.html">Patterns</a>
-      <a href="trainer.html">Trainer</a>
-      <a href="cheatsheet.html">Cheat sheet</a>
-      <a href="gallery.html" aria-current="page">Gallery</a>
-      <a href="check.html">Check</a>
+      <a data-page="patterns" href="index.html">Patterns</a>
+      <a data-page="trainer" href="trainer.html">Trainer</a>
+      <a data-page="cheatsheet" href="cheatsheet.html">Cheat sheet</a>
+      <a data-page="gallery" aria-current="page" href="gallery.html">Gallery</a>
+      <a data-page="check" href="check.html">Check</a>
     </nav>
   </div>
 
@@ -933,6 +933,7 @@ document.querySelectorAll(".galall").forEach(function (btn) {
   });
 });
 </script>
+<script src="assets/js/tier.js"></script>
 <script src="assets/js/pwa.js" defer></script>
 </body>
 </html>

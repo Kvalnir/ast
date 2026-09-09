@@ -2,7 +2,11 @@
 (function () {
   'use strict';
   const C = window.SudokuCore, T = window.SudokuTech, BANK = window.SUDOKU_BANK,
-        I = window.SudokuImport;
+        I = window.SudokuImport, M = window.SudokuMaster, TIER = window.SudokuTier;
+  /* The tier decides which detectors the coach is allowed to run, and nothing
+     else: the board, the pads, the ladder and the inspector are the same
+     surface either way. See assets/js/tier.js. */
+  const onMaster = () => !!(M && TIER && TIER.is('master'));
   const $ = id => document.getElementById(id);
   /* A caret that takes text: the paste box, or a text field. Checkboxes and
      the coach's selects keep focus after a click, so they stay out of it —
@@ -41,6 +45,9 @@
     swordfish: 'Swordfish', xy_wing: 'XY-Wing'
   };
   const ADVANCED = ['xwing', 'skyscraper', 'swordfish', 'xy_wing'];
+  const MASTER = M ? M.IDS.slice() : [];
+  const DRILLS = ['pointing', 'claiming', 'naked_pair', 'hidden_pair', 'naked_triple',
+                  'xwing', 'skyscraper', 'swordfish', 'xy_wing'];
 
   /* The four difficulties, named for what a puzzle asks of you rather than for
      how it feels. Mirrors tier_of() in tools/bank.py, which is what stocks the
@@ -80,6 +87,12 @@
     naked_triple: 'naked-triple', hidden_pair: 'hidden-pair', xwing: 'x-wing',
     swordfish: 'swordfish', skyscraper: 'skyscraper', xy_wing: 'xy-wing'
   };
+  /* The master tier brings its own names, one-line definitions and lesson
+     anchors with it, so there is one place each of those is written. */
+  if (M) { Object.assign(NAMES, M.NAME); Object.assign(EXPLAIN, M.EXPLAIN); }
+  const lessonHref = id =>
+    M && M.LESSON[id] ? 'master.html#' + M.LESSON[id]
+      : LESSON[id] ? 'index.html#' + LESSON[id] : null;
 
   /* ---------------- build DOM once ---------------- */
   /* The eight rules each way, drawn once into the overlay that sits on the
@@ -456,9 +469,20 @@
   /* ---------------- coach ---------------- */
   function recompute() {
     if (S.capture) { captureRefresh(); return; }
-    const res = T.findAll(S.grid, S.notes.some(s => s.size) ? liveAll() : null);
+    const notes = S.notes.some(s => s.size) ? liveAll() : null;
+    const res = T.findAll(S.grid, notes);
     S.findings = res.findings;
     S.cand = res.candidates;
+    /* Master findings are appended and the whole list re-sorted by rank, so a
+       naked single still comes before a chain. The base list goes in so the
+       AIC search knows whether anything cheaper already exists — see the note
+       above aic() in master.js. */
+    if (onMaster()) {
+      const m = M.findAll(S.grid, notes, { base: S.findings });
+      S.findings = S.findings.concat(m.findings).sort(
+        (a, b) => a.rank - b.rank || b.elims.length - a.elims.length);
+      S.unique = m.unique;
+    }
     if (S.pick) {
       const still = S.findings.find(f => f.id === S.pick.id &&
         f.cells.join() === S.pick.cells.join() && f.digits.join() === S.pick.digits.join());
@@ -495,7 +519,7 @@
     const wrap = document.createElement('span');
     wrap.className = 'chipwrap';
     const b = document.createElement('button');
-    b.className = 'chip' + (ADVANCED.includes(id) ? ' adv' : '');
+    b.className = 'chip' + (MASTER.includes(id) ? ' mst' : ADVANCED.includes(id) ? ' adv' : '');
     b.type = 'button';
     b.innerHTML = NAMES[id] + (opts.count ? '<span class="n">' + opts.count + '</span>' : '');
     if (opts.pressed !== undefined) b.setAttribute('aria-pressed', !!opts.pressed);
@@ -1104,7 +1128,8 @@
     const f = S.pick;
     if (!f || S.level === 0) {
       const hardest = chooseDefault();
-      const adv = [...new Set(S.findings.filter(x => ADVANCED.includes(x.id) && x.id !== hardest.id)
+      const harder = ADVANCED.concat(MASTER);
+      const adv = [...new Set(S.findings.filter(x => harder.includes(x.id) && x.id !== hardest.id)
                                         .map(x => x.id))];
       lad.innerHTML = '<span class="step">Level 0 — what exists</span>' +
         (S.coach === 'off'
@@ -1133,7 +1158,8 @@
               : f.elims.length + (f.elims.length === 1 ? ' candidate dies: <b>' : ' candidates die: <b>') +
                 f.elims.map(e => e.digit + ' from ' + C.cellName(e.cell)).join(', ') + '</b>.'),
       () => '<span class="step">Level 5 — why</span>' + f.why +
-            (LESSON[f.id] ? ' <a href="index.html#' + LESSON[f.id] + '" style="color:var(--amber)">Read the full technique &rarr;</a>' : '')
+            (lessonHref(f.id) ? ' <a href="' + lessonHref(f.id) +
+             '" style="color:var(--amber)">Read the full technique &rarr;</a>' : '')
     ];
     lad.innerHTML = steps[Math.min(S.level, 5) - 1]();
   }
@@ -1464,8 +1490,24 @@
   $('bFresh').addEventListener('click', () => { endCapture(); newPuzzle(); iSay(''); });
 
   const drillEl = $('drills');
-  ['pointing', 'claiming', 'naked_pair', 'hidden_pair', 'naked_triple', 'xwing', 'skyscraper', 'swordfish', 'xy_wing']
-    .forEach(id => drillEl.appendChild(makeChip(id, { onClick: () => startDrill(id) })));
+  function fillDrills() {
+    drillEl.innerHTML = '';
+    DRILLS.concat(onMaster() ? MASTER : [])
+      .forEach(id => drillEl.appendChild(makeChip(id, { onClick: () => startDrill(id) })));
+  }
+  fillDrills();
+
+  /* Flipping the switch does not reload this page — it is the same board with
+     a different set of detectors reading it — so everything the tier decides
+     has to be rebuilt here. */
+  if (TIER) TIER.onChange(() => {
+    fillDrills();
+    S.pick = null; S.level = 0;
+    recompute();
+    flash(onMaster()
+      ? 'Master tier: the coach now reads uniqueness, finned fish, colouring, wings and chains as well.'
+      : 'Advanced tier: back to the nine.', '');
+  });
 
   /* A press on the page at large lets the selection go. Everything that reads
      or acts on selected squares lives in one of the two columns — the board

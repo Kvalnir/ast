@@ -10,7 +10,9 @@
    the count you still owe". */
 (function () {
   'use strict';
-  const C = window.SudokuCore, T = window.SudokuTech;
+  const C = window.SudokuCore, T = window.SudokuTech,
+        M = window.SudokuMaster, TIER = window.SudokuTier;
+  const onMaster = () => !!(M && TIER && TIER.is('master'));
   const $ = id => document.getElementById(id);
   const boardEl = $('board'), geoEl = $('geo');
 
@@ -35,11 +37,39 @@
     ['skyscraper', 'Skyscraper', 'the two spots in each of the two lines'],
     ['xy_wing', 'XY-Wing', 'the hinge and both wings']
   ];
+  /* What to mark before you press, for the tier above. Longer, because most of
+     these are two things joined — a pattern and the link that arms it. */
+  const MASTER_TECHS = [
+    ['unique_rect', 'Unique rectangle', 'all four corners of the rectangle'],
+    ['bug', 'BUG+1', 'nothing — this one needs the whole board'],
+    ['finned', 'Finned X-Wing', 'the four corners and every fin'],
+    ['kite', '2-string kite', 'the two spots in the row and the two in the column'],
+    ['empty_rect', 'Empty rectangle', 'the box’s spots, plus both ends of the link'],
+    ['colouring', 'Simple colouring', 'every square in the chain'],
+    ['w_wing', 'W-Wing', 'the two matching squares and both ends of the link'],
+    ['xy_chain', 'XY-chain', 'every two-mark square in the chain'],
+    ['aic', 'AIC', 'every square the chain runs through']
+  ];
+  const isMasterId = id => MASTER_TECHS.some(t => t[0] === id);
 
   /* An XY-Wing off the cheat sheet, so the first thing the panel ever says is
      a worked example rather than an empty state. Verified there, and audited
      here by the same code as anything you type. */
-  const DEMO = { 42: [1, 5], 60: [1, 9], 52: [5, 9] };
+  const DEMO = {
+    id: 'xy_wing',
+    marks: { 42: [1, 5], 60: [1, 9], 52: [5, 9] },
+    say: 'An XY-Wing from the cheat sheet, typed in for you. Press the other names to see what a ' +
+         'refusal looks like.'
+  };
+  /* The master demo is a four-link XY-chain, which is the one technique up
+     there a fragment can settle outright — so the first thing the panel says
+     on this tier is a real yes rather than a list of counts you owe. */
+  const DEMO_MASTER = {
+    id: 'xy_chain',
+    marks: { 0: [1, 2], 4: [2, 3], 40: [3, 4], 44: [4, 1] },
+    say: 'A four-link XY-chain. Press the other names to watch it refuse, and note how much of ' +
+         'this tier comes back as a count only your own grid can settle.'
+  };
 
   /* ---------------- board ---------------- */
   let rules = '';
@@ -153,19 +183,33 @@
 
   /* ---------------- asking ---------------- */
   const chips = $('chips');
-  TECHS.forEach(([id, name, need]) => {
-    const b = document.createElement('button');
-    b.className = 'chip'; b.type = 'button'; b.dataset.id = id;
-    b.setAttribute('aria-pressed', 'false');
-    b.textContent = name;
-    b.title = 'Mark ' + need + ', then press this.';
-    b.addEventListener('click', () => ask(id));
-    chips.appendChild(b);
+  function fillChips() {
+    chips.innerHTML = '';
+    (onMaster() ? MASTER_TECHS : TECHS).forEach(([id, name, need]) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (onMaster() ? ' mst' : ''); b.type = 'button'; b.dataset.id = id;
+      b.setAttribute('aria-pressed', 'false');
+      b.textContent = name;
+      b.title = 'Mark ' + need + ', then press this.';
+      b.addEventListener('click', () => ask(id));
+      chips.appendChild(b);
+    });
+  }
+  fillChips();
+  if (TIER) TIER.onChange(() => {
+    /* The question changes, so the answer to the old one goes. The marks stay:
+       the squares you copied in are the same squares either way. */
+    S.report = null; S.id = null;
+    fillChips();
+    say(onMaster()
+      ? 'Master tier. The same board, audited against uniqueness, fins, colouring, wings and chains.'
+      : 'Advanced tier. Back to the nine.', '');
+    render();
   });
 
   function ask(id) {
     S.id = id;
-    S.report = T.audit(S.notes, id, S.sel);
+    S.report = isMasterId(id) ? M.audit(S.notes, id, S.sel) : T.audit(S.notes, id, S.sel);
     say('');
     render();
   }
@@ -280,6 +324,7 @@
     [...chips.children].forEach(b => {
       b.setAttribute('aria-pressed', String(S.id === b.dataset.id));
     });
+    $('bDemo').textContent = onMaster() ? 'Show me one' : 'Show me one';
     renderReport();
   }
 
@@ -341,11 +386,11 @@
   $('bClear').addEventListener('click', clearCells);
   $('bWipe').addEventListener('click', clearBoard);
   $('bDemo').addEventListener('click', () => {
+    const demo = onMaster() ? DEMO_MASTER : DEMO;
     clearBoard();
-    Object.keys(DEMO).forEach(k => DEMO[k].forEach(d => S.notes[+k].add(d)));
-    ask('xy_wing');
-    say('An XY-Wing from the cheat sheet, typed in for you. Press the other names to see what a ' +
-        'refusal looks like.', '');
+    Object.keys(demo.marks).forEach(k => demo.marks[k].forEach(d => S.notes[+k].add(d)));
+    ask(demo.id);
+    say(demo.say, '');
   });
 
   render();

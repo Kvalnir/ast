@@ -19,17 +19,17 @@
 <meta name="apple-mobile-web-app-title" content="AST">
 <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body>
+<body data-page="cheatsheet" data-tier="advanced">
 <div class="crib">
 
   <div class="sitebar">
     <span class="mark"><span class="mark-long">Advanced Sudoku <em>Techniques</em></span><span class="mark-short">AST</span></span>
     <nav>
-      <a href="index.html">Patterns</a>
-      <a href="trainer.html">Trainer</a>
-      <a href="cheatsheet.html" aria-current="page">Cheat sheet</a>
-      <a href="gallery.html">Gallery</a>
-      <a href="check.html">Check</a>
+      <a data-page="patterns" href="index.html">Patterns</a>
+      <a data-page="trainer" href="trainer.html">Trainer</a>
+      <a data-page="cheatsheet" aria-current="page" href="cheatsheet.html">Cheat sheet</a>
+      <a data-page="gallery" href="gallery.html">Gallery</a>
+      <a data-page="check" href="check.html">Check</a>
     </nav>
   </div>
 
@@ -237,6 +237,7 @@
   </footer>
 
 </div>
+<script src="assets/js/tier.js"></script>
 <script src="assets/js/pwa.js" defer></script>
 </body>
 </html>
