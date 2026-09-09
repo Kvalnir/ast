@@ -1,6 +1,6 @@
 # Advanced Sudoku Techniques
 
-A three-page static site for getting past the wall in Apple News+ **Challenging** sudoku.
+A five-page static site for getting past the wall in Apple News+ **Challenging** sudoku.
 
 - **`index.html`** — the pattern reference. Nine patterns, each on a real position with real
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
@@ -13,6 +13,13 @@ A three-page static site for getting past the wall in Apple News+ **Challenging*
   the deletion it earns, and where it goes wrong. The reference is what you read; this is what you
   keep open beside the puzzle. Each card links back to its full write-up, and its figures are
   miniatures of the same positions.
+- **`gallery.html`** — recognition practice. Nine figures per technique, **six real and three near
+  misses**, shuffled, with the answer hidden until you tap. Generated: real positions, real
+  detectors, and every near miss checked to contain no instance of the technique it is filed under.
+- **`check.html`** — a blank board for the four or five squares you are actually looking at. Copy in
+  their pencil marks, name the technique you think it is, and it reads that pattern's conditions
+  back one at a time — ticked where your marks settle them, and named as **yours to check** where
+  they cannot be settled from a partial board.
 
 Every position shown, and every elimination claimed, is verified against the puzzle's unique
 solution — nothing here is hand-waved.
@@ -32,7 +39,8 @@ Setting a new copy up from scratch:
 
 ```bash
 git init
-git add index.html trainer.html cheatsheet.html manifest.webmanifest sw.js assets tools \
+git add index.html trainer.html cheatsheet.html gallery.html check.html \
+        manifest.webmanifest sw.js assets tools \
         .githooks \
         .gitignore .nojekyll README.md
 git commit -m "Sudoku pattern trainer"
@@ -58,14 +66,17 @@ untouched.
 index.html              pattern reference (generated — see tools/)
 trainer.html            interactive board
 cheatsheet.html         one-page crib of the nine (generated — see tools/)
+gallery.html            nine figures per technique, six real (generated — see tools/)
+check.html              scratch board: audit a pattern from a handful of marks
 manifest.webmanifest    PWA metadata: name, icons, start URL
 sw.js                   service worker — precache, offline, update prompt
 assets/css/site.css     shared design tokens and all page styles
 assets/js/core.js       units, peers, candidates, backtracking solver
-assets/js/techniques.js the nine detectors, plus verify() — see "Two questions" below
+assets/js/techniques.js the nine detectors, plus verify() and audit() — see "Three questions" below
 assets/js/bank.js       32 verified puzzles, tagged by technique required
 assets/js/import.js     read a puzzle off another screen: validate, derive, tag
 assets/js/trainer.js    board UI, News+ behaviours, hint ladder, the two pads
+assets/js/check.js      the scratch board: marks in, conditions out
 assets/js/pwa.js        service worker registration, update and install prompts
 assets/icons/*.png      app icons (generated — see tools/icons.py)
 assets/icons/icon.svg   the same mark as vector, for the tab favicon (hand-written)
@@ -87,13 +98,13 @@ Edit each pair together or they drift.
 The site is a PWA, which matters here because a sudoku trainer is something you reach for on a
 phone, on a train, without a signal. Open it, then **Add to Home Screen** (iOS Share menu) or take
 the **Install** offer the site makes on Chromium browsers. It opens without browser chrome and
-starts on the trainer; the reference and the cheat sheet are one tap away in the site bar, and all
-three work with the network off.
+starts on the trainer; the other four are one tap away in the site bar, and all five work with the
+network off.
 
 Two things worth knowing:
 
-- **Everything is precached on the first visit** — all three pages, the CSS, all six scripts and
-  the seven icons: 18 files, 451 KB. There is no lazy loading to go wrong later.
+- **Everything is precached on the first visit** — all five pages, the CSS, all seven scripts and
+  the seven icons: 21 files. There is no lazy loading to go wrong later.
 - **Fonts arrive one visit late.** They come from Google Fonts, and on a first visit the page has
   already requested them before the worker takes control, so they are only cached from the second
   visit onwards. Until then an offline load falls back to the system stack — the layout holds, the
@@ -295,6 +306,49 @@ JavaScript on the page at all.
 **Uniqueness is a footnote, not a card** — see the note at the foot of Patterns, linked from the
 glossary. The reasoning is in *Notes on scope* below.
 
+## The gallery
+
+**One position per technique is enough to teach the idea and useless for training the eye.** The
+reference draws each of the nine once, on a clean position; the one you meet tomorrow is the same
+logic on a different digit, in a different orientation, with a third spot in the line that kills it.
+So the gallery draws each technique on nine boards, hides the answer, and asks the only question
+that costs you time at the puzzle: *is this one or isn't it?*
+
+**Three of the nine are not.** That is the part that does the work. A wall of correct examples
+trains you to say yes, and saying yes is not the failure — the failure is a false positive, so
+three near misses per technique are shuffled in among the six and the caption tells you which
+you were looking at only after you have decided.
+
+**Everything on the page is generated and checked** — see `tools/gallery.py` and *Rebuilding the
+content* below. The figures use the cheat sheet's convention and `mini.py`'s renderer, so a
+technique looks the same wherever the site draws it, and the answer is revealed by a class on an
+ancestor rather than by a second copy of the figure.
+
+**A single-digit figure shows one digit's whole map**, which is the view the News+ highlight hands
+you and therefore the view these are actually hunted in. Subset figures show one unit's marks;
+XY-Wing figures show every two-mark square on the board. A cell with more marks than fit prints as
+a dot — which is also the honest read, since a cell with five marks is one you have already ruled
+out of a subset.
+
+## The pattern check
+
+**The trainer answers questions about a position. This answers questions about a fragment.** You
+are looking at four squares in another app and you think they are an X-Wing. Nothing on the site
+could tell you, short of typing the whole puzzle in — so this is a blank board that takes the four
+squares and their marks and audits them.
+
+**Its honesty is the feature.** Half the techniques cannot be confirmed from a fragment: a fish or
+a locked candidate is a claim about a whole line or box, and a partial board has nothing to say
+about squares you did not type. So the panel reports three states rather than two — settled,
+contradicted, and *named as yours to check* — and never turns the third into the first. See *Three
+questions* below for what that costs and buys.
+
+**It gets better as you type.** Mark the rest of a line and its assumption resolves into a tick or a
+refusal. Mark everything and the answer becomes as definite as the trainer's.
+
+**No pen, no solver, no hints.** A digit placed in a square is a fact about the puzzle, and this
+board is about candidates only: the pattern lives in the marks.
+
 ## Rebuilding the content
 
 Only needed if you want different puzzles or edited lesson text.
@@ -305,6 +359,7 @@ python3 bank.py        # regenerate the puzzle bank (slow — it verifies unique
                        # 8 puzzles per tier; tier_of() decides which tier each lands in
 python3 build.py       # regenerate ../index.html from template.html
 python3 cheatsheet.py  # regenerate ../cheatsheet.html
+python3 gallery.py     # regenerate ../gallery.html (slow — it generates its own puzzles)
 ```
 
 `build.py` takes its prose from `template.html` and its figures from `examples.json`.
@@ -319,6 +374,29 @@ single uniqueness example at the foot of the lesson. One renderer, so the two pa
 into two dialects of the same picture. The uniqueness figure is the only one built by hand rather
 than read out of a verified position — if you edit it, check it stays a legal deadly pattern: four
 cells, two rows, two columns, and exactly two boxes.
+
+`gallery.py` stands apart from the other two: it takes no prose from `template.html` and no
+positions from `examples.json`. It generates its own puzzles, walks each one down the engine's own
+solve path, and harvests instances of every technique straight out of `engine.py`'s `all_*`
+generators — the same detectors the solver reads its moves from, so a figure on the gallery cannot
+disagree with a move in the trainer. Three things are asserted before anything is written, and they
+are the page's whole claim to be worth reading:
+
+- every position is a real state of a real puzzle with one solution, reached by playing the
+  engine's own moves;
+- every elimination shown is checked against that puzzle's solution;
+- every near miss is checked to be one — the technique is run over the position again, at the level
+  of the configuration rather than the move, and must find **nothing** on the digit or in the unit
+  the figure shows. A barren pattern that eliminates nothing is still a pattern, and a figure
+  captioned *no* that contains one would be a lie.
+
+The near misses are harvested, not manufactured: a box with one stray spot, three cells pooling to
+four digits, two strong lines that meet twice. They are positions, not edits to positions.
+
+`engine.py`'s detectors each come in two forms — an `all_*` generator and the one-line wrapper the
+solver uses, which takes the first result. The wrappers preserve the generators' order, so what the
+solver sees is unchanged; `bank.json` regenerates byte-for-byte after the split, which is the check
+worth re-running if you touch them.
 
 `bank.py` emits `bank.json`; convert it to `assets/js/bank.js` with:
 
@@ -360,7 +438,7 @@ The same snippet runs in a browser console on any page of the site, where `Sudok
 `SudokuTech` and `SUDOKU_BANK` are already globals — drop the three `require` lines and read the
 bank from `SUDOKU_BANK`. Useful when the machine in front of you has no node.
 
-### Two questions, two code paths
+### Three questions, three code paths
 
 `findAll` answers *what can I play here?* and every detector past the singles bails the moment a
 pattern kills nothing, because a move that changes no candidate is not a move. `verify` — what
@@ -382,6 +460,30 @@ shapes 33793   missed 0   still-named-when-sterile 19098   vanished 0
 
 Nineteen thousand of those thirty-four thousand shapes are invisible to the coach. That is the
 feature, not a rounding error.
+
+The third question is `audit`, which is what **`check.html`** runs: *would this be one?* — asked of
+a blank board carrying nothing but the handful of marks you have typed. It cannot share the other
+two paths because it cannot share their idea of an empty square. On the trainer's board an unmarked
+square has the candidates its peers leave it; on the scratch board it has none, because you have
+not said anything about it, and the code must not invent something.
+
+That splits every technique's conditions in two, and the split is the whole design:
+
+- conditions the marks settle — two cells holding the same two digits, a hinge that sees both its
+  wings, four cells making a rectangle — come back ok or bad;
+- conditions that are claims about squares you have **not** typed — "row 2 holds no other 6" —
+  come back `assume`, named in full as the scan you still owe.
+
+So a naked pair or an XY-Wing can be answered outright, because everything they claim is local. A
+fish, a hidden pair or a locked candidate cannot: their trigger is a count over a whole unit, and
+the honest answer is *the rest checks out, and here is the count only your grid can make*. A tool
+that reported those as ok would be guessing, and guessing confidently is the exact failure the page
+exists to fix.
+
+Type more of the position in and the assumptions resolve — a mark that contradicts one turns it
+from unchecked to false, and a unit you fill in completely turns it into a tick. That is the right
+incentive, and it is why the page rewards copying in the rest of a line rather than only the
+pattern.
 
 ## Notes on scope
 

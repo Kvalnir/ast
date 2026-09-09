@@ -249,6 +249,8 @@ HTML = f'''<!DOCTYPE html>
       <a href="index.html">Patterns</a>
       <a href="trainer.html">Trainer</a>
       <a href="cheatsheet.html" aria-current="page">Cheat sheet</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="check.html">Check</a>
     </nav>
   </div>
 

@@ -98,21 +98,30 @@ class State:
 def name(i): return "r%dc%d" % (row(i)+1, col(i)+1)
 
 # ---------- basic techniques ----------
-def naked_single(s):
+# Every detector comes in two forms: a generator that yields each instance it
+# can see in the position, and the one-line wrapper the solver uses, which
+# takes the first. The solver only ever wanted a move; tools/gallery.py wants
+# all of them, to pick nine that look different from each other. The wrappers
+# keep the generators' order, so what the solver sees is unchanged -- and one
+# detector per technique is why the gallery's figures cannot drift away from
+# the moves the trainer offers.
+def all_naked_single(s):
     for i in range(81):
         if not s.g[i] and len(s.c[i]) == 1:
-            return {"type":"naked_single","cell":i,"digit":next(iter(s.c[i]))}
-    return None
+            yield {"type":"naked_single","cell":i,"digit":next(iter(s.c[i]))}
 
-def hidden_single(s):
+def naked_single(s): return next(all_naked_single(s), None)
+
+def all_hidden_single(s):
     for u in UNITS:
         for d in range(1,10):
             spots = [i for i in u if not s.g[i] and d in s.c[i]]
             if len(spots) == 1 and not any(s.g[i]==d for i in u):
-                return {"type":"hidden_single","cell":spots[0],"digit":d,"unit":u}
-    return None
+                yield {"type":"hidden_single","cell":spots[0],"digit":d,"unit":u}
 
-def locked_candidates(s):
+def hidden_single(s): return next(all_hidden_single(s), None)
+
+def all_locked_candidates(s):
     # pointing: box -> line ; claiming: line -> box
     for b_idx, b in enumerate(BOXES):
         for d in range(1,10):
@@ -122,7 +131,7 @@ def locked_candidates(s):
                 if all(i in line for i in spots):
                     elim = [i for i in line if i not in b and not s.g[i] and d in s.c[i]]
                     if elim:
-                        return {"type":"pointing","digit":d,"base":spots,"elim":elim,"unit":line,"box":b}
+                        yield {"type":"pointing","digit":d,"base":spots,"elim":elim,"unit":line,"box":b}
     for line in ROWS+COLS:
         for d in range(1,10):
             spots = [i for i in line if not s.g[i] and d in s.c[i]]
@@ -131,10 +140,11 @@ def locked_candidates(s):
             if all(i in b for i in spots):
                 elim = [i for i in b if i not in line and not s.g[i] and d in s.c[i]]
                 if elim:
-                    return {"type":"claiming","digit":d,"base":spots,"elim":elim,"unit":line,"box":b}
-    return None
+                    yield {"type":"claiming","digit":d,"base":spots,"elim":elim,"unit":line,"box":b}
 
-def naked_subset(s, size):
+def locked_candidates(s): return next(all_locked_candidates(s), None)
+
+def all_naked_subset(s, size):
     for u in UNITS:
         cells = [i for i in u if not s.g[i] and len(s.c[i]) <= size and len(s.c[i]) >= 2]
         for combo in itertools.combinations(cells, size):
@@ -147,11 +157,12 @@ def naked_subset(s, size):
                     if s.c[i] & union:
                         elim.append(i)
                 if elim:
-                    return {"type":"naked_%d"%size,"base":list(combo),"digits":sorted(union),
-                            "elim":elim,"unit":u}
-    return None
+                    yield {"type":"naked_%d"%size,"base":list(combo),"digits":sorted(union),
+                           "elim":elim,"unit":u}
 
-def hidden_subset(s, size):
+def naked_subset(s, size): return next(all_naked_subset(s, size), None)
+
+def all_hidden_subset(s, size):
     for u in UNITS:
         free = [i for i in u if not s.g[i]]
         digs = [d for d in range(1,10) if any(d in s.c[i] for i in free)]
@@ -162,12 +173,13 @@ def hidden_subset(s, size):
             if len(spots) == size and all(len({d for d in combo if d in s.c[i]})>=1 for i in spots):
                 elim = [i for i in spots if s.c[i] - set(combo)]
                 if elim:
-                    return {"type":"hidden_%d"%size,"base":sorted(spots),"digits":sorted(combo),
-                            "elim":elim,"unit":u}
-    return None
+                    yield {"type":"hidden_%d"%size,"base":sorted(spots),"digits":sorted(combo),
+                           "elim":elim,"unit":u}
+
+def hidden_subset(s, size): return next(all_hidden_subset(s, size), None)
 
 # ---------- fish ----------
-def fish(s, size):
+def all_fish(s, size):
     for d in range(1,10):
         for lines, other in ((ROWS, COLS), (COLS, ROWS)):
             avail = []
@@ -189,14 +201,16 @@ def fish(s, size):
                         if i in base or s.g[i]: continue
                         if d in s.c[i]: elim.append(i)
                 if elim:
-                    return {"type":"xwing" if size==2 else ("swordfish" if size==3 else "jellyfish"),
-                            "digit":d,"base":base,"elim":elim,
-                            "orient":"row" if lines is ROWS else "col",
-                            "lines":[li for li,_ in combo],"cross":sorted(cross)}
-    return None
+                    yield {"type":"xwing" if size==2 else ("swordfish" if size==3 else "jellyfish"),
+                           "digit":d,"base":base,"elim":elim,
+                           "orient":"row" if lines is ROWS else "col",
+                           "lines":[li for li,_ in combo],"cross":sorted(cross),
+                           "spots":[spots for _,spots in combo]}
+
+def fish(s, size): return next(all_fish(s, size), None)
 
 # ---------- wings ----------
-def xy_wing(s):
+def all_xy_wing(s):
     bi = [i for i in range(81) if not s.g[i] and len(s.c[i])==2]
     for p in bi:
         X, Y = sorted(s.c[p])
@@ -213,12 +227,13 @@ def xy_wing(s):
                 elim = [i for i in range(81) if not s.g[i] and i not in (p,a,b)
                         and i in PEERS[a] and i in PEERS[b] and Z in s.c[i]]
                 if elim:
-                    return {"type":"xy_wing","pivot":p,"wings":[a,b],"digit":Z,
-                            "elim":elim,"base":[p,a,b],
-                            "labels":{"pivot":[X,Y],"a":[X,Z],"b":[Y,Z]}}
-    return None
+                    yield {"type":"xy_wing","pivot":p,"wings":[a,b],"digit":Z,
+                           "elim":elim,"base":[p,a,b],
+                           "labels":{"pivot":[X,Y],"a":[X,Z],"b":[Y,Z]}}
 
-def skyscraper(s):
+def xy_wing(s): return next(all_xy_wing(s), None)
+
+def all_skyscraper(s):
     for d in range(1,10):
         for lines, other in ((ROWS,COLS),(COLS,ROWS)):
             strong = []
@@ -240,10 +255,11 @@ def skyscraper(s):
                               and i not in (a1,a2,b1,b2)
                               and i in PEERS[b1] and i in PEERS[b2]]
                         if elim:
-                            return {"type":"skyscraper","digit":d,"base":[a1,a2,b1,b2],
-                                    "roof":[b1,b2],"floor":[a1,a2],"elim":elim,
-                                    "orient":"row" if lines is ROWS else "col"}
-    return None
+                            yield {"type":"skyscraper","digit":d,"base":[a1,a2,b1,b2],
+                                   "roof":[b1,b2],"floor":[a1,a2],"elim":elim,
+                                   "orient":"row" if lines is ROWS else "col"}
+
+def skyscraper(s): return next(all_skyscraper(s), None)
 
 # ---------- solve loop ----------
 BASIC = [

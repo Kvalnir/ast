@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pattern check — Advanced Sudoku Techniques</title>
+<meta name="description" content="Type in the few squares you are looking at, name the technique you think it is, and get the conditions of that pattern checked one at a time — including the ones only your own grid can settle.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400;12..96,75..100,700;12..96,75..100,800&family=Instrument+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0A1014">
+<link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="AST">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<div class="trainer check">
+
+  <div class="sitebar">
+    <span class="mark"><span class="mark-long">Advanced Sudoku <em>Techniques</em></span><span class="mark-short">AST</span></span>
+    <nav>
+      <a href="index.html">Patterns</a>
+      <a href="trainer.html">Trainer</a>
+      <a href="cheatsheet.html">Cheat sheet</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="check.html" aria-current="page">Check</a>
+    </nav>
+  </div>
+
+  <header class="thead">
+    <h1>Pattern check</h1>
+    <p class="look">A blank board for the four or five squares you are actually staring at. Copy in their pencil marks, say which technique you think you are looking at, and this reads the conditions of that pattern back to you one at a time &mdash; ticked where your marks settle them, and <b>named as yours to check</b> where they cannot. It solves nothing, and it never guesses: an empty square here means <i>you have not told me</i>, not <i>anything is possible</i>.</p>
+    <div class="tmeta">
+      <span class="badge" id="mCount">empty board</span>
+      <span class="badge" id="mSel">auditing every marked square</span>
+    </div>
+  </header>
+
+  <div class="tgrid">
+  <div class="tplay">
+
+  <div class="boardwrap" id="boardwrap">
+    <div class="board" id="board" role="grid" aria-label="Scratch board">
+      <svg class="grid2" id="gridlines" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
+    <svg class="geo2" id="geo" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true"></svg>
+  </div>
+
+  <!-- One pad, because there is only one thing to write here. No pen: a digit
+       placed in a square is a fact about the puzzle, and this board is about
+       candidates only — the pattern lives in the marks. -->
+  <div class="padrow checkpad">
+    <div class="padside">
+      <p class="padcap">
+        <span>Pencil marks</span>
+        <button class="minitog" id="bMulti" aria-pressed="false" title="Keep every square you tap, so a press writes the same mark into all of them. Off, a tap moves the selection.">multi</button>
+      </p>
+      <div class="pad padmark" id="pad"></div>
+    </div>
+    <div class="tools">
+      <button class="tbtn" id="bErase" aria-pressed="false" title="Rub out — the pad takes marks away instead of adding them">Rub out</button>
+      <button class="tbtn" id="bClear" disabled title="Empty the selected squares">Clear squares</button>
+      <button class="tbtn" id="bWipe" title="Empty the whole board">Clear board</button>
+      <button class="tbtn" id="bDemo" title="Type in a worked XY-Wing from the cheat sheet">Show me one</button>
+    </div>
+  </div>
+  <p class="padlabel" id="padHint">Tap a square, then press digits to write its pencil marks</p>
+  <p class="note flash" id="flash"></p>
+
+  </div><!-- /.tplay -->
+  <div class="tside">
+
+  <section class="coach">
+    <div class="coachhead">
+      <h2>What do you think it is?</h2>
+    </div>
+    <p class="note">Mark the squares that make the pattern, and nothing else. To let it check a <i>count</i> as well &mdash; that a line really has only two spots &mdash; mark the rest of that line too, then select just the pattern squares before you press.</p>
+    <div class="chips" id="chips"></div>
+    <div class="report" id="report"></div>
+  </section>
+
+  <section class="coach">
+    <div class="coachhead"><h2>What this can and cannot know</h2></div>
+    <p class="note">Every technique splits into conditions about <b>the squares in front of you</b> and conditions about <b>the squares you have not written down</b>.</p>
+    <ul class="condkey">
+      <li class="ok"><span aria-hidden="true">✓</span><span>Settled by your marks. A naked pair and an XY-Wing are nothing but conditions of this kind, so a <i>yes</i> on those is a real yes.</span></li>
+      <li class="assume"><span aria-hidden="true">?</span><span>A claim about squares you have not typed &mdash; &ldquo;row 2 holds no other 6&rdquo;. This cannot see them, so it names the scan instead of assuming it. Type more of that line in and it resolves, one way or the other.</span></li>
+      <li class="bad"><span aria-hidden="true">✗</span><span>Contradicted, either by where the squares sit or by a mark you typed. This is the answer you came for.</span></li>
+    </ul>
+    <p class="note">Working on a whole puzzle instead? The <a href="trainer.html">trainer</a> has the same idea with the position filled in: switch on <b>Read the board</b> and tap squares, and it names what they are. This page is for the case where you have not got a board in the app at all &mdash; just a few squares on paper, or on the screen of another device.</p>
+  </section>
+
+  </div><!-- /.tside -->
+  </div><!-- /.tgrid -->
+
+</div>
+
+<script src="assets/js/core.js"></script>
+<script src="assets/js/techniques.js"></script>
+<script src="assets/js/check.js"></script>
+<script src="assets/js/pwa.js" defer></script>
+</body>
+</html>
