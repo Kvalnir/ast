@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v38';  // v38: the master tier — a second set of nine, and the switch
+const VERSION = 'v39';  // v39: the check page's pad row, laid out like the trainer's
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between

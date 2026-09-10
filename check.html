@@ -58,19 +58,25 @@
   <div class="padrow checkpad">
     <div class="padside">
       <p class="padcap">
-        <span>Pencil marks</span>
-        <button class="minitog" id="bMulti" aria-pressed="false" title="Keep every square you tap, so a press writes the same mark into all of them. Off, a tap moves the selection.">multi</button>
+        <span id="capMark">Pencil marks</span>
+        <button class="minitog" id="bMulti" aria-pressed="false" title="Keep every square you tap. Off, a tap moves the selection; on, it adds to it — and a mouse can always drag across the board instead.">multi</button>
       </p>
       <div class="pad padmark" id="pad"></div>
     </div>
+    <!-- Paired by kind, as the trainer's six are, and on the same three rows so
+         the tools line up with the three rows of keys beside them: the two that
+         take something back on top, the two that empty below it, and the worked
+         example across the bottom — that one builds a position rather than
+         editing the one you have, which is why it is not in either pair. -->
     <div class="tools">
-      <button class="tbtn" id="bErase" aria-pressed="false" title="Rub out — the pad takes marks away instead of adding them">Rub out</button>
+      <button class="tbtn" id="bUndo" disabled title="Undo — puts back the marks the last press changed">Undo</button>
+      <button class="tbtn" id="bErase" aria-pressed="false" title="Erase — the pad takes marks away instead of adding them. Press again to go back to writing.">Erase</button>
       <button class="tbtn" id="bClear" disabled title="Empty the selected squares">Clear squares</button>
       <button class="tbtn" id="bWipe" title="Empty the whole board">Clear board</button>
-      <button class="tbtn" id="bDemo" title="Type in a worked XY-Wing from the cheat sheet">Show me one</button>
+      <button class="tbtn wide" id="bDemo" title="Type in a worked XY-Wing from the cheat sheet">Show me one</button>
     </div>
   </div>
-  <p class="padlabel" id="padHint">Tap a square, then press digits to write its pencil marks</p>
+  <p class="padlabel" id="padHint">Nothing selected &mdash; tap a square, or a number to light it</p>
   <p class="note flash" id="flash"></p>
 
   </div><!-- /.tplay -->
@@ -78,13 +84,17 @@
 
   <section class="coach">
     <div class="coachhead">
-      <h2>What do you think it is?</h2>
+      <h2>Name the technique</h2>
     </div>
     <p class="note">Mark the squares that make the pattern, and nothing else. To let it check a <i>count</i> as well &mdash; that a line really has only two spots &mdash; mark the rest of that line too, then select just the pattern squares before you press.</p>
     <div class="chips" id="chips"></div>
     <div class="report" id="report"></div>
   </section>
 
+  <!-- Not a <details>, though the trainer collapses its reference panels. The
+       test there is a column that outgrows the board beside it; this column is
+       two panels and ends well above the pads either way, so collapsing this
+       one would buy nothing and cost the page its balance. -->
   <section class="coach">
     <div class="coachhead"><h2>What this can and cannot know</h2></div>
     <p class="note">Every technique splits into conditions about <b>the squares in front of you</b> and conditions about <b>the squares you have not written down</b>.</p>

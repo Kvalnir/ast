@@ -18,10 +18,30 @@
 
   const S = {
     notes: [], sel: [], multi: false, erase: false,
-    id: null, report: null, focus: null
+    id: null, report: null, focus: null, history: []
   };
   const blank = () => { const a = []; for (let i = 0; i < 81; i++) a.push(new Set()); return a; };
   S.notes = blank();
+
+  /* ---------------- history ---------------- */
+  /* Marks only, because marks are all there is here — no grid, no givens, no
+     solution. Two hundred steps, as the trainer keeps, and for a sharper
+     reason: Clear board is one press away from the pad, and nothing else on
+     this page could put those squares back. */
+  function snapshot() {
+    S.history.push(S.notes.map(n => [...n]));
+    if (S.history.length > 200) S.history.shift();
+  }
+  function undo() {
+    const h = S.history.pop(); if (!h) return;
+    S.notes = h.map(a => new Set(a));
+    /* The report described the marks that have just gone. Same rule as
+       stale(): a verdict about a board that no longer exists is the one thing
+       this page cannot leave on the screen. */
+    S.report = null; S.id = null;
+    say('Undone.', '');
+    render();
+  }
 
   /* The nine, in the site's order. `need` is what to select, and it is here
      rather than in the audit because it is advice for before you press, not a
@@ -147,7 +167,12 @@
   }
 
   function mark(d) {
-    if (!S.sel.length) { say('Tap a square first — the pad writes into the selection.', 'warn'); return; }
+    /* Nothing selected, so the press lights the digit rather than writing it —
+       the trainer's focus mode, on a board where it answers a slightly
+       different question: not "where can a 6 go" but "did I type the 6s I
+       meant to". Pressing it again puts it out. */
+    if (!S.sel.length) { S.focus = S.focus === d ? null : d; render(); return; }
+    snapshot();
     if (S.erase) { S.sel.forEach(i => S.notes[i].delete(d)); }
     else {
       /* One rule for a multi-square press: if every selected square already
@@ -163,12 +188,14 @@
 
   function clearCells() {
     if (!S.sel.length) { say('Nothing selected.', 'warn'); return; }
+    snapshot();
     S.sel.forEach(i => S.notes[i].clear());
     stale();
     render();
   }
 
   function clearBoard() {
+    snapshot();
     S.notes = blank(); S.sel = []; S.report = null; S.id = null;
     say('');
     render();
@@ -224,10 +251,23 @@
   const isTyping = el => !!el && (el.isContentEditable || el.tagName === 'TEXTAREA' ||
     (el.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|range)$/i.test(el.type)));
   window.addEventListener('keydown', e => {
-    if (e.metaKey || e.ctrlKey || e.altKey || isTyping(document.activeElement)) return;
+    if (isTyping(document.activeElement)) return;
+    if (e.metaKey || e.ctrlKey) {
+      if (e.key === 'z') { e.preventDefault(); undo(); }
+      return;
+    }
+    if (e.altKey) return;
     if (e.key >= '1' && e.key <= '9') { mark(+e.key); e.preventDefault(); return; }
     if (e.key === 'Backspace' || e.key === 'Delete') { clearCells(); e.preventDefault(); return; }
-    if (e.key === 'Escape') { S.sel = []; render(); e.preventDefault(); return; }
+    /* One layer per press, the trainer's rule: the squares you picked first,
+       then the lit digit, then the mode. Dropping all three at once throws
+       away a selection that took a minute to assemble. */
+    if (e.key === 'Escape') {
+      if (S.sel.length) S.sel = [];
+      else if (S.focus !== null) S.focus = null;
+      else S.erase = false;
+      render(); e.preventDefault(); return;
+    }
     const move = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 }[e.key];
     if (move === undefined) return;
     e.preventDefault();
@@ -266,6 +306,7 @@
         const d = k + 1;
         const on = S.notes[i].has(d);
         sp.className = 'nt' + (on ? ' on' : '') +
+          (on && S.focus === d ? ' lit' : '') +
           (on && r && pat.has(i) && r.digits.indexOf(d) >= 0 ? ' patd' : '') +
           (on && killMap.has(i) && killMap.get(i).has(d) ? ' dead' : '');
       });
@@ -299,32 +340,44 @@
       });
     }
 
-    /* pad: a digit key reports whether the selection already carries it */
+    /* pad: a digit key reports whether the selection already carries it — and
+       with nothing selected the pad sinks a shade, because a press then lights
+       a digit rather than writing one. Both readbacks are the trainer's, and
+       the sunk pad is only honest now that the press does something. */
     const one = S.sel.length === 1 ? S.sel[0] : null;
+    const focusing = !S.sel.length;
     [...pad.children].forEach((b, k) => {
       const d = k + 1;
       const has = S.sel.length && S.sel.every(i => S.notes[i].has(d));
       b.classList.toggle('noted', !!has);
+      b.classList.toggle('focused', focusing && S.focus === d);
     });
+    pad.classList.toggle('focusmode', focusing);
     pad.classList.toggle('rubmode', S.erase);
+    /* The caption says what the pad is doing, not what it usually does. */
+    $('capMark').textContent = S.erase ? 'Erase' : 'Pencil marks';
     $('bErase').setAttribute('aria-pressed', String(S.erase));
     $('bMulti').setAttribute('aria-pressed', String(S.multi));
     $('bClear').disabled = !S.sel.length;
+    $('bUndo').disabled = !S.history.length;
 
     const n = countMarked();
     $('mCount').textContent = n ? n + ' square' + (n === 1 ? '' : 's') + ' marked' : 'empty board';
     $('mSel').textContent = S.sel.length
       ? 'auditing the ' + S.sel.length + ' selected'
       : 'auditing every marked square';
-    $('padHint').textContent = one
-      ? 'Writing marks into ' + C.cellName(one) + (S.erase ? ' — the pad rubs out' : '')
-      : (S.sel.length ? 'Writing marks into ' + S.sel.length + ' squares at once'
-                      : 'Tap a square, then press digits to write its pencil marks');
+    $('padHint').textContent = focusing
+      ? (S.multi ? 'Select multiple is on — tap squares to add them'
+                 : 'Nothing selected — tap a square, or a number to light it')
+      : S.erase
+        ? 'The pad takes marks away — press Erase again to go back to writing'
+        : one !== null
+          ? 'Writing marks into ' + C.cellName(one)
+          : S.sel.length + ' squares — the pad works on all of them at once';
 
     [...chips.children].forEach(b => {
       b.setAttribute('aria-pressed', String(S.id === b.dataset.id));
     });
-    $('bDemo').textContent = onMaster() ? 'Show me one' : 'Show me one';
     renderReport();
   }
 
@@ -381,6 +434,7 @@
   }
 
   /* ---------------- buttons ---------------- */
+  $('bUndo').addEventListener('click', undo);
   $('bErase').addEventListener('click', () => { S.erase = !S.erase; render(); });
   $('bMulti').addEventListener('click', () => { S.multi = !S.multi; render(); });
   $('bClear').addEventListener('click', clearCells);

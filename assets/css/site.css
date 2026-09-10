@@ -1068,7 +1068,39 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
 /* These two say what the next press will act on, and they are long enough to
    run off a phone if they insist on one line. */
 .check .tmeta .badge{white-space:normal}
-.check .padrow .tools{grid-template-rows:repeat(2,1fr);flex:0 0 190px}
+/* Three rows, against the pad's three rows of keys — the same alignment the
+   trainer's tools make, and the reason the fifth button spans. Two rows of two
+   stretched to the pad's height instead, which made every button here half as
+   tall again as the same button on the trainer. Wider than the trainer's 150px
+   because the labels are longer: "Clear squares" is 13 mono characters where
+   "Autoclear" is 9, and at 190px it wrapped onto a second line. */
+.check .padrow .tools{grid-template-rows:repeat(3,1fr);flex:0 0 210px}
+.check .tools .wide{grid-column:1 / -1}
+/* The pad takes the width a trainer pad takes — (row − tools − gaps) / 2 — and
+   not the width this row happens to have left over. With one pad instead of
+   two, "whatever is left" was the whole row: 135px keys, three of them across
+   420px, under a board whose own cells are 68px. Written as the trainer's
+   share rather than a number so the keys here are the size of the keys there
+   at every width, which is the point. */
+.check .padrow .padside{flex:0 1 calc((100% - 170px) / 2)}
+/* Below the width where the tools drop underneath (the 560px block above),
+   there is no tools column left to take a share from, so the two rules above
+   both stop making sense. This block has to sit HERE rather than up there:
+   it is the same specificity, and source order is what decides. */
+@media (max-width:560px){
+  /* One 330px stack — the pad, then the tools as a bar under it, both the same
+     width so the control block has one pair of edges rather than two. 330 is
+     as wide as three keys want to be; past that they are merely large.
+
+     The five buttons keep one width: no grow, so the last two centre under the
+     first three rather than stretching to half the bar each. That is the rule
+     the block above states for the trainer's six, which never have to show it
+     because six divides by three. */
+  .check .padrow .padside,
+  .check .padrow .tools{flex:1 1 100%;max-width:330px}
+  .check .tools .tbtn{flex-grow:0}
+  .check .tools .wide{flex-basis:calc((100% - 12px) / 3)}
+}
 .check .flash{min-height:1.2em;text-align:center;font-size:12.5px}
 /* The pad is the only writing surface, so it takes the middle rather than
    sitting off to one side of a pen pad that does not exist here. */
