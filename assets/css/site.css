@@ -423,10 +423,14 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
    A highlight you can pick out by hue alone; the focus digit you can pick out
    without reading at all. */
 .nt.hi{opacity:1;color:#6435C9;font-weight:600;background:none;padding:0;margin:0}
-/* Except when the highlighted note IS the focus digit, which is the one time
-   the square belongs on it — in its own violet, so it still reads as yours. */
+/* Except when the highlighted note IS the focus digit — and then the chip stays
+   GREEN. It used to turn violet, which meant the board answered "this is a 1"
+   in two colours: you scan a row for green chips, and the one 1 you had already
+   marked yourself is the one you skip. The chip is the answer to WHICH DIGIT,
+   so it never changes hue; the violet moves into the ink, where it says "and
+   this one is mine" without competing for the same read. */
 .nt.hi.lit{
-  color:#2E1A55;background:#C6A9F0;
+  color:#3B1E7A;background:#8FD48A;
   border-radius:2px;padding:0 2px;margin:-1px -1px;
 }
 /* Crossed off. A real elimination — the coach reads notes minus these — but
@@ -474,6 +478,25 @@ footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(-
   background:#E7CCC3;border-radius:2px;padding:0 2px;margin:-1px -1px;
 }
 .board.solo .nt.on:not(.solo){opacity:.13}
+/* Seeking one digit. .board.solo above is the coach's version and works on
+   notes: it fades every note that is not the finding's digit, wherever it sits.
+   This one is yours and works a level up — a square that cannot hold the focus
+   digit at all goes quiet whole, placed digit and notes together — so "where
+   are the 1s" is answered by nine square-sized reads across a row instead of
+   thirty glyph-sized ones. A chip you have to find is a chip you can miss.
+
+   The opacity goes on the contents, never on .sq: the square's own fill is the
+   coach talking (blue unit, amber pattern, red kill) and that has to survive
+   you looking at a digit. Dimmed, not hidden — the givens are how you keep
+   your place on the board, and this still reads as a digit at arm's length. */
+.board.seek .sq.cold > .val{opacity:.3}
+/* Two exceptions, both about not stepping on something that outranks you.
+   :not(.solo) leaves the coach's harder dim above in charge wherever it
+   applies. patd, dead and miss are the coach pointing at one specific note,
+   and they stay lit even in a square you have looked past — there are two or
+   three of them on the whole board, and being able to act on a hint is the
+   reason you asked for it. */
+.board.seek:not(.solo) .sq.cold .nt.on:not(.patd):not(.dead):not(.miss){opacity:.26}
 .geo2{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
 /* Every connector runs through the centres of the squares it joins — which is
    the middle row of the pencil marks, where 4, 5 and 6 live. At .05 of a cell

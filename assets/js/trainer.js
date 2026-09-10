@@ -837,6 +837,11 @@
     const noteBad = new Set(S.noteCheck || []);
 
     boardEl.classList.toggle('solo', !!(S.focus && f && lvl >= 3 && f.soloDigit === S.focus));
+    /* Seek mode, which is simply "a focus digit is set" — the coach's own solo
+       above is a special case of it, not a different thing. Not `hunt`: that
+       class already belongs to a text block on the patterns page, and `.hunt
+       span` would repaint every digit on this board amber. */
+    boardEl.classList.toggle('seek', !!S.focus);
 
     for (let i = 0; i < 81; i++) {
       const c = cells[i], el = c.el, v = S.grid[i];
@@ -849,6 +854,13 @@
         (f && showCells && f.pivot === i ? ' pivot' : '') +
         (S.wrong[i] ? ' bad' : '') +
         (S.focus && v === S.focus ? ' hit' : '') +
+        /* Cold: this square cannot hold the focus digit, so it steps back. The
+           test is the same one the note wears .lit for — a filled square counts
+           only if it IS the digit, an empty one only if the digit is still a
+           live note in it. A digit you crossed off yourself is a decision, and
+           the square goes cold on it exactly like the coach's board would. */
+        (S.focus && !(v === S.focus
+          || (!v && S.notes[i].has(S.focus) && !S.off[i].has(S.focus))) ? ' cold' : '') +
         (selSet.has(i) ? ' sel' : '') +
         (last === i ? ' last' : '');
 

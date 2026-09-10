@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v39';  // v39: the check page's pad row, laid out like the trainer's
+const VERSION = 'v40';  // v40: seek mode — squares without the focus digit step back
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between

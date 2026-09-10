@@ -293,9 +293,15 @@
     const rings = new Set(r ? (r.roof || []).concat(r.wings || []) : []);
     const sel = new Set(S.sel);
 
+    /* Same seek mode the trainer has: with a focus digit set, a square that
+       cannot hold it steps back, so the digit is found by scanning squares
+       rather than by reading every note in them. */
+    boardEl.classList.toggle('seek', !!S.focus);
+
     for (let i = 0; i < 81; i++) {
       const c = cells[i];
       c.el.className = 'sq' +
+        (S.focus && !S.notes[i].has(S.focus) ? ' cold' : '') +
         (pat.has(i) ? ' pat' : '') +
         (killMap.has(i) ? ' tgt' : '') +
         (zone.has(i) ? ' unit' : '') +
