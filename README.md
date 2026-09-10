@@ -39,6 +39,28 @@ in the other tier where there is one, and re-reads the board where there is not.
 Every position shown, and every elimination claimed, is verified against the puzzle's unique
 solution — nothing here is hand-waved.
 
+## Where this stands
+
+Both tiers are finished and in service — nothing here is a sketch or a stub.
+
+- **Advanced.** Nine patterns across five surfaces: the reference, the crib, the gallery, the
+  trainer's coach and the check board. `solved 32/32  assertions 2047  fails 0`.
+- **Master.** Nine more across the same five, switched from the site bar.
+  `puzzles 96  states 5739  assertions 231571  solved 96/96  FAILS 0`, run over the bank and over
+  the bank's own transposes and relabellings.
+- **Every figure on every page is generated from a verified position**, and every elimination shown
+  was checked against that puzzle's own solution before the figure was drawn. The two pages that
+  quiz you check something further: a figure captioned *no* is checked to contain no genuine
+  instance of the technique it is filed under.
+- **Offline:** 26 files precached, both tiers, no lazy loading.
+
+What is deliberately absent is a short list, and it is in *Notes on scope*: sets (almost locked
+sets, Sue de Coq, death blossom), grouped and finned chains, and search. Each is rarer than the
+mistake you would make hunting it.
+
+The only errand that needs more than Python is re-harvesting the master figures, and the JSON is
+committed so that redrawing the pages never does. See *Rebuilding the content*.
+
 ## Deploying to GitHub Pages
 
 This repo is <https://github.com/Kvalnir/ast>, served at <https://kvalnir.github.io/ast/>.
