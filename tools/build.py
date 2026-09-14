@@ -1,5 +1,5 @@
 import json, engine
-from mini import seg as mseg, mini as minifig   # build.py has its own seg(); these draw the small figure
+from mini import seg as mseg, mini as minifig, lines as geolines   # build.py has its own seg(); these draw the small figure
 
 ex = json.load(open("./examples.json"))
 def rc(i): return (i//9, i%9)
@@ -135,7 +135,7 @@ CASES.append(dict(
     elimdigits=[m["digit"]],
     tint=[("unitline", engine.COLS[1]+engine.COLS[6])],
     geo=[seg(cell(5,1), cell(6,1)), seg(cell(5,6), cell(6,6)),
-         seg(cell(5,1), cell(5,6)), seg(cell(6,1), cell(6,6))],
+         seg(cell(5,1), cell(5,6), "cross"), seg(cell(6,1), cell(6,6), "cross")],
     steps=[
         "Only the 6s are shown. Column 2 has exactly two: <b>r6c2</b> and <b>r7c2</b>. Column 7 also has exactly two: <b>r6c7</b> and <b>r7c7</b>.",
         "All four sit on rows 6 and 7, forming a rectangle. Either the 6s take one pair of opposite corners, or the other — no third option.",
@@ -258,8 +258,7 @@ def render_grid(case):
             out.append('<div class="%s"><div class="marks">%s</div></div>' % (" ".join(cls), "".join(marks)))
     out.append('</div>')
     svg = ['<svg class="geo" viewBox="0 0 9 9" preserveAspectRatio="none" aria-hidden="true">']
-    for g in case.get("geo", []):
-        svg.append('<line class="%s" x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f"/>' % (g["cls"], g["x1"], g["y1"], g["x2"], g["y2"]))
+    svg.append(geolines([(g["x1"], g["y1"], g["x2"], g["y2"], g["cls"]) for g in case.get("geo", [])]))
     svg.append('</svg>')
     out.append("".join(svg)); out.append('</div>')
     return "".join(out)

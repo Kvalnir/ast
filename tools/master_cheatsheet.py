@@ -149,7 +149,7 @@ HTML = f'''<!DOCTYPE html>
     <p class="lede">The tier above the nine, reduced to what fires it, what it earns and — new on this page — <b>why it is true</b>. That last column is not decoration: an unfamiliar chain you cannot reconstruct is a chain you will not act on, and half of these are unfamiliar for a while. <a href="master.html">The lessons</a> are the long version; the <a href="cheatsheet.html">Advanced crib</a> is the one to keep open first, because everything on it still comes first.</p>
     <div class="legend cribleg">
       <p><span class="swatch b"></span> Amber cells are the pattern doing the work</p>
-      <p><span class="swatch l"></span> Amber lines show how it connects</p>
+      <p><span class="swatch l"></span> Lines show how it connects: one colour per pair, and a dashed line takes the colours of the two pairs it joins</p>
       <p><span class="swatch p"></span> Ringed cells are ends, fins and wings</p>
       <p><span class="swatch k"></span> Struck red digits are what it kills</p>
       <p><span class="swatch n"></span> Grey is the rest of the position; a dot is a cell with more marks than fit</p>

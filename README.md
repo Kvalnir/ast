@@ -465,7 +465,10 @@ can catch for you.
 
 `mini.py` is the small 9×9 figure, shared: `cheatsheet.py` draws one per card, `build.py` draws the
 single uniqueness example at the foot of the lesson. One renderer, so the two pages cannot drift
-into two dialects of the same picture. The uniqueness figure is the only one built by hand rather
+into two dialects of the same picture. Its `lines()` also colours the overlay for every generated
+figure, full-size ones included: each solid line (a pair, or a strong link) gets its own ink in
+drawing order, and a dashed crossing line is drawn half in the ink of each pair it joins. The
+trainer and the check board draw with the same rule in `core.js` — change one, change the other. The uniqueness figure is the only one built by hand rather
 than read out of a verified position — if you edit it, check it stays a legal deadly pattern: four
 cells, two rows, two columns, and exactly two boxes.
 

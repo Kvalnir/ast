@@ -112,7 +112,7 @@ PAGE = '''<!DOCTYPE html>
   <p class="lede" style="margin-bottom:20px">The other two are different in kind: the <a href="#unique-rectangle" style="color:var(--amber)">unique rectangle</a> and <a href="#bug" style="color:var(--amber)">BUG+1</a> reason from the puzzle having exactly one answer rather than from the grid in front of you. They are cheap, they fire often, and they are the only techniques on this site that can be confidently wrong on a grid you have already broken. There is a section on that below, and the trainer refuses to offer either one unless your board still leads to a single solution.</p>
   <div class="legend">
     <p><span class="swatch b"></span> Amber cells are the pattern doing the work</p>
-    <p><span class="swatch l"></span> Amber lines show how the pattern connects</p>
+    <p><span class="swatch l"></span> Lines show how the pattern connects: one colour per pair, and a dashed line takes the colours of the two pairs it joins</p>
     <p><span class="swatch p"></span> Ringed cells are the ends, fins or wings</p>
     <p><span class="swatch k"></span> Struck red digits are the candidates it kills</p>
   </div>

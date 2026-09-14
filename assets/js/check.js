@@ -318,33 +318,8 @@
       });
     }
 
-    geoEl.innerHTML = '';
-    if (r && r.verdict !== 'no' && r.lines) {
-      const ends = new Map();
-      r.lines.forEach(([a, b]) => {
-        ends.set(a, (ends.get(a) || 0) + 1);
-        ends.set(b, (ends.get(b) || 0) + 1);
-      });
-      r.lines.forEach(([a, b, style]) => {
-        const dashed = style === 'cross';
-        let x1 = C.colOf(a) + 0.5, y1 = C.rowOf(a) + 0.5,
-            x2 = C.colOf(b) + 0.5, y2 = C.rowOf(b) + 0.5;
-        const len = Math.hypot(x2 - x1, y2 - y1) || 1;
-        const inset = Math.min(0.42, (len - 0.4) / 2);
-        if (inset > 0) {
-          const ux = (x2 - x1) / len * inset, uy = (y2 - y1) / len * inset;
-          if (ends.get(a) === 1) { x1 += ux; y1 += uy; }
-          if (ends.get(b) === 1) { x2 -= ux; y2 -= uy; }
-        }
-        ['case' + (dashed ? ' cross' : ''), dashed ? 'cross' : ''].forEach(cls => {
-          const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          l.setAttribute('x1', x1); l.setAttribute('y1', y1);
-          l.setAttribute('x2', x2); l.setAttribute('y2', y2);
-          if (cls) l.setAttribute('class', cls);
-          geoEl.appendChild(l);
-        });
-      });
-    }
+    /* geometry overlay — drawn by core.js, which the trainer shares */
+    C.drawGeo(geoEl, r && r.verdict !== 'no' ? r.lines : null);
 
     /* pad: a digit key reports whether the selection already carries it — and
        with nothing selected the pad sinks a shade, because a press then lights

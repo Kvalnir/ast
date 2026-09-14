@@ -21,6 +21,19 @@
   --given:#0F1A1E;
   --amber:#F0B429;
   --amber-ink:#8E6100;
+  /* The connector inks. A figure's solid lines are its pairs, one ink each in
+     drawing order, and a dashed crossing line is drawn half in the ink of each
+     pair it joins — see mini.py and core.js, which share the rule. Six is
+     enough: only a long chain runs past it, and there the repeat is a dozen
+     squares from its twin. All dark enough to hold on paper at a hairline's
+     width, none of them the red that marks a kill, and the first is the amber
+     the site has always drawn with, so a one-line figure looks as it did. */
+  --link-0:#8E6100;
+  --link-1:#1F5FA8;
+  --link-2:#7A2E9E;
+  --link-3:#0F7A6A;
+  --link-4:#A02B7A;
+  --link-5:#4E6A1F;
   --red:#E2543F;
   --red-ink:#B32E1B;
   --text:#DAE3E0;
@@ -62,7 +75,7 @@ h1 em{font-style:normal;color:var(--amber)}
 .swatch{width:26px;height:20px;flex:0 0 26px;border:1px solid var(--rule);background:var(--paper);position:relative;border-radius:1px}
 .swatch.b{background:#F3DFA8}
 .swatch.k::after{content:"7";position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--red-ink);text-decoration:line-through}
-.swatch.l::after{content:"";position:absolute;left:3px;right:3px;top:50%;height:2px;background:var(--amber-ink);border-radius:2px}
+.swatch.l::after{content:"";position:absolute;left:3px;right:3px;top:50%;height:2px;background:linear-gradient(90deg,var(--link-0) 50%,var(--link-1) 50%);border-radius:2px}
 
 /* ---------- nav ----------
    The technique nav carries twelve links, 1342px of them measured, into a
@@ -177,7 +190,14 @@ code{font-family:var(--mono);font-size:.88em;color:var(--amber);background:#1623
 /* geometry overlay */
 .geo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .geo line{stroke:var(--amber-ink);stroke-width:.055;stroke-linecap:round;opacity:.85}
-.geo line.cross{stroke-dasharray:.16 .16;opacity:.5}
+.geo line.cross{stroke-dasharray:.16 .16;opacity:.6}
+/* The inks, for all three overlays at once. Not on .case: the casing under a
+   trainer line stays paper whatever colour rides on it. */
+.geo line.c1,.geo2 line.c1,.geo3 line.c1{stroke:var(--link-1)}
+.geo line.c2,.geo2 line.c2,.geo3 line.c2{stroke:var(--link-2)}
+.geo line.c3,.geo2 line.c3,.geo3 line.c3{stroke:var(--link-3)}
+.geo line.c4,.geo2 line.c4,.geo3 line.c4{stroke:var(--link-4)}
+.geo line.c5,.geo2 line.c5,.geo3 line.c5{stroke:var(--link-5)}
 
 /* reveal state */
 .fig[data-state="shown"] .cell.target{background:rgba(226,84,63,.20)}
@@ -1015,7 +1035,7 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
 .miniwrap{position:relative;width:max-content;margin-inline:auto}
 .geo3{position:absolute;inset:2px;width:calc(100% - 4px);height:calc(100% - 4px);pointer-events:none}
 .geo3 line{stroke:var(--amber-ink);stroke-width:.07;stroke-linecap:round;opacity:.8}
-.geo3 line.cross{stroke-dasharray:.18 .18;opacity:.5}
+.geo3 line.cross{stroke-dasharray:.18 .18;opacity:.6}
 .figcap{
   font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--mist);
   margin:8px 0 0;max-width:148px;text-align:center;
