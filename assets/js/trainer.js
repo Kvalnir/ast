@@ -34,7 +34,14 @@
     capture: false, mark: [], before: null,
     /* inspect: the board read the other way round. `insp` is the squares you
        have pointed at, `report` is what SudokuTech.verify made of them. */
-    inspect: false, insp: [], report: null
+    inspect: false, insp: [], report: null,
+    /* How much help this puzzle has taken: rungs of the ladder revealed, and
+       moves the coach played for you. Reset with the puzzle, saved with the
+       position, and read out when the board is solved. */
+    tally: { hints: 0, applied: 0 },
+    /* Name it: ten drill positions in a row, the technique withheld and the
+       coach's chips replaced by the answers. null when not playing. */
+    quiz: null
   };
 
   /* The detectors' own names, so the coach cannot call a technique something
@@ -463,20 +470,26 @@
   }
 
   /* ---------------- coach ---------------- */
+  /* What can be played here, from one tier or both. Master findings are
+     appended and the whole list re-sorted by rank, so a naked single still
+     comes before a chain. The base list goes in so the AIC search knows
+     whether anything cheaper already exists — see the note above aic() in
+     master.js. The drill builder walks with this too, which is what lets a
+     drill land on a master position. */
+  function allFindings(grid, notes, master) {
+    let findings = T.findAll(grid, notes).findings;
+    if (master) {
+      const m = M.findAll(grid, notes, { base: findings });
+      findings = findings.concat(m.findings).sort(
+        (a, b) => a.rank - b.rank || b.elims.length - a.elims.length);
+    }
+    return findings;
+  }
+
   function recompute() {
     if (S.capture) { captureRefresh(); return; }
     const notes = S.notes.some(s => s.size) ? liveAll() : null;
-    const res = T.findAll(S.grid, notes);
-    S.findings = res.findings;
-    /* Master findings are appended and the whole list re-sorted by rank, so a
-       naked single still comes before a chain. The base list goes in so the
-       AIC search knows whether anything cheaper already exists — see the note
-       above aic() in master.js. */
-    if (onMaster()) {
-      const m = M.findAll(S.grid, notes, { base: S.findings });
-      S.findings = S.findings.concat(m.findings).sort(
-        (a, b) => a.rank - b.rank || b.elims.length - a.elims.length);
-    }
+    S.findings = allFindings(S.grid, notes, onMaster());
     if (S.pick) {
       const still = S.findings.find(f => f.id === S.pick.id &&
         f.cells.join() === S.pick.cells.join() && f.digits.join() === S.pick.digits.join());
@@ -485,6 +498,7 @@
     S.solved = S.grid.every(v => v) && S.grid.every((v, i) => v === S.sol[i]);
     computeReport();
     render();
+    savePosition();
   }
 
   function groups() {
@@ -499,7 +513,8 @@
   /* The move you should actually play is the cheapest one. Advanced patterns that
      also happen to be present are surfaced separately, not recommended. */
   function chooseDefault() { return S.findings[0] || null; }
-  function article(name) { return /^[AEIOUX]/.test(name) ? 'an ' : 'a '; }
+  /* No U: "a Unique rectangle". X stays, for "an X-Wing". */
+  function article(name) { return /^[AEIOX]/.test(name) ? 'an ' : 'a '; }
 
   /* One chip, plus the hover/focus definition that goes with it. Shared by the
      coach row and the drill row so the two cannot drift apart.
@@ -540,11 +555,14 @@
   }
 
   function more() {
-    if (!S.findings.length) return;
+    if (!S.findings.length || (S.quiz && !S.quiz.answered)) return;
+    const was = S.level;
     if (!S.pick) { S.pick = chooseDefault(); S.level = 1; }
     else S.level = Math.min(5, S.level + 1);
+    if (S.level !== was) S.tally.hints++;
     if (S.pick && S.level >= 3 && S.pick.soloDigit) S.focus = S.pick.soloDigit;
     render();
+    savePosition();
   }
 
   function applyPick() {
@@ -572,6 +590,7 @@
       autoclear(houseOf(f.placement ? [f.placement.cell] : f.elims.map(e => e.cell)));
     }
     S.pick = null; S.level = 0; S.noteCheck = null;
+    S.tally.applied++;
     recompute();
   }
 
@@ -707,23 +726,40 @@
   /* ---------------- drills ---------------- */
   /* Fast-forward a real puzzle to a position where `id` is the move to find.
      Pass 1 wants it to be the cheapest thing available. Pass 2 settles for a
-     position with no singles left, which is still a fair hunt. */
+     position with no singles left, which is still a fair hunt.
+
+     Several positions per technique, not the first one: a drill you can run
+     twice and see the same board is a drill you memorise, and Name it deals
+     ten in a row. The walk stops once it has WANT pass-1 positions from
+     different puzzles, and the list is cached per technique and tier, so the
+     cost is paid once. A master technique walks with both tiers' detectors,
+     but only consults the master ones where no single is available — an
+     Advanced move always outranks a master one, so that is the only place a
+     master target could be the cheapest thing on the board. */
   /* The bank is tagged with the generator's names; map them to the detector ids. */
   const BANK_TAG = {
     naked_pair: 'naked_2', hidden_pair: 'hidden_2',
     naked_triple: 'naked_3', hidden_triple: 'hidden_3'
   };
-  function buildDrill(id) {
-    const relaxed = [];
+  const WANT = 4;
+  const drillCache = new Map();
+  function drillsFor(id) {
+    const key = id + (MASTER.includes(id) ? ':master' : '');
+    if (drillCache.has(key)) return drillCache.get(key);
+    const master = MASTER.includes(id);
+    const found = [], relaxed = [];
     const tag = BANK_TAG[id] || id;
     /* tagged puzzles first, but never filter them out entirely — a technique can
        show up in a puzzle that doesn't strictly require it */
     const order = BANK.filter(p => p.t.includes(tag)).concat(BANK.filter(p => !p.t.includes(tag)));
     for (const p of order) {
+      if (found.length >= WANT) break;
       const grid = C.parse(p.p), sol = C.parse(p.s);
       let notes = C.baseCandidates(grid);
-      for (let step = 0; step < 400; step++) {
-        const { findings } = T.findAll(grid, notes);
+      let took = false;
+      for (let step = 0; step < 400 && !took; step++) {
+        let findings = T.findAll(grid, notes).findings;
+        if (master && !findings.some(f => f.placement)) findings = allFindings(grid, notes, true);
         if (!findings.length) break;
         const target = findings.find(f => f.id === id);
         if (target) {
@@ -733,8 +769,9 @@
             puzzle: p, grid: grid.slice(), sol,
             notes: notes.map(s => new Set(s)), others
           };
-          if (!cheaper.length) return snap;
-          if (!cheaper.some(f => f.placement) && relaxed.length < 1) relaxed.push(snap);
+          if (!cheaper.length) { found.push(snap); took = true; }
+          else if (!cheaper.some(f => f.placement) && relaxed.length < WANT &&
+                   !relaxed.some(r => r.puzzle === p)) relaxed.push(snap);
         }
         const f = findings[0];
         if (f.placement) {
@@ -744,14 +781,21 @@
         } else f.elims.forEach(e => notes[e.cell].delete(e.digit));
       }
     }
-    return relaxed[0] || null;
+    const list = found.length ? found : relaxed;
+    drillCache.set(key, list);
+    return list;
+  }
+  function buildDrill(id, avoid) {
+    const list = drillsFor(id);
+    if (!list.length) return null;
+    /* Not the one just shown, where there is a choice. */
+    const pool = list.length > 1 && avoid ? list.filter(d => d !== avoid) : list;
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  function startDrill(id) {
-    importPanel('start');
-    I.clearHash();
-    const d = buildDrill(id);
-    if (!d) { flash('No position with ' + article(NAMES[id]) + NAMES[id] + ' in the current bank.', 'warn'); return; }
+  /* Put a drill position on the board. Shared by the drills and Name it, which
+     differ only in whether the technique is announced. */
+  function placeDrill(d) {
     S.puzzle = d.puzzle;
     S.given = C.parse(d.puzzle.p).map(v => v > 0);
     S.grid = d.grid.slice();
@@ -761,7 +805,19 @@
     S.wrong = new Array(81).fill(false);
     S.history = []; S.sel = []; S.focus = null; S.pick = null; S.level = 0;
     S.solved = false; S.noteCheck = null; S.mark = []; S.report = null;
+    S.tally = { hints: 0, applied: 0 };
     recompute();
+  }
+
+  let lastDrill = null;
+  function startDrill(id) {
+    if (S.quiz) stopQuiz();
+    importPanel('start');
+    I.clearHash();
+    const d = buildDrill(id, lastDrill);
+    if (!d) { flash('No position with ' + article(NAMES[id]) + NAMES[id] + ' in the current bank.', 'warn'); return; }
+    lastDrill = d;
+    placeDrill(d);
     const also = (d.others || []).filter(x => x !== id);
     flash('No singles left on this board. ' + article(NAMES[id]).replace(/^./, c => c.toUpperCase()) +
       NAMES[id] + ' is there to be found' +
@@ -770,8 +826,110 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  /* ---------------- name it ----------------
+     The gallery made live: ten drill positions in a row, the technique
+     withheld, and the coach's chip row turned into the answers. A round is
+     right if the pattern you named is on the board at all — a drill position
+     often holds two, and naming the other one is not a mistake. The target is
+     drawn after you answer, right or wrong, because a wrong answer with the
+     right one shown is the lesson. */
+  const ROUNDS = 10;
+  function quizPool() { return DRILLS.concat(onMaster() ? MASTER : []); }
+  function startQuiz() {
+    importPanel('start');
+    I.clearHash();
+    S.quiz = { n: 0, score: 0, target: null, answered: null, ok: false, misses: [], last: null };
+    S.inspect = false; S.report = null;
+    quizRound();
+  }
+  function quizRound() {
+    const q = S.quiz, pool = quizPool();
+    let d = null, id = null;
+    for (let tries = 0; !d && tries < 12; tries++) {
+      id = pool[Math.floor(Math.random() * pool.length)];
+      d = buildDrill(id, q.last);
+    }
+    if (!d) { S.quiz = null; flash('No drill position could be built from the bank.', 'warn'); render(); return; }
+    q.n++; q.target = id; q.answered = null; q.ok = false; q.last = d;
+    placeDrill(d);
+    flash('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function quizAnswer(id) {
+    const q = S.quiz;
+    if (!q || q.answered) return;
+    const present = new Set(S.findings.filter(f => f.rank > 2).map(f => f.id));
+    q.answered = id;
+    q.ok = present.has(id);
+    if (q.ok) q.score++; else q.misses.push(q.target);
+    /* Draw what was there — the one you named if it was, otherwise the target. */
+    S.pick = S.findings.find(f => f.id === (q.ok ? id : q.target)) || null;
+    S.level = S.pick ? 3 : 0;
+    if (S.pick && S.pick.soloDigit) S.focus = S.pick.soloDigit;
+    render();
+  }
+  function quizNext() {
+    const q = S.quiz;
+    if (!q) return;
+    if (q.n >= ROUNDS) { q.done = true; S.pick = null; S.level = 0; render(); return; }
+    quizRound();
+  }
+  function stopQuiz() {
+    S.quiz = null; S.pick = null; S.level = 0;
+    flash('');
+    render();
+  }
+
+  /* ---------------- resume ----------------
+     The position, not just the puzzle. Imports were already kept as 81
+     characters; a half-played board was not, so closing the app on a train
+     meant starting the puzzle again. Everything the board is made of is saved
+     after every change — grid, notes, cross-offs, highlights, flags, tally —
+     under one key, and put back on the next visit. Only one position: the
+     one you were on. A solved board is not kept, so the next visit deals
+     fresh rather than opening on a finished grid. A link that carries a
+     puzzle still wins over this, unless it is the same puzzle, in which case
+     the saved position is what the link should open on.
+
+     localStorage throws in some privacy modes, and a position you cannot
+     keep is not a reason to take the board down — same handling as pwa.js
+     and import.js, and the same prefix. */
+  const POS_KEY = 'ast:position';
+  function savePosition() {
+    if (S.capture || !S.puzzle || S.quiz) return;
+    try {
+      if (S.solved) { window.localStorage.removeItem(POS_KEY); return; }
+      window.localStorage.setItem(POS_KEY, JSON.stringify({
+        puzzle: S.puzzle, grid: S.grid, wrong: S.wrong,
+        notes: S.notes.map(x => [...x]), off: S.off.map(x => [...x]), hi: S.hi.map(x => [...x]),
+        tally: S.tally, at: Date.now()
+      }));
+    } catch (e) { /* no memory available; the position lasts as long as the tab */ }
+  }
+  function savedPosition() {
+    try {
+      const v = JSON.parse(window.localStorage.getItem(POS_KEY) || 'null');
+      const ok = v && v.puzzle && typeof v.puzzle.p === 'string' && v.puzzle.p.length === 81 &&
+        Array.isArray(v.grid) && v.grid.length === 81 && Array.isArray(v.notes) && v.notes.length === 81;
+      return ok ? v : null;
+    } catch (e) { return null; }
+  }
+  function resume(v) {
+    load(v.puzzle);
+    S.grid = v.grid.map(x => +x || 0);
+    S.wrong = Array.isArray(v.wrong) && v.wrong.length === 81 ? v.wrong.map(Boolean) : new Array(81).fill(false);
+    S.notes = v.notes.map(a => new Set(a));
+    S.off = (v.off || []).length === 81 ? v.off.map(a => new Set(a)) : blank();
+    S.hi = (v.hi || []).length === 81 ? v.hi.map(a => new Set(a)) : blank();
+    S.tally = v.tally && typeof v.tally.hints === 'number' ? v.tally : { hints: 0, applied: 0 };
+    recompute();
+    if (v.puzzle.imported) { I.setHash(v.puzzle.p); importPanel('after'); }
+    flash('Back where you left off.');
+  }
+
   /* ---------------- puzzles ---------------- */
   function load(p) {
+    S.quiz = null;
     S.puzzle = p;
     const g = C.parse(p.p);
     S.given = g.map(v => v > 0);
@@ -787,10 +945,12 @@
     S.wrong = new Array(81).fill(false);
     S.history = []; S.sel = []; S.focus = null; S.pick = null; S.level = 0;
     S.solved = false; S.noteCheck = null; S.mark = []; S.report = null;
+    S.tally = { hints: 0, applied: 0 };
     recompute();
     flash('');
   }
   function newPuzzle() {
+    if (S.quiz) stopQuiz();
     importPanel('start');
     I.clearHash();
     /* Falls back to the whole bank rather than dealing nothing, which is what a
@@ -950,7 +1110,9 @@
        Erase and the pen pad stay: those are the transcription controls. The
        marking pad goes with the rest — there are no notes to mark yet. */
     ['bAutofill', 'bAutoclear', 'bHi', 'bOff', 'bErase', 'bMore', 'bCheckNotes', 'bNew',
-     'bRestart', 'bCatchUp', 'bCopyLink', 'bClearBase'].forEach(id => { $(id).disabled = S.capture; });
+     'bRestart', 'bCatchUp', 'bCopyLink', 'bClearBase', 'bQuiz'].forEach(id => { $(id).disabled = S.capture; });
+    $('bQuiz').textContent = S.quiz && !S.quiz.done ? 'Stop naming' : 'Name it — ten in a row';
+    $('bQuiz').setAttribute('aria-pressed', !!(S.quiz && !S.quiz.done));
     [...padMark.children].forEach(b => { b.disabled = S.capture; });
     [...$('drills').querySelectorAll('.chip')].forEach(b => { b.disabled = S.capture; });
 
@@ -1048,10 +1210,52 @@
       return;
     }
     const total = S.findings.length;
-    $('cCount').textContent = S.coach === 'off' ? 'hidden'
+    const t = S.tally;
+    const tal = $('cTally');
+    tal.hidden = !(t.hints || t.applied);
+    tal.textContent = (t.hints ? t.hints + ' hint' + (t.hints === 1 ? '' : 's') : '') +
+      (t.hints && t.applied ? ' · ' : '') +
+      (t.applied ? t.applied + ' applied' : '');
+
+    /* Name it. The chips are the answers until one is pressed; after that they
+       read back which was pressed and the ladder says what was there. */
+    const q = S.quiz;
+    $('bQuizNext').hidden = !q || !q.answered || q.done;
+    $('bQuizNext').textContent = q && q.n >= ROUNDS ? 'Finish' : 'Next round';
+    $('bMore').disabled = !!(q && !q.answered);
+    $('cCount').textContent = q ? 'Name it · round ' + Math.min(q.n, ROUNDS) + ' of ' + ROUNDS
+      : S.coach === 'off' ? 'hidden'
       : total ? total + ' move' + (total === 1 ? '' : 's') + ' available' : 'nothing available';
 
     chipsEl.innerHTML = '';
+    if (q && q.done) {
+      const missed = [...new Set(q.misses)];
+      lad.innerHTML = '<span class="step">Name it — finished</span><b>' + q.score + ' of ' + ROUNDS +
+        '</b>' + (q.score === ROUNDS ? '. Every one.' :
+          missed.length ? '. Missed: <em>' + missed.map(x => NAMES[x]).join('</em>, <em>') +
+          '</em> — the gallery drills exactly those.' : '.') +
+        ' Press <b>Name it</b> again for another ten, or <b>New puzzle</b> to play on.';
+      return;
+    }
+    if (q && !q.answered) {
+      quizPool().forEach(id => chipsEl.appendChild(makeChip(id, { onClick: () => quizAnswer(id) })));
+      lad.innerHTML = '<span class="step">Round ' + q.n + ' of ' + ROUNDS + ' — which pattern is here?</span>' +
+        'No singles are left on this board. Read it, then press the pattern you can see. ' +
+        'A board can hold more than one, and any pattern that is really there counts.';
+      return;
+    }
+    if (q) {
+      quizPool().forEach(id => chipsEl.appendChild(makeChip(id, { pressed: id === q.answered })));
+      const target = NAMES[q.target];
+      lad.innerHTML = '<span class="step">Round ' + q.n + ' of ' + ROUNDS + ' — ' + (q.ok ? 'yes' : 'no') + '</span>' +
+        (q.ok
+          ? 'There is ' + article(NAMES[q.answered]) + '<em>' + NAMES[q.answered] + '</em> here, on the squares in amber.' +
+            (q.answered !== q.target ? ' The one dealt was ' + article(target) + '<em>' + target + '</em>, also present.' : '')
+          : 'No ' + NAMES[q.answered] + ' here. What is on the board is ' + article(target) + '<em>' + target +
+            '</em> — the squares in amber.') +
+        ' Score so far: <b>' + q.score + ' of ' + q.n + '</b>.' + defLine(q.ok ? q.answered : q.target);
+      return;
+    }
     if (S.coach !== 'off') {
       [...g.entries()].sort((a, b) => a[1][0].rank - b[1][0].rank).forEach(([id, arr]) => {
         chipsEl.appendChild(makeChip(id, {
@@ -1069,14 +1273,22 @@
                why it is not what a chip does the rest of the time. */
             S.level = S.inspect ? Math.max(3, S.level) : Math.max(1, S.level);
             if (S.level >= 3 && S.pick.soloDigit) S.focus = S.pick.soloDigit;
+            /* Naming a technique is a hint, whichever way the chip was reached. */
+            S.tally.hints++;
             render();
+            savePosition();
           }
         }));
       });
     }
 
     if (S.solved) {
-      lad.innerHTML = '<span class="step">Solved</span>Every square correct. Try a drill for the technique you leaned on most.';
+      const took = !t.hints && !t.applied ? 'without a hint'
+        : (t.hints ? 'with ' + t.hints + ' hint' + (t.hints === 1 ? '' : 's') : '') +
+          (t.hints && t.applied ? ' and ' : (t.applied ? 'with ' : '')) +
+          (t.applied ? t.applied + ' move' + (t.applied === 1 ? '' : 's') + ' applied by the coach' : '');
+      lad.innerHTML = '<span class="step">Solved</span>Every square correct, ' + took +
+        '. Try a drill for the technique you leaned on most, or <b>Name it</b> for ten in a row.';
       return;
     }
     if (!total) {
@@ -1164,6 +1376,7 @@
   }
 
   function startCapture(seed) {
+    S.quiz = null;
     if (!S.capture) S.before = S.puzzle;
     S.capture = true;
     S.puzzle = null;
@@ -1404,6 +1617,8 @@
   $('bApply').addEventListener('click', applyPick);
   $('bClearHint').addEventListener('click', () => { S.pick = null; S.level = 0; flash(''); render(); });
   $('bNew').addEventListener('click', newPuzzle);
+  $('bQuiz').addEventListener('click', () => { if (S.quiz && !S.quiz.done) stopQuiz(); else startQuiz(); });
+  $('bQuizNext').addEventListener('click', quizNext);
   $('bRestart').addEventListener('click', () => load(S.puzzle));
   /* Switching it on resolves what is already forced, because a toggle that
      waits for your next entry to show what it does looks broken. This is the
@@ -1462,6 +1677,7 @@
      has to be rebuilt here. */
   if (TIER) TIER.onChange(() => {
     fillDrills();
+    S.quiz = null;
     S.pick = null; S.level = 0;
     recompute();
     flash(onMaster()
@@ -1547,11 +1763,16 @@
   renderSaved();
   importPanel('start');
   /* A link that carries a puzzle is someone arriving at THAT one, so it beats
-     the bank's opening draw. A link that carries a broken one says so and steps
-     aside rather than leaving the trainer empty. */
+     the bank's opening draw — unless it is the puzzle whose position is saved,
+     in which case the position is what they came back for. A link that
+     carries a broken one says so and steps aside rather than leaving the
+     trainer empty. With no link, the saved position, and only then a fresh
+     deal. */
   const linked = I.fromHash();
   const first = linked ? I.analyze(linked, NAMES) : null;
-  if (first && first.ok) acceptImport(first);
+  const kept = savedPosition();
+  if (first && first.ok && !(kept && kept.puzzle.p === first.puzzle.p)) acceptImport(first);
+  else if (kept) resume(kept);
   else {
     newPuzzle();
     if (first) iSay('The puzzle in that link does not read as a real one. ' + first.message, 'warn');

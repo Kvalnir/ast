@@ -108,6 +108,7 @@
     <div class="coachhead">
       <h2>Coach</h2>
       <span class="badge" id="cCount">—</span>
+      <span class="badge" id="cTally" hidden title="Rungs of the ladder revealed, and moves the coach played for you, on this puzzle">—</span>
     </div>
     <div class="chips" id="chips"></div>
     <!-- Above the ladder rather than below it. Every press rewrites the
@@ -120,6 +121,7 @@
       <button class="tbtn" id="bMore">Show me more</button>
       <button class="tbtn" id="bApply" disabled>Apply it</button>
       <button class="tbtn" id="bClearHint">Clear</button>
+      <button class="tbtn" id="bQuizNext" hidden>Next round</button>
     </div>
     <p class="ladder" id="ladder"><span class="step">Ready</span>Make a move, or press Show me more for a nudge.</p>
     <p class="note" id="cNote"></p>
@@ -201,6 +203,13 @@
     <summary class="coachhead"><h2>Drill one technique</h2></summary>
     <p class="note" id="drillNote">Jumps to a real position where that technique is the move. Everything simpler is already played.</p>
     <div class="chips" id="drills"></div>
+    <!-- Name it: the same positions dealt ten at a time with the technique
+         withheld, and the coach's chip row turned into the answers. The
+         gallery asks "is this one?"; this asks "which one?", on a live board. -->
+    <p class="note">Or be dealt ten of these in a row, unnamed, and say which pattern each one holds.</p>
+    <div class="coachrow" style="margin-top:10px">
+      <button class="tbtn" id="bQuiz" aria-pressed="false">Name it &mdash; ten in a row</button>
+    </div>
   </details>
 
   <section class="coach">

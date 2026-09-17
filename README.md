@@ -124,6 +124,7 @@ assets/js/pwa.js        service worker registration, update and install prompts
 assets/icons/*.png      app icons (generated — see tools/icons.py)
 assets/icons/icon.svg   the same mark as vector, for the tab favicon (hand-written)
 tools/                  Python generators (only needed to rebuild content)
+CLAUDE.md               the rules that bite if skipped, for an assistant working in the repo
 ```
 
 Two things here have two sources of truth, and both are worth knowing about:
@@ -304,7 +305,28 @@ the rest of the time.
 
 **Drills** fast-forward a real puzzle to the exact position where one technique is the move —
 everything cheaper already played. This is the fastest way to train the eye, because you get the
-pattern in isolation without solving forty squares first.
+pattern in isolation without solving forty squares first. Each technique has up to four such
+positions, from different puzzles, dealt at random and never the same one twice running; the
+walk that finds them is cached per technique, so the first press on a master technique costs
+about a second and the rest are free. On the Master tier a drill walks with both tiers'
+detectors. Two master techniques have no drill on this bank, and honestly so: every bank puzzle
+solves with the nine, so a unique rectangle never turns up as the cheapest move, and the AIC
+search only runs when nothing else fires at all.
+
+**Name it** is the gallery made live: ten drill positions in a row, the technique withheld, and
+the coach's chip row turned into the answers. Press the pattern you can see; the board is read
+and you are told yes or no, with what was there drawn in amber either way — a wrong answer with
+the right one shown is the lesson. A round counts as right if the pattern you named is on the
+board at all, because a drill position often holds two and naming the other one is not a
+mistake. Ten rounds, a score, and the techniques you missed listed at the end, which is exactly
+the list the gallery drills. Anything that puts a different puzzle on the board — New puzzle, a
+drill, an import, the tier switch — ends a round in progress.
+
+**The tally.** Every rung of the ladder you reveal and every move you let the coach play is
+counted, shown beside the coach's heading while it is non-zero, and read back when the board is
+solved: *with 3 hints and 1 move applied by the coach*, or *without a hint*. Naming a technique
+with a chip counts as a hint however the chip was reached. It resets with the puzzle and is
+saved with the position.
 
 **Check my notes** compares your candidates against the true solution and flags any square that has
 lost its real digit. This is the one error News+ cannot catch: Autocheck validates answers and never
@@ -341,8 +363,13 @@ stalls short of 81 because the puzzle wants something past the nine patterns her
 thing outright with nothing advanced needed — in which case what you are missing is not a pattern
 but an entry that is wrong, and **Check my notes** with Autocheck will find it.
 
-Imported puzzles are kept in `localStorage` — the puzzle, not the position, which is 81 characters
-that survive anything. Restart already exists for getting back to the start of one.
+Imported puzzles are kept in `localStorage` — the puzzle, which is 81 characters that survive
+anything — and, separately, **the position you were on** is kept too: grid, notes, cross-offs,
+highlights, wrong-digit flags and the tally, saved after every change and put back on the next
+visit, so closing the app on a train and reopening it lands you where you were. One position,
+the current one; a solved board is not kept, so the next visit deals fresh. A link that carries a
+puzzle still wins over the saved position, unless it is the same puzzle, in which case the
+position is what the link should open on. Restart still exists for getting back to the start.
 
 ## The cheat sheet
 
