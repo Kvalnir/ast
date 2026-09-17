@@ -35,7 +35,7 @@
 
   <header class="thead">
     <h1>Pattern check</h1>
-    <p class="look">A blank board for the four or five squares you are actually staring at. Copy in their pencil marks, say which technique you think you are looking at, and this reads the conditions of that pattern back to you one at a time &mdash; ticked where your marks settle them, and <b>named as yours to check</b> where they cannot. It solves nothing, and it never guesses: an empty square here means <i>you have not told me</i>, not <i>anything is possible</i>.</p>
+    <p class="look">Copy in the marks you are staring at, name the technique you think they make, and every condition is checked against those marks &mdash; or <b>named as yours to settle</b>, never guessed.</p>
     <div class="tmeta">
       <span class="badge" id="mCount">empty board</span>
       <span class="badge" id="mSel">auditing every marked square</span>
@@ -59,7 +59,7 @@
     <div class="padside">
       <p class="padcap">
         <span id="capMark">Pencil marks</span>
-        <button class="minitog" id="bMulti" aria-pressed="false" title="Keep every square you tap. Off, a tap moves the selection; on, it adds to it — and a mouse can always drag across the board instead.">multi</button>
+        <button class="minitog" id="bMulti" aria-pressed="false" title="On: each tap adds a square to the selection. Off: a tap moves it. A mouse can always drag instead.">multi</button>
       </p>
       <div class="pad padmark" id="pad"></div>
     </div>
@@ -70,7 +70,7 @@
          editing the one you have, which is why it is not in either pair. -->
     <div class="tools">
       <button class="tbtn" id="bUndo" disabled title="Undo — puts back the marks the last press changed">Undo</button>
-      <button class="tbtn" id="bErase" aria-pressed="false" title="Erase — the pad takes marks away instead of adding them. Press again to go back to writing.">Erase</button>
+      <button class="tbtn" id="bErase" aria-pressed="false" title="Erase — the pad removes marks instead of adding them. Press again to go back to writing.">Erase</button>
       <button class="tbtn" id="bClear" disabled title="Empty the selected squares">Clear squares</button>
       <button class="tbtn" id="bWipe" title="Empty the whole board">Clear board</button>
       <button class="tbtn wide" id="bDemo" title="Type in a worked XY-Wing from the cheat sheet">Show me one</button>
@@ -86,7 +86,7 @@
     <div class="coachhead">
       <h2>Name the technique</h2>
     </div>
-    <p class="note">Mark the squares that make the pattern, and nothing else. To let it check a <i>count</i> as well &mdash; that a line really has only two spots &mdash; mark the rest of that line too, then select just the pattern squares before you press.</p>
+    <p class="note">Mark the pattern's squares, then press its name. To have a <i>count</i> checked too &mdash; that a line really has only two spots &mdash; mark the rest of that line as well, and select just the pattern squares before you press.</p>
     <div class="chips" id="chips"></div>
     <div class="report" id="report"></div>
   </section>
@@ -103,7 +103,7 @@
       <li class="assume"><span aria-hidden="true">?</span><span>A claim about squares you have not typed &mdash; &ldquo;row 2 holds no other 6&rdquo;. This cannot see them, so it names the scan instead of assuming it. Type more of that line in and it resolves, one way or the other.</span></li>
       <li class="bad"><span aria-hidden="true">✗</span><span>Contradicted, either by where the squares sit or by a mark you typed. This is the answer you came for.</span></li>
     </ul>
-    <p class="note">Working on a whole puzzle instead? The <a href="trainer.html">trainer</a> has the same idea with the position filled in: switch on <b>Read the board</b> and tap squares, and it names what they are. This page is for the case where you have not got a board in the app at all &mdash; just a few squares on paper, or on the screen of another device.</p>
+    <p class="note">Working a whole puzzle? The <a href="trainer.html">trainer</a> does the same with the position filled in: switch on <b>Read the board</b> and tap squares. This page is for when the board is on paper or another screen.</p>
   </section>
 
   </div><!-- /.tside -->

@@ -43,33 +43,33 @@
     render();
   }
 
-  /* The nine, in the site's order. `need` is what to select, and it is here
-     rather than in the audit because it is advice for before you press, not a
-     verdict after. */
+  /* The nine, in the site's order. Names come from the detectors' own table;
+     `need` is what to select, and it is here rather than in the audit because
+     it is advice for before you press, not a verdict after. */
   const TECHS = [
-    ['pointing', 'Pointing pair', 'the two or three spots inside the box'],
-    ['claiming', 'Claiming', 'the two or three spots on the line'],
-    ['naked_pair', 'Naked pair', 'the two squares'],
-    ['naked_triple', 'Naked triple', 'the three squares'],
-    ['hidden_pair', 'Hidden pair', 'the two squares, with all their marks'],
-    ['xwing', 'X-Wing', 'the four corners'],
-    ['swordfish', 'Swordfish', 'every spot in the three lines'],
-    ['skyscraper', 'Skyscraper', 'the two spots in each of the two lines'],
-    ['xy_wing', 'XY-Wing', 'the hinge and both wings']
-  ];
+    ['pointing', 'the two or three spots inside the box'],
+    ['claiming', 'the two or three spots on the line'],
+    ['naked_pair', 'the two squares'],
+    ['naked_triple', 'the three squares'],
+    ['hidden_pair', 'the two squares, with all their marks'],
+    ['xwing', 'the four corners'],
+    ['swordfish', 'every spot in the three lines'],
+    ['skyscraper', 'the two spots in each of the two lines'],
+    ['xy_wing', 'the hinge and both wings']
+  ].map(([id, need]) => [id, T.NAME[id], need]);
   /* What to mark before you press, for the tier above. Longer, because most of
      these are two things joined — a pattern and the link that arms it. */
   const MASTER_TECHS = [
-    ['unique_rect', 'Unique rectangle', 'all four corners of the rectangle'],
-    ['bug', 'BUG+1', 'nothing — this one needs the whole board'],
-    ['finned', 'Finned X-Wing', 'the four corners and every fin'],
-    ['kite', '2-string kite', 'the two spots in the row and the two in the column'],
-    ['empty_rect', 'Empty rectangle', 'the box’s spots, plus both ends of the link'],
-    ['colouring', 'Simple colouring', 'every square in the chain'],
-    ['w_wing', 'W-Wing', 'the two matching squares and both ends of the link'],
-    ['xy_chain', 'XY-chain', 'every two-mark square in the chain'],
-    ['aic', 'AIC', 'every square the chain runs through']
-  ];
+    ['unique_rect', 'all four corners of the rectangle'],
+    ['bug', 'nothing — this one needs the whole board'],
+    ['finned', 'the four corners and every fin'],
+    ['kite', 'the two spots in the row and the two in the column'],
+    ['empty_rect', 'the box’s spots, plus both ends of the link'],
+    ['colouring', 'every square in the chain'],
+    ['w_wing', 'the two matching squares and both ends of the link'],
+    ['xy_chain', 'every two-mark square in the chain'],
+    ['aic', 'every square the chain runs through']
+  ].map(([id, need]) => [id, M ? M.NAME[id] : id, need]);
   const isMasterId = id => MASTER_TECHS.some(t => t[0] === id);
 
   /* An XY-Wing off the cheat sheet, so the first thing the panel ever says is
@@ -351,7 +351,7 @@
       ? (S.multi ? 'Select multiple is on — tap squares to add them'
                  : 'Nothing selected — tap a square, or a number to light it')
       : S.erase
-        ? 'The pad takes marks away — press Erase again to go back to writing'
+        ? 'The pad removes marks — press Erase again to go back to writing'
         : one !== null
           ? 'Writing marks into ' + C.cellName(one)
           : S.sel.length + ' squares — the pad works on all of them at once';
@@ -373,9 +373,8 @@
   function renderReport() {
     const out = $('report'), r = S.report;
     if (!r) {
-      out.innerHTML = '<p class="none">Write the marks you can see, then press the technique you ' +
-        'think it is. Nothing is solved here and nothing is guessed: you get the conditions of ' +
-        'that pattern, one at a time, checked against what you typed.</p>';
+      out.innerHTML = '<p class="none">Nothing named yet. Press a technique above, or ' +
+        '<b>Show me one</b> under the pad for a worked example.</p>';
       return;
     }
     const p = [];

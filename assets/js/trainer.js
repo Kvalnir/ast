@@ -37,13 +37,9 @@
     inspect: false, insp: [], report: null
   };
 
-  const NAMES = {
-    naked_single: 'Naked single', hidden_single: 'Hidden single',
-    pointing: 'Pointing pair', claiming: 'Claiming',
-    naked_pair: 'Naked pair', hidden_pair: 'Hidden pair', naked_triple: 'Naked triple',
-    hidden_triple: 'Hidden triple', xwing: 'X-Wing', skyscraper: 'Skyscraper',
-    swordfish: 'Swordfish', xy_wing: 'XY-Wing'
-  };
+  /* The detectors' own names, so the coach cannot call a technique something
+     the lesson does not. The master tier adds its nine below. */
+  const NAMES = Object.assign({}, T.NAME);
   const ADVANCED = ['xwing', 'skyscraper', 'swordfish', 'xy_wing'];
   const MASTER = M ? M.IDS.slice() : [];
   const DRILLS = ['pointing', 'claiming', 'naked_pair', 'hidden_pair', 'naked_triple',
@@ -472,7 +468,6 @@
     const notes = S.notes.some(s => s.size) ? liveAll() : null;
     const res = T.findAll(S.grid, notes);
     S.findings = res.findings;
-    S.cand = res.candidates;
     /* Master findings are appended and the whole list re-sorted by rank, so a
        naked single still comes before a chain. The base list goes in so the
        AIC search knows whether anything cheaper already exists — see the note
@@ -481,7 +476,6 @@
       const m = M.findAll(S.grid, notes, { base: S.findings });
       S.findings = S.findings.concat(m.findings).sort(
         (a, b) => a.rank - b.rank || b.elims.length - a.elims.length);
-      S.unique = m.unique;
     }
     if (S.pick) {
       const still = S.findings.find(f => f.id === S.pick.id &&
@@ -935,14 +929,14 @@
       ? (focusing ? 'Importing — tap a square, or a number to light it'
                   : 'Tap the number printed in this square')
       : focusing
-        ? (S.multi ? 'Select multiple is on — tap squares to add them'
-                   : 'Nothing selected — tap a square, drag across several, or tap a number on the right to light it')
+        ? (S.multi ? 'Multi is on — tap squares to add them'
+                   : 'Nothing selected — tap a square, or a number to light it')
         : S.pencil === 'erase'
-          ? 'Left pad takes a note away, right pad takes back the digit and restores the notes'
+          ? 'Left pad removes a note, right pad takes back a digit'
           : S.sel.length === 1
             ? 'Left pad ' + (S.pencil === 'hi' ? 'highlights' : 'crosses off') +
               ' a note, right pad writes the digit'
-            : S.sel.length + ' squares — the left pad works on all of them at once';
+            : S.sel.length + ' squares — the left pad marks all of them at once';
 
     $('bAutoclear').setAttribute('aria-pressed', S.autoclear);
     $('bHi').setAttribute('aria-pressed', S.pencil === 'hi');
@@ -1405,7 +1399,6 @@
     if (!S.multi) { S.sel = []; computeReport(); }
     render();
   });
-  $('bErase').addEventListener('click', erase);
   $('bAutofill').addEventListener('click', autofill);
   $('bMore').addEventListener('click', more);
   $('bApply').addEventListener('click', applyPick);
@@ -1532,9 +1525,6 @@
     }
     if (e.key === 'h' || e.key === 'H') { more(); return; }
     if (S.capture && e.key === 'Enter') { finishCapture(); e.preventDefault(); return; }
-    /* Escape backs out one layer at a time: the squares you picked first, then
-       the mode. Leaving both at once loses a selection you may have spent a
-       minute assembling. */
     /* Escape backs out one layer at a time: the squares you picked first, then
        the reading mode. Leaving both at once loses a selection you may have
        spent a minute assembling. */

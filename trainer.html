@@ -35,7 +35,7 @@
 
   <header class="thead">
     <h1>Pattern trainer</h1>
-    <p class="look">Autofill, autocheck and notes cleared on entry, the way News+ has them, so the reflexes carry over. The controls go further on purpose: a pad for writing digits and a pad for marking notes, candidates you cross off rather than delete, and a coach that reads your position and names the techniques available in it &mdash; at whatever level of help you ask for.</p>
+    <p class="look">A board that behaves like News+, and a coach that names the techniques in your position &mdash; with as much or as little help as you ask for.</p>
     <div class="tmeta">
       <span class="badge lvl" id="mLevel">—</span>
       <span class="badge" id="mGivens">—</span>
@@ -65,9 +65,9 @@
        the stylesheet — and the 3x3 pad left a column of unused height next to
        it exactly the size of four buttons.
 
-       One pad, as News+ has it. What a key does depends on whether a square is
-       selected, so the hint under it is not decoration — it is the only thing
-       telling you which of the two the next tap will be. -->
+       What a key does depends on whether a square is selected, so the hint
+       under the pads is not decoration — it is the only thing telling you what
+       the next tap will be. -->
   <div class="padrow">
     <!-- Two keypads, one job each, and the tools between them. One pad that
          changed meaning with a mode was a question you had to answer before
@@ -76,13 +76,13 @@
     <div class="padside">
       <p class="padcap">
         <span id="capMark">Cross off</span>
-        <button class="minitog" id="bMulti" aria-pressed="false" title="Keep every square you tap. Off, a tap moves the selection; on, it adds to it — and a mouse can always drag across the board instead.">multi</button>
+        <button class="minitog" id="bMulti" aria-pressed="false" title="On: each tap adds a square to the selection. Off: a tap moves it. A mouse can always drag instead.">multi</button>
       </p>
       <div class="pad padmark" id="padMark"></div>
     </div>
     <div class="tools">
       <button class="tbtn" id="bUndo" title="Undo (also restores notes an entry removed)">Undo</button>
-      <button class="tbtn" id="bErase" aria-pressed="false" title="Erase — the left pad takes notes away, the right pad takes back a digit you wrote and gives the square its notes again. Press again to go back to marking.">Erase</button>
+      <button class="tbtn" id="bErase" aria-pressed="false" title="Erase — the left pad removes a note, the right pad takes back a digit you wrote. Press again to go back to marking.">Erase</button>
       <!-- What the marking pad does when Erase is off. Six plain buttons on one
            grid rather than a joined pair among singles: the pair used to be
            wrapped in a segmented control, which made those two wider than the
@@ -90,7 +90,7 @@
            looked like two different sizes depending on which button wore it.
            aria-pressed already says which is live, on all three of these. -->
       <button class="tbtn" id="bHi" aria-pressed="false" title="Highlight — mark a note without changing what it means">Highlight</button>
-      <button class="tbtn" id="bOff" aria-pressed="true" title="Cross off — a real elimination, drawn rather than deleted, and put back by crossing again">Cross off</button>
+      <button class="tbtn" id="bOff" aria-pressed="true" title="Cross off — a real elimination, drawn rather than deleted. Cross it again to put it back.">Cross off</button>
       <button class="tbtn" id="bAutofill" title="Fill every empty square with its possible numbers">Autofill</button>
       <button class="tbtn" id="bAutoclear" aria-pressed="true" title="After every entry, fill any square in that box whose notes have come down to one">Autoclear</button>
     </div>
@@ -121,7 +121,7 @@
       <button class="tbtn" id="bApply" disabled>Apply it</button>
       <button class="tbtn" id="bClearHint">Clear</button>
     </div>
-    <p class="ladder" id="ladder"><span class="step">Ready</span>Make a move, or press Autofill to get your notes in.</p>
+    <p class="ladder" id="ladder"><span class="step">Ready</span>Make a move, or press Show me more for a nudge.</p>
     <p class="note" id="cNote"></p>
     <div class="setrow">
       <label><input type="checkbox" id="sAutocheck" checked> Autocheck</label>
@@ -147,7 +147,7 @@
       <h2>Read the board</h2>
       <span class="badge" id="nCount" hidden>—</span>
     </summary>
-    <p class="note" id="nNote">Select squares and it says what they are — including a pattern read correctly that kills nothing, which the coach never mentions because there is no move in it. Reading a board that is not this one? The <a href="check.html">pattern check</a> takes a handful of marks on a blank grid and audits them condition by condition.</p>
+    <p class="note" id="nNote">Select squares and it says what they make &mdash; even a pattern that kills nothing, which the coach never lists because there is no move in it. Squares on another screen? Use the <a href="check.html">pattern check</a>.</p>
     <div class="coachrow" style="margin-top:12px">
       <button class="tbtn" id="bInspect" aria-pressed="false">Inspect the board</button>
       <button class="tbtn" id="bInspClear" disabled>Clear selection</button>
@@ -155,8 +155,8 @@
     <div class="report" id="nReport" hidden></div>
   </details>
 
-  <!-- Import. The puzzle you are actually stuck on is rarely one of the twenty
-       in the bank, and everything a bank entry carries — solution, technique
+  <!-- Import. The puzzle you are actually stuck on is never one of the
+       thirty-two in the bank, and everything a bank entry carries — solution, technique
        tags, level — is derivable from the printed digits alone. So this asks
        for those and nothing else. See assets/js/import.js. -->
   <details class="coach" id="importer">
@@ -164,7 +164,7 @@
       <h2>Import a puzzle</h2>
       <span class="badge" id="iCount" hidden>—</span>
     </summary>
-    <p class="note" id="iNote">Stuck on a puzzle somewhere else — News+, a paper, an app? Type in the digits it prints and the coach reads that one. It works out the solution and which techniques the puzzle needs; you only enter the givens.</p>
+    <p class="note" id="iNote">Stuck on a puzzle somewhere else? Type in the digits it prints and the coach reads that one. You enter only the givens; it works out the rest.</p>
 
     <div class="coachrow" id="iStart">
       <button class="tbtn" id="bCapture">Type in a puzzle</button>
@@ -190,7 +190,7 @@
     <div class="coachrow" id="iAfter" hidden>
       <button class="tbtn" id="bCatchUp" title="Play every forced move from the printed digits and stop at the first advanced pattern">Catch me up</button>
       <button class="tbtn" id="bCopyLink">Copy link</button>
-      <button class="tbtn" id="bFresh" title="Put an unimported puzzle back on the board — yours stays in the saved list below">New puzzle</button>
+      <button class="tbtn" id="bFresh" title="Back to a bank puzzle — yours stays in the saved list below">New puzzle</button>
     </div>
 
     <p class="note" id="iResult"></p>
@@ -199,7 +199,7 @@
 
   <details class="coach" id="driller">
     <summary class="coachhead"><h2>Drill one technique</h2></summary>
-    <p class="note" id="drillNote">Jumps to a real position where that technique is the move to find. Everything simpler has already been played.</p>
+    <p class="note" id="drillNote">Jumps to a real position where that technique is the move. Everything simpler is already played.</p>
     <div class="chips" id="drills"></div>
   </details>
 

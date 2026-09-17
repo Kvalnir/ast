@@ -1,4 +1,4 @@
-import random, itertools, json, copy
+import itertools
 
 ROWS = [[r*9+c for c in range(9)] for r in range(9)]
 COLS = [[r*9+c for r in range(9)] for c in range(9)]

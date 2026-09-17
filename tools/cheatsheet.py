@@ -260,7 +260,7 @@ HTML = f'''<!DOCTYPE html>
     <p class="lede">Every technique reduced to the trigger that fires it and the deletion it earns. <a href="index.html">Patterns</a> is the explainer — this is the thing you keep open while you play. Each name links back to its full write-up.</p>
     <div class="legend cribleg">
       <p><span class="swatch b"></span> Amber cells are the pattern doing the work</p>
-      <p><span class="swatch l"></span> Lines show how the pattern connects: one colour per pair, and a dashed line takes the colours of the two pairs it joins</p>
+      <p><span class="swatch l"></span> Lines connect the pattern: one colour per pair, and a dashed line takes the colours of both pairs it joins</p>
       <p><span class="swatch p"></span> Ringed cells are the loose ends of a chain</p>
       <p><span class="swatch k"></span> Struck red digits are the candidates it kills</p>
       <p><span class="swatch n"></span> Grey digits are other spots for the same digit, and a dot is any unsolved cell</p>

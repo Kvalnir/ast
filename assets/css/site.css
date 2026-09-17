@@ -67,6 +67,14 @@ h1{
 }
 h1 em{font-style:normal;color:var(--amber)}
 .lede{font-size:clamp(16px,4.3vw,19px);color:var(--mist);margin:0 0 26px;max-width:52ch}
+/* The four destinations, as a list rather than a paragraph with four links
+   buried in it: a reader arriving here is choosing where to go, and a choice
+   is scanned, not read. The link leads each line so the eye can run down the
+   names alone. */
+.goto{list-style:none;margin:0 0 24px;padding:0;display:grid;gap:9px;max-width:52ch}
+.goto li{font-size:15.5px;line-height:1.5;color:var(--mist)}
+.goto a{color:var(--amber);text-decoration:none;font-weight:500;margin-right:6px;white-space:nowrap}
+.goto a:hover,.goto a:focus-visible{text-decoration:underline}
 .legend{
   border:1px solid #22343C;border-radius:2px;background:var(--panel);
   padding:14px 16px;display:grid;gap:10px;margin-bottom:8px
@@ -821,10 +829,6 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
 .saved .chip{border:none;border-radius:0}
 .saved .chip.x{border-left:1px solid #2A3D45;padding:5px 8px;opacity:.6}
 .saved .chip.x:hover{opacity:1;color:var(--red)}
-.done-banner{
-  background:#14331A;border:1px solid #2E5A32;color:#CFEAC2;padding:12px 14px;
-  border-radius:2px;margin:14px 0 0;font-size:14.5px;
-}
 @media (max-width:400px){
   .trainer{padding:0 10px 70px}
   .pad{gap:3px}
@@ -872,18 +876,22 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
      The 3x3 pad is width-capped instead, so its height is fixed no matter how
      big the board gets, and it belongs in the constant.
 
-     441px, and every part of it was measured in the browser rather than
-     reasoned about: 221px above the column (site bar, page header, meta row)
-     plus 220px below the board (the 175px tools-and-pad row, the 17px hint, and
-     28px of margins). Moving the tools alongside the pad is what took this from
-     538 — the row they used to occupy was costing the board ~46px of width, and
-     the rest of the drop was slack the previous constant had never had measured
-     out of it.
+     410px, and every part of it was measured in the browser rather than
+     reasoned about: 196px above the column (site bar, a one-line standfirst,
+     the meta row) plus about 195px below the board (the tools-and-pad row, the
+     one-line hint, and the margins), with 14px of air at the bottom to match
+     the sticky top. The pads take their width from the row and their height
+     from the keys' aspect ratio, so the block under the board grows a little
+     with the board — about 0.4px per pixel — which is why this is measured at
+     a 900px window rather than derived. It was 441 while the standfirst ran
+     to two lines and the hint to two; each line taken out of the header is a
+     line given to the board.
 
      Re-measure this if anything in the column changes height. The check is that
      .tplay's bottom lands on the viewport bottom: short by a lot and the board
      is smaller than it needs to be, over and `position:sticky` stops working
-     because the column no longer fits.
+     because the column no longer fits. The check page carries its own constant
+     below, because its header and its controls are not the same height.
 
      620px is a comfort ceiling — past it the cells are just large, and the
      coach column starts to look starved. It is reached at a 1061px-tall window.
@@ -893,7 +901,7 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
      unreadable board. */
   .tplay{
     position:sticky;top:14px;
-    width:min(100%,620px,max(320px,calc(100vh - 441px)));
+    width:min(100%,620px,max(320px,calc(100vh - 410px)));
     margin-inline:auto;
   }
   /* Board digits size off the board itself (see .boardwrap container-type), so
@@ -1107,7 +1115,16 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
    states get three colours and three glyphs, and the amber `?` is the one the
    eye lands on.
    ============================================================ */
-.check .thead .look{max-width:70ch}
+.check .thead .look{max-width:76ch}
+/* Its own board constant — see .tplay above. The header here is a line taller
+   than the trainer's and the flash line under the hint adds another, so the
+   trainer's figure leaves this column overrunning the viewport, at which point
+   sticky stops. Measured the same way, at a 900px window; the ceiling is 30px
+   lower than the trainer's for the same reason, so that a 1080px window still
+   holds the whole column. */
+@media (min-width:1040px){
+  .check .tplay{width:min(100%,590px,max(320px,calc(100vh - 440px)))}
+}
 /* These two say what the next press will act on, and they are long enough to
    run off a phone if they insist on one line. */
 .check .tmeta .badge{white-space:normal}

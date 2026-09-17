@@ -112,7 +112,8 @@ manifest.webmanifest    PWA metadata: name, icons, start URL
 sw.js                   service worker — precache, offline, update prompt
 assets/css/site.css     shared design tokens and all page styles
 assets/js/core.js       units, peers, candidates, backtracking solver
-assets/js/techniques.js the nine detectors, plus verify() and audit() — see "Three questions" below
+assets/js/techniques.js the nine detectors, verify() and audit() — see "Three questions" below —
+                        and NAME, the display names every page reads
 assets/js/bank.js       32 verified puzzles, tagged by technique required
 assets/js/import.js     read a puzzle off another screen: validate, derive, tag
 assets/js/trainer.js    board UI, News+ behaviours, hint ladder, the two pads
@@ -134,6 +135,11 @@ Two things here have two sources of truth, and both are worth knowing about:
   Derived rather than read off the entry, so an import is tiered like a bank puzzle.
 
 Edit each pair together or they drift.
+
+Technique *names* are deliberately not on that list: `SudokuTech.NAME` and `SudokuMaster.NAME`
+are the only places a technique is spelled out, and the trainer, the check board and their chips
+all read from them. The Python side has its own titles in `build.py`, `cheatsheet.py` and
+`master_data.py`, which is the one remaining place a rename has to be made twice.
 
 ## Installing it as an app
 
@@ -166,6 +172,16 @@ python3 -m http.server 8123
 ```
 
 ## The trainer
+
+**The board is on the first screen.** The standfirst on the trainer and the check board is one
+sentence, and the hint line under the pads is kept to one line down to the 320px board floor, so
+that on a phone the whole board and both pads fit above the fold and on a laptop the board is as
+large as the window allows. The explanation of *why* the controls are the way they are lives
+here and in the tooltips, not above the board — every line of prose up there is a line taken
+from the grid on every visit. The board's size on a wide screen is a measured constant in
+`site.css` (`.tplay`, and `.check .tplay` for the check page, whose header and controls are not
+the same height); re-measure it if anything in the column changes height, and the comment there
+says how.
 
 **It keeps the News+ reflexes that matter.** Autofill, per-square Autocheck, notes in fixed 3×3
 slots, and — importantly — notes cleared on entry *before* the entry is judged. Enter a wrong digit
@@ -468,9 +484,10 @@ single uniqueness example at the foot of the lesson. One renderer, so the two pa
 into two dialects of the same picture. Its `lines()` also colours the overlay for every generated
 figure, full-size ones included: each solid line (a pair, or a strong link) gets its own ink in
 drawing order, and a dashed crossing line is drawn half in the ink of each pair it joins. The
-trainer and the check board draw with the same rule in `core.js` — change one, change the other. The uniqueness figure is the only one built by hand rather
-than read out of a verified position — if you edit it, check it stays a legal deadly pattern: four
-cells, two rows, two columns, and exactly two boxes.
+trainer and the check board draw with the same rule in `core.js` — change one, change the other.
+The uniqueness figure is the only one built by hand rather than read out of a verified position —
+if you edit it, check it stays a legal deadly pattern: four cells, two rows, two columns, and
+exactly two boxes.
 
 `gallery.py` stands apart from the other two: it takes no prose from `template.html` and no
 positions from `examples.json`. It generates its own puzzles, walks each one down the engine's own
@@ -533,7 +550,32 @@ Expected: `solved 32/32 assertions 2047 fails 0`.
 
 The same snippet runs in a browser console on any page of the site, where `SudokuCore`,
 `SudokuTech` and `SUDOKU_BANK` are already globals — drop the three `require` lines and read the
-bank from `SUDOKU_BANK`. Useful when the machine in front of you has no node.
+bank from `SUDOKU_BANK`. Useful when the machine in front of you has no node, which is the usual
+case here: the last full pass over this file was run that way, from `trainer.html`, and produced
+the figures above.
+
+### Checks that need no engine
+
+Three cheap sweeps that catch the kind of rot a static site accumulates, worth running before a
+push. All of them are grep; none needs node or Python beyond the generators themselves.
+
+- **The generated pages match their generators.** Copy `tools/` somewhere, run the six
+  generators there, and `diff` each output against the committed page. `gallery.py` is seeded and
+  takes four seconds, so this covers every generated page. A page that differs was hand-edited
+  after generation and will be silently reverted the next time anyone rebuilds it.
+- **Every element id the scripts ask for exists, and every id in the page is asked for.**
+  `grep -oP "\$\('\K[A-Za-z]+(?='\))" assets/js/trainer.js` against
+  `grep -oP 'id="\K[A-Za-z]+(?=")' trainer.html`, and the same for the check page. Ids only in
+  the HTML are containers and harmless; an id only in the JS is a dead control.
+- **Every class the stylesheet styles is used somewhere.** Pull the class names out of
+  `site.css` and grep each against the pages, scripts and generators. Two will show up as
+  unused and are not: `c0`–`c5` are built as `'c' + ink` in `core.js` and `mini.py`. Anything
+  else is a rule nobody wears — one was, until this pass.
+
+The same pass turned up a listener that had outlived the button it was written for: Erase was a
+plain button in the first commit and became a mode later, and the old click handler was still
+attached, so switching the mode also erased whatever was selected. Worth remembering as the
+shape of bug a `git log -L` on the wiring block finds and a read-through does not.
 
 ### Checking the master detectors
 

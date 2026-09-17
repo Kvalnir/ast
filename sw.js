@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v41';  // v41: connector lines coloured per pair
+const VERSION = 'v42';  // v42: shorter standfirsts and notes; Erase toggle fix
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
