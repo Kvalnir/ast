@@ -198,6 +198,14 @@ in the same order, which makes "the 7 is bottom-left" one fact rather than two.
 With nothing selected, the right pad lights that digit across the board instead. That is the one
 place the old rule survives, and it is what the focus square on a note means everywhere else.
 
+**Two-mark**, beside the right pad's caption, is the same seek asked about a shape rather than a
+digit: every square not down to exactly two live notes steps back, the way a square that cannot
+hold the lit digit does. It exists for the XY-Wing, the one Advanced pattern the digit highlight
+cannot find — its hinge and both wings are two-mark squares, and scanning for those is the first
+step of the hunt. Both at once is the second step: with a digit lit as well, only the two-mark
+squares still holding it stay bright, and those are the only squares a wing can be. It stays on
+across puzzles, because you switch it on for a hunt and a drill is several hunts in a row.
+
 **A selection is a set.** A tap moves it; adding takes something deliberate — the **multi** toggle
 beside the left pad's caption, a held <kbd>Shift</kbd> or <kbd>Ctrl</kbd>, or a drag across the
 board. One-square play still costs one tap, because writing a digit lets go of the selection. A
@@ -264,6 +272,7 @@ build on it.
 | <kbd>Backspace</kbd> | Take back the digit and restore the square's notes |
 | <kbd>N</kbd> | Cycle Cross off → Highlight → Erase |
 | <kbd>M</kbd> | Select multiple on or off |
+| <kbd>T</kbd> | Two-mark on or off — every square not down to two notes steps back |
 | <kbd>H</kbd> | Show me more — the next rung of the hint ladder |
 | <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> | Undo, notes and marks included |
 
@@ -305,7 +314,7 @@ the rest of the time.
 
 **Drills** fast-forward a real puzzle to the exact position where one technique is the move —
 everything cheaper already played. This is the fastest way to train the eye, because you get the
-pattern in isolation without solving forty squares first. Each technique has up to four such
+pattern in isolation without solving forty squares first. Each technique has up to ten such
 positions, from different puzzles, dealt at random and never the same one twice running; the
 walk that finds them is cached per technique, so the first press on a master technique costs
 about a second and the rest are free. On the Master tier a drill walks with both tiers'

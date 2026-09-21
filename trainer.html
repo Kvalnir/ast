@@ -95,7 +95,17 @@
       <button class="tbtn" id="bAutoclear" aria-pressed="true" title="After every entry, fill any square in that box whose notes have come down to one">Autoclear</button>
     </div>
     <div class="padside">
-      <p class="padcap" id="capPen">Pen</p>
+      <!-- Two-mark rides with the pen pad for the same reason multi rides with
+           the marking pad: this is the pad whose keys light a digit when
+           nothing is selected, and lighting the two-note squares is the same
+           gesture asked about a shape instead of a digit. The one pattern the
+           digit highlight cannot find is the XY-Wing, and every square in one
+           is a two-mark square; with a digit lit as well, only the two-mark
+           squares holding it stay bright — which is where its wings are. -->
+      <p class="padcap">
+        <span id="capPen">Pen</span>
+        <button class="minitog" id="bTwos" aria-pressed="false" title="On: every square not down to exactly two notes steps back, leaving the squares an XY-Wing is built from. Light a digit as well and only the two-mark squares holding it stay bright.">two-mark</button>
+      </p>
       <div class="pad padpen" id="padPen"></div>
     </div>
   </div>

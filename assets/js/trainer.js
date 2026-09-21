@@ -24,6 +24,10 @@
        but it is drawn rather than deleted, so it can be taken back by crossing
        it again instead of by unwinding history. See live(). */
     notes: [], off: [], hi: [], wrong: [], sel: [], pencil: 'off', wasPencil: 'off', multi: false, focus: null,
+    /* The other seek: every square down to two live notes, which is what an
+       XY-Wing is made of. Not reset with the puzzle, unlike focus — you switch
+       it on for a hunt, and a drill is several of those in a row. */
+    twos: false,
     history: [], findings: [], pick: null, level: 0,
     autocheck: true, autoRemove: true, peers: true, coach: 'full', autoclear: true,
     tier: 'challenging',
@@ -732,16 +736,22 @@
      twice and see the same board is a drill you memorise, and Name it deals
      ten in a row. The walk stops once it has WANT pass-1 positions from
      different puzzles, and the list is cached per technique and tier, so the
-     cost is paid once. A master technique walks with both tiers' detectors,
-     but only consults the master ones where no single is available — an
-     Advanced move always outranks a master one, so that is the only place a
-     master target could be the cheapest thing on the board. */
+     cost is paid once. WANT is ten because that is what the bank can give the
+     rarest Advanced pattern — ten of the thirty-two carry an XY-Wing — and four
+     positions of the one technique you are drilling on purpose is a set you
+     know by heart in an afternoon. The common techniques stop early anyway;
+     the rare ones walked the whole bank before and still do.
+
+     A master technique walks with both tiers' detectors, but only consults the
+     master ones where no single is available — an Advanced move always
+     outranks a master one, so that is the only place a master target could be
+     the cheapest thing on the board. */
   /* The bank is tagged with the generator's names; map them to the detector ids. */
   const BANK_TAG = {
     naked_pair: 'naked_2', hidden_pair: 'hidden_2',
     naked_triple: 'naked_3', hidden_triple: 'hidden_3'
   };
-  const WANT = 4;
+  const WANT = 10;
   const drillCache = new Map();
   function drillsFor(id) {
     const key = id + (MASTER.includes(id) ? ':master' : '');
@@ -995,7 +1005,14 @@
        above is a special case of it, not a different thing. Not `hunt`: that
        class already belongs to a text block on the patterns page, and `.hunt
        span` would repaint every digit on this board amber. */
-    boardEl.classList.toggle('seek', !!S.focus);
+    /* Two-mark is the same mode asked a different question — "where are the
+       squares down to two notes" instead of "where are the 7s" — so it wears
+       the same dim rather than a second one. Both at once is the first step of
+       the XY-Wing hunt: the two-mark squares still holding the digit are the
+       only squares a wing can be. Off while transcribing, where there are no
+       notes yet and it would dim the board you are typing into. */
+    const twos = S.twos && !S.capture;
+    boardEl.classList.toggle('seek', !!S.focus || twos);
 
     for (let i = 0; i < 81; i++) {
       const c = cells[i], el = c.el, v = S.grid[i];
@@ -1013,8 +1030,9 @@
            only if it IS the digit, an empty one only if the digit is still a
            live note in it. A digit you crossed off yourself is a decision, and
            the square goes cold on it exactly like the coach's board would. */
-        (S.focus && !(v === S.focus
-          || (!v && S.notes[i].has(S.focus) && !S.off[i].has(S.focus))) ? ' cold' : '') +
+        ((S.focus && !(v === S.focus
+          || (!v && S.notes[i].has(S.focus) && !S.off[i].has(S.focus))))
+         || (twos && (v || live(i).size !== 2)) ? ' cold' : '') +
         (selSet.has(i) ? ' sel' : '') +
         (last === i ? ' last' : '');
 
@@ -1103,6 +1121,7 @@
     $('bOff').setAttribute('aria-pressed', S.pencil === 'off');
     $('bErase').setAttribute('aria-pressed', S.pencil === 'erase');
     $('bMulti').setAttribute('aria-pressed', S.multi);
+    $('bTwos').setAttribute('aria-pressed', S.twos);
     $('bUndo').disabled = !S.history.length;
     $('bApply').disabled = !S.pick;
     /* Capture mode borrows the board, so everything that acts on a position
@@ -1612,6 +1631,7 @@
     if (!S.multi) { S.sel = []; computeReport(); }
     render();
   });
+  $('bTwos').addEventListener('click', () => { S.twos = !S.twos; render(); });
   $('bAutofill').addEventListener('click', autofill);
   $('bMore').addEventListener('click', more);
   $('bApply').addEventListener('click', applyPick);
@@ -1739,6 +1759,7 @@
       }
       return;
     }
+    if (e.key === 't' || e.key === 'T') { S.twos = !S.twos; render(); return; }
     if (e.key === 'h' || e.key === 'H') { more(); return; }
     if (S.capture && e.key === 'Enter') { finishCapture(); e.preventDefault(); return; }
     /* Escape backs out one layer at a time: the squares you picked first, then
