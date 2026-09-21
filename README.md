@@ -17,9 +17,10 @@ in the other tier where there is one, and re-reads the board where there is not.
   pencil marks, each with a scan routine, News+-specific guidance, and the common false positives.
 - **`trainer.html`** — a live board that keeps the News+ reflexes and names the patterns available
   in your position, one hint level at a time. Thirty-two verified puzzles across four difficulties
-  are built in, and you can **import the one you are actually stuck on** — by typing it, or by
-  pasting 81 characters into a box that lays them out as a nine-by-nine grid so you can check them
-  against the page.
+  are built in, it can **make a fresh one to order** — press the patterns it must need, on either
+  tier — and you can **import the one you are actually stuck on** — by typing it, or by pasting 81
+  characters into a box that lays them out as a nine-by-nine grid so you can check them against
+  the page.
 - **`cheatsheet.html`** — the same nine patterns as a card grid: the trigger that fires each one,
   the deletion it earns, and where it goes wrong. The reference is what you read; this is what you
   keep open beside the puzzle. Each card links back to its full write-up, and its figures are
@@ -115,7 +116,9 @@ assets/js/core.js       units, peers, candidates, backtracking solver
 assets/js/techniques.js the nine detectors, verify() and audit() — see "Three questions" below —
                         and NAME, the display names every page reads
 assets/js/bank.js       32 verified puzzles, tagged by technique required
-assets/js/import.js     read a puzzle off another screen: validate, derive, tag
+assets/js/import.js     read a puzzle off another screen: validate, derive, tag — and the walk,
+                        describe() and tierOf() that a made puzzle is put through as well
+assets/js/gen.js        make a puzzle to order: a worker that deals until the walk needed what was asked
 assets/js/trainer.js    board UI, News+ behaviours, hint ladder, the two pads
 assets/js/check.js      the scratch board: marks in, conditions out
 assets/js/master.js     the master tier's nine detectors, plus its audits
@@ -132,8 +135,11 @@ Two things here have two sources of truth, and both are worth knowing about:
 - `icon.svg` carries the same 24-unit geometry as `tools/icons.py`, because a nine-cell grid does
   not survive a 16px downsample and browsers that support SVG favicons should get the vector.
 - The **difficulty tiers** are decided by `tier_of()` in `tools/bank.py`, which stocks the bank,
-  and by `tierOf()` in `assets/js/trainer.js`, which tiers an imported puzzle by the same rule.
-  Derived rather than read off the entry, so an import is tiered like a bank puzzle.
+  and by `SudokuImport.tierOf()` in `assets/js/import.js`, which tiers an imported or made puzzle
+  by the same rule (the trainer and the maker's worker both read it). Derived rather than read off
+  the entry, so an import is tiered like a bank puzzle. The JS rule has a fifth answer, *master*,
+  for a made puzzle that needs the tier above; the Python engine has no master detectors, so its
+  copy of the branch never fires, and is there so the rule reads the same in both places.
 
 Edit each pair together or they drift.
 
@@ -322,6 +328,23 @@ detectors. Two master techniques have no drill on this bank, and honestly so: ev
 solves with the nine, so a unique rectangle never turns up as the cheapest move, and the AIC
 search only runs when nothing else fires at all.
 
+**Make a puzzle** is the bank made infinite. Press the patterns the next puzzle must need — the
+four advanced ones, and on the Master tier its nine as well — and a worker deals random minimal
+puzzles until one comes up whose walk to the answer used every pattern you pressed, then puts it
+on the board. Press none and it deals one at the selected difficulty instead. "Needs" means what it
+means in the bank: the technique turned up in the walk, cheapest move first, with the same
+order-dependence — a puzzle that needed an XY-Wing may have had a skyscraper route too. It is *at
+least* those patterns, not exactly: a puzzle asked to need an X-Wing will often need a second thing
+on the way, and a master pattern is only ever consulted where the nine have nothing, so a puzzle
+asked to need a kite is one the nine alone cannot finish. Every made puzzle is unique by
+construction and solved by the detectors before it is dealt — that is the acceptance test — so the
+coach cannot run out of moves on one. The common patterns take a fraction of a second; a swordfish
+takes a few seconds and a few hundred tries, and the status line counts. The search is capped at
+four thousand and says so when a combination did not turn up. A made puzzle lives only on the
+board and in the link (`#p=…`, like an import), and comes back with the saved position. The making
+is `assets/js/gen.js`, run as a Web Worker so the board stays live; where a worker cannot be made
+(`file://`) the same search runs on the page in slices.
+
 **Name it** is the gallery made live: ten drill positions in a row, the technique withheld, and
 the coach's chip row turned into the answers. Press the pattern you can see; the board is read
 and you are told yes or no, with what was there drawn in amber either way — a wrong answer with
@@ -342,7 +365,7 @@ lost its real digit. This is the one error News+ cannot catch: Autocheck validat
 notes, so an elimination you made in error is invisible until the grid dies twenty moves later.
 
 **Importing the puzzle you are stuck on** is the point of the whole thing: the thirty-two in the
-bank are for practice, and the one beating you is on another screen. Press **Type in a puzzle** and the
+bank and anything the maker deals are for practice, and the one beating you is on another screen. Press **Type in a puzzle** and the
 board becomes the entry surface — tap a square, tap the printed digit, one tap each. There is a
 paste box for the desktop case, and an imported puzzle rides in the URL (`trainer.html#p=…`), so
 a link moves it between the phone and the desk.
@@ -641,9 +664,13 @@ puzzles.
 ### Three questions, three code paths
 
 `findAll` answers *what can I play here?* and every detector past the singles bails the moment a
-pattern kills nothing, because a move that changes no candidate is not a move. `verify` — what
-**Read the board** runs on — answers *am I reading these squares right?*, where a pattern that
-kills nothing is still a pattern correctly read.
+pattern kills nothing, because a move that changes no candidate is not a move. `cheapest` is the
+same question asked by the walks — the drill builder, catch-up, the importer, the maker — which
+only ever read the first answer: the same detectors in rank order, stopping at the first rank that
+yields, which is exactly what heads `findAll`'s list (checked step for step over the bank) and
+about eight times cheaper on a step that is a single. `verify` — what **Read the board** runs on —
+answers *am I reading these squares right?*, where a pattern that kills nothing is still a pattern
+correctly read.
 
 That is why it is a separate pass rather than a filter over `findAll`: an inspector built on
 `findAll` would answer "nothing here" precisely when you had got it right and the pattern happened

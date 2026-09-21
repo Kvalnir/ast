@@ -178,17 +178,22 @@
 
      Deliberately the coach's detectors and not the backtracking solver: the
      question being asked is what THIS site can see in the position, and a
-     search that always wins would answer a different one. */
-  function walk(grid, notes, stopRank) {
+     search that always wins would answer a different one.
+
+     `master` is SudokuMaster or nothing. Given, its detectors are consulted
+     where the nine have nothing — and only there, which is also the only place
+     the coach on the Master tier would show one, since every master rank sits
+     above the XY-Wing. So a walk with it plays exactly what the coach would. */
+  function walk(grid, notes, stopRank, master) {
     const g = grid.slice();
     const n = notes ? notes.map(s => new Set(s)) : C.baseCandidates(g);
     const played = [];
     const seen = new Map();
     let stopped = null;
     for (let step = 0; step < 500; step++) {
-      const { findings } = T.findAll(g, n);
-      if (!findings.length) break;
-      const f = findings[0];
+      let f = T.cheapest(g, n);
+      if (!f && master) f = master.findAll(g, n, { base: [] }).findings[0] || null;
+      if (!f) break;
       if (stopRank && f.rank >= stopRank) { stopped = f; break; }
       if (seen.has(f.id)) played[seen.get(f.id)][1]++;
       else { seen.set(f.id, played.length); played.push([f.id, 1]); }
@@ -198,7 +203,40 @@
         C.PEERS[f.placement.cell].forEach(x => n[x].delete(f.placement.digit));
       } else f.elims.forEach(e => n[e.cell].delete(e.digit));
     }
-    return { grid: g, notes: n, played, stopped, filled: g.filter(v => v).length };
+    return { grid: g, notes: n, played, stopped, filled: g.filter(v => v).length, master: !!master };
+  }
+
+  /* Everything a bank entry carries, read off the walk: the technique tags in
+     the bank's vocabulary, which of the four advanced patterns are among them,
+     which of the master nine, and the level. One rule, because two things
+     arrive at the board this way — a puzzle typed in and a puzzle made by
+     gen.js — and they must be described alike. The caller adds how it came. */
+  function describe(p, solution, w, master) {
+    const t = [...new Set(w.played.map(x => TAG[x[0]] || x[0]))].sort();
+    const adv = ADV.filter(x => t.includes(x));
+    const mst = master ? master.IDS.filter(x => t.includes(x)) : [];
+    return {
+      p, s: solution, t, adv, mst, givens: C.parse(p).filter(v => v).length,
+      level: adv.length ? 'advanced' : (t.some(x => SUBSET.includes(x)) ? 'intermediate' : 'basic')
+    };
+  }
+
+  /* The four difficulties the trainer offers, named for what a puzzle asks of
+     you rather than for how it feels: easy needs nothing but singles, normal
+     adds the interactions and subsets, and the two hard tiers are separated by
+     how many of the advanced patterns you have to find. A fifth answer for a
+     puzzle that needs the tier above, which only the maker can produce. Mirrors
+     tier_of() in tools/bank.py, which is what stocks the bank — change one and
+     change the other, or the selector starts handing out puzzles that do not
+     match their label. Derived rather than read off the entry so that an
+     imported or made puzzle is tiered by the same rule as a banked one. */
+  const SINGLES = ['naked_single', 'hidden_single'];
+  function tierOf(p) {
+    if ((p.mst || []).length) return 'master';
+    const adv = p.adv || [];
+    if (adv.length >= 2) return 'extra';
+    if (adv.length === 1) return 'challenging';
+    return (p.t || []).some(x => !SINGLES.includes(x)) ? 'normal' : 'easy';
   }
 
   /* What the technique walk says about a puzzle, in the words the trainer wants
@@ -207,24 +245,29 @@
      patterns crack it without an advanced move, the thing they are missing is
      probably a digit they got wrong, not a pattern they have not learned. */
   function verdict(puzzle, w, names) {
-    const needs = puzzle.adv.map(x => names[x]).join(' + ');
+    const hard = puzzle.adv.concat(puzzle.mst || []);
+    const needs = hard.map(x => names[x] || x).join(' + ');
+    const who = w.master ? 'both tiers' : 'the nine patterns';
     if (w.filled === 81) {
-      return puzzle.adv.length
-        ? 'Read clean, and the nine patterns take it all the way. Past the singles it needs ' +
+      return hard.length
+        ? 'Read clean, and ' + who + ' take it all the way. Past the singles it needs ' +
           needs + '.'
         : 'Read clean — and it falls to singles, locked candidates and subsets alone, with ' +
           'nothing advanced needed. If you are stuck on it, look first for an entry of yours ' +
           'that is wrong rather than a pattern you have missed.';
     }
-    return 'Read clean, and it is a real puzzle — but the nine patterns here stall at ' +
-      w.filled + ' of 81 squares' + (puzzle.adv.length ? ', after ' + needs : '') +
-      '. Past that it wants something this site does not teach. Import it anyway if you ' +
+    return 'Read clean, and it is a real puzzle — but ' + who + ' here stall at ' +
+      w.filled + ' of 81 squares' + (hard.length ? ', after ' + needs : '') +
+      '. Past that it wants something this site does not teach' +
+      (w.master ? '' : ' on this tier') + '. Import it anyway if you ' +
       'want the coach for the part it can see.';
   }
 
   /* The whole import in one call. Returns either a bank-shaped puzzle or a
-     refusal that says which squares to look at again. */
-  function analyze(text, names) {
+     refusal that says which squares to look at again. `master` is SudokuMaster
+     when the tier switch says Master, so a puzzle that needs the tier above is
+     read as needing it rather than as beyond the site. */
+  function analyze(text, names, master) {
     names = names || {};
     const p = normalise(text);
     if (!p.length) {
@@ -277,14 +320,9 @@
                          'on the board; the one you skipped is among them.') };
     }
 
-    const w = walk(grid, null, 0);
-    const t = [...new Set(w.played.map(x => TAG[x[0]] || x[0]))].sort();
-    const adv = ADV.filter(x => t.includes(x));
-    const puzzle = {
-      p, s: sols[0].join(''), t, adv, givens,
-      level: adv.length ? 'advanced' : (t.some(x => SUBSET.includes(x)) ? 'intermediate' : 'basic'),
-      imported: Date.now()
-    };
+    const w = walk(grid, null, 0, master);
+    const puzzle = describe(p, sols[0].join(''), w, master);
+    puzzle.imported = Date.now();
     return { ok: true, code: 'ok', cells: [], puzzle, walk: w,
              message: verdict(puzzle, w, names) };
   }
@@ -345,7 +383,7 @@
   }
 
   root.SudokuImport = {
-    ADV_RANK, normalise, gridChar, gridify, gridCaret, conflicts, repairs, walk, analyze,
-    saved, save, forget, fromHash, setHash, clearHash
+    ADV_RANK, ADV, normalise, gridChar, gridify, gridCaret, conflicts, repairs, walk, describe,
+    tierOf, analyze, saved, save, forget, fromHash, setHash, clearHash
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -40,12 +40,16 @@ def solution(p):
 
 SINGLES = {"naked_single","hidden_single"}
 
-def tier_of(uniq, adv):
+def tier_of(uniq, adv, mst=()):
     """The four the trainer offers, named for what the puzzle asks of you rather
     than for how it feels: easy needs nothing but singles, normal adds the
     interactions and subsets, and the two hard tiers are separated by how many
-    of the advanced patterns you have to find. Mirrored in JS by tierOf() —
-    change one and change the other."""
+    of the advanced patterns you have to find. A fifth answer, master, for a
+    puzzle that needs the tier above — which this engine has no detectors for,
+    so the branch never fires here; it is kept so the rule reads the same in
+    both places. Mirrored in JS by SudokuImport.tierOf() in assets/js/import.js
+    — change one and change the other."""
+    if mst: return "master"
     if len(adv) >= 2: return "extra"
     if len(adv) == 1: return "challenging"
     if any(x not in SINGLES for x in uniq): return "normal"

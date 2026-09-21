@@ -222,6 +222,22 @@
     </div>
   </details>
 
+  <!-- Make. The bank is thirty-two puzzles and a drill is cut from the same
+       ones, so past a point every board is one you have seen. This makes a new
+       one to order — press the patterns it must need, or none for one at the
+       difficulty below — in a worker, so the board stays live while it looks.
+       See assets/js/gen.js. -->
+  <details class="coach" id="maker">
+    <summary class="coachhead"><h2>Make a puzzle</h2></summary>
+    <p class="note" id="kNote">A fresh puzzle, made here, that needs every pattern you press &mdash; and whatever else the way to the answer turns out to need. Press none for one at the difficulty below.</p>
+    <div class="chips" id="needs"></div>
+    <div class="coachrow">
+      <button class="tbtn" id="bMake">Make one</button>
+      <button class="tbtn" id="bMakeLink" hidden title="A made puzzle lives only here and in the link">Copy link</button>
+    </div>
+    <p class="note" id="kResult" role="status" aria-live="polite"></p>
+  </details>
+
   <section class="coach">
     <div class="coachhead"><h2>Puzzle</h2></div>
     <div class="coachrow">
@@ -258,6 +274,7 @@
 <script src="assets/js/master.js"></script>
 <script src="assets/js/bank.js"></script>
 <script src="assets/js/import.js"></script>
+<script src="assets/js/gen.js"></script>
 <script src="assets/js/trainer.js"></script>
 <script src="assets/js/pwa.js" defer></script>
 </body>

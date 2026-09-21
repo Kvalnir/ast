@@ -33,8 +33,8 @@ only at the end, so a killed run leaves `bank.json` intact.
 
 - **Technique names**: `SudokuTech.NAME` and `SudokuMaster.NAME` in the JS; `build.py`,
   `cheatsheet.py`, `master_data.py` on the Python side. A rename is one edit per side.
-- **Difficulty tiers**: `tier_of()` in `tools/bank.py` and `tierOf()` in `assets/js/trainer.js`
-  are the same rule twice. Change both.
+- **Difficulty tiers**: `tier_of()` in `tools/bank.py` and `tierOf()` in `assets/js/import.js`
+  are the same rule twice. Change both. (The trainer and the maker's worker both read the JS one.)
 - **Connector colours**: `lines()` in `tools/mini.py` and `lineColours()` in `assets/js/core.js`.
 - **Icon geometry**: `tools/icons.py` and `assets/icons/icon.svg`.
 - **Prose for the master tier**: `tools/master_data.py`, shared by three pages.

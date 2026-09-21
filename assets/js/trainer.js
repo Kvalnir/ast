@@ -57,19 +57,13 @@
                   'xwing', 'skyscraper', 'swordfish', 'xy_wing'];
 
   /* The four difficulties, named for what a puzzle asks of you rather than for
-     how it feels. Mirrors tier_of() in tools/bank.py, which is what stocks the
-     bank — change one and change the other, or the selector starts handing out
-     puzzles that do not match their label. Derived rather than read off the
-     entry so that an imported puzzle is tiered by the same rule. */
-  const SINGLES = ['naked_single', 'hidden_single'];
-  const TIERS = ['easy', 'normal', 'challenging', 'extra'];
-  const TIER_LABEL = { easy: 'Easy', normal: 'Normal', challenging: 'Challenging', extra: 'Extra' };
-  function tierOf(p) {
-    const adv = p.adv || [];
-    if (adv.length >= 2) return 'extra';
-    if (adv.length === 1) return 'challenging';
-    return (p.t || []).some(x => !SINGLES.includes(x)) ? 'normal' : 'easy';
-  }
+     how it feels — and a fifth label for a made puzzle that needs the tier
+     above, which the selector does not offer because the bank has none. The
+     rule itself is SudokuImport.tierOf, shared with the maker's worker, and
+     mirrors tier_of() in tools/bank.py. */
+  const tierOf = I.tierOf;
+  const TIER_LABEL = { easy: 'Easy', normal: 'Normal', challenging: 'Challenging', extra: 'Extra',
+                       master: 'Master' };
 
   /* What each technique *is*, independent of the position on the board. The
      coach's `why` explains this instance; this explains the idea. Kept to one
@@ -934,6 +928,7 @@
     S.tally = v.tally && typeof v.tally.hints === 'number' ? v.tally : { hints: 0, applied: 0 };
     recompute();
     if (v.puzzle.imported) { I.setHash(v.puzzle.p); importPanel('after'); }
+    else if (v.puzzle.generated) I.setHash(v.puzzle.p);
     flash('Back where you left off.');
   }
 
@@ -971,6 +966,120 @@
     do { p = pool[Math.floor(Math.random() * pool.length)]; guard++; }
     while (S.puzzle && p.p === S.puzzle.p && guard < 20);
     load(p);
+  }
+
+  /* ---------------- make a puzzle ----------------
+     A fresh puzzle that needs the patterns you pick — every one of them, and
+     whatever else the walk to the answer turns up — or, with none picked, one
+     at the selected difficulty. The making is assets/js/gen.js, run in a
+     worker so the board stays live while it looks; this end owns the chips,
+     the button and the status line.
+
+     The chips are the four advanced patterns and, on the Master tier, its
+     nine. Flipping the switch to Advanced drops any master pattern that was
+     pressed rather than keeping it as an invisible demand.
+
+     One worker per search, made when the button is pressed and terminated
+     when it answers or is stopped — a worker mid-search has no way to be
+     interrupted except that, and a fresh one is a few milliseconds of
+     importScripts from the cache. Where a worker cannot be made (file://,
+     or a browser without them) the same search runs on the page in slices,
+     which is slower to the eye but ends at the same puzzle. */
+  const MAKE = { want: new Set(), worker: null, timer: null, tries: 0 };
+  const makeIds = () => ADVANCED.concat(onMaster() ? MASTER : []);
+  const makeSay = (msg, kind) => {
+    const el = $('kResult');
+    el.innerHTML = msg;
+    el.className = 'note' + (kind ? ' ' + kind : '');
+  };
+  function fillNeeds() {
+    const el = $('needs');
+    el.innerHTML = '';
+    makeIds().forEach(id => el.appendChild(makeChip(id, {
+      pressed: MAKE.want.has(id),
+      onClick: () => { if (MAKE.want.has(id)) MAKE.want.delete(id); else MAKE.want.add(id); fillNeeds(); }
+    })));
+    const n = MAKE.want.size;
+    $('bMake').textContent = MAKE.worker || MAKE.timer ? 'Stop'
+      : n ? 'Make one that needs ' + (n === 1 ? 'it' : 'all ' + n) : 'Make one at this difficulty';
+    $('bMake').setAttribute('aria-pressed', !!(MAKE.worker || MAKE.timer));
+  }
+  function makeSpec() {
+    return { want: makeIds().filter(id => MAKE.want.has(id)), tier: S.tier, cap: 4000, every: 25 };
+  }
+  function makeProgress(n) {
+    MAKE.tries = n;
+    makeSay('Looking\u2026 ' + n.toLocaleString() + ' tried.');
+  }
+  function makeStop(quiet) {
+    if (MAKE.worker) { MAKE.worker.terminate(); MAKE.worker = null; }
+    if (MAKE.timer) { clearTimeout(MAKE.timer); MAKE.timer = null; }
+    if (!quiet) makeSay('Stopped after ' + MAKE.tries.toLocaleString() + ' tried.');
+    fillNeeds();
+  }
+  function makeLand(puzzle, tries, ms) {
+    makeStop(true);
+    if (S.quiz) stopQuiz();
+    endCapture();
+    importPanel('start');
+    load(puzzle);
+    I.setHash(puzzle.p);
+    const hard = puzzle.adv.concat(puzzle.mst || []);
+    makeSay('Made in ' + tries.toLocaleString() + (tries === 1 ? ' try' : ' tries') +
+      (ms ? ' and ' + (ms < 1000 ? ms + ' ms' : (ms / 1000).toFixed(1) + ' s') : '') + ': ' +
+      puzzle.givens + ' givens, ' +
+      (hard.length ? 'needs <b>' + hard.map(x => NAMES[x] || x).join(' + ') + '</b>' :
+        TIER_LABEL[tierOf(puzzle)].toLowerCase() + ', nothing advanced') +
+      '. It is in the link, if you want it back.', 'good');
+    flash('A fresh puzzle, made for this' + (hard.length ? ': ' + hard.map(x => NAMES[x] || x).join(' + ') +
+      ' somewhere on the way. Hunt them before you press for hints.' : '.'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function makeFail(tries) {
+    makeStop(true);
+    makeSay('Nothing in ' + tries.toLocaleString() + ' tries. That set is rare together \u2014 ' +
+      'ask for fewer at once, or press again.', 'warn');
+  }
+  /* Without a worker: the same search, a slice at a time, the page breathing
+     between slices. */
+  function makeInline(spec) {
+    const G = window.SudokuGen;
+    if (!G) { makeSay('The maker did not load.', 'warn'); return; }
+    const t0 = Date.now();
+    let n = 0;
+    const slice = () => {
+      MAKE.timer = null;
+      for (let k = 0; k < spec.every; k++) {
+        const puzzle = G.attempt(spec);
+        n++;
+        if (puzzle) { makeLand(puzzle, n, Date.now() - t0); return; }
+        if (n >= spec.cap) { makeFail(n); return; }
+      }
+      makeProgress(n);
+      MAKE.timer = setTimeout(slice, 0);
+    };
+    MAKE.timer = setTimeout(slice, 0);
+  }
+  function makeStart() {
+    if (MAKE.worker || MAKE.timer) { makeStop(); return; }
+    const spec = makeSpec();
+    MAKE.tries = 0;
+    makeSay('Looking\u2026');
+    let w = null;
+    try { if (typeof Worker === 'function') w = new Worker('assets/js/gen.js'); } catch (e) { w = null; }
+    if (!w) { fillNeeds(); makeInline(spec); return; }
+    MAKE.worker = w;
+    w.onmessage = e => {
+      const m = e.data || {};
+      if (m.type === 'progress') makeProgress(m.tries);
+      else if (m.type === 'done') makeLand(m.puzzle, m.tries, m.ms);
+      else if (m.type === 'fail') makeFail(m.tries);
+    };
+    /* A worker that cannot start — a script it could not fetch, usually —
+       says so once, and the page does the work instead. */
+    w.onerror = () => { makeStop(true); makeInline(spec); };
+    w.postMessage(spec);
+    fillNeeds();
   }
 
   /* ---------------- render ---------------- */
@@ -1129,7 +1238,12 @@
        Erase and the pen pad stay: those are the transcription controls. The
        marking pad goes with the rest — there are no notes to mark yet. */
     ['bAutofill', 'bAutoclear', 'bHi', 'bOff', 'bErase', 'bMore', 'bCheckNotes', 'bNew',
-     'bRestart', 'bCatchUp', 'bCopyLink', 'bClearBase', 'bQuiz'].forEach(id => { $(id).disabled = S.capture; });
+     'bRestart', 'bCatchUp', 'bCopyLink', 'bClearBase', 'bQuiz', 'bMake', 'bMakeLink']
+      .forEach(id => { $(id).disabled = S.capture; });
+    [...$('needs').querySelectorAll('.chip')].forEach(b => { b.disabled = S.capture; });
+    /* A made puzzle lives nowhere but this board and the URL, so the link is
+       offered beside the button that made it, for as long as it is up. */
+    $('bMakeLink').hidden = !(S.puzzle && S.puzzle.generated);
     $('bQuiz').textContent = S.quiz && !S.quiz.done ? 'Stop naming' : 'Name it — ten in a row';
     $('bQuiz').setAttribute('aria-pressed', !!(S.quiz && !S.quiz.done));
     [...padMark.children].forEach(b => { b.disabled = S.capture; });
@@ -1143,8 +1257,9 @@
     } else if (S.puzzle) {
       $('mLevel').textContent = TIER_LABEL[tierOf(S.puzzle)] || 'Imported';
       $('mGivens').textContent = S.puzzle.givens + ' givens';
-      $('mNeeds').textContent = S.puzzle.adv.length
-        ? 'needs ' + S.puzzle.adv.map(x => NAMES[x]).join(' + ')
+      const hard = S.puzzle.adv.concat(S.puzzle.mst || []);
+      $('mNeeds').textContent = hard.length
+        ? 'needs ' + hard.map(x => NAMES[x] || x).join(' + ')
         : 'subsets only';
     }
     $('boardwrap').classList.toggle('inspecting', S.inspect);
@@ -1471,7 +1586,7 @@
   function check(text, seed) {
     iSay('Checking the grid… if something is off, working out where takes a second or two.');
     setTimeout(() => {
-      const res = I.analyze(text, NAMES);
+      const res = I.analyze(text, NAMES, onMaster() ? M : null);
       if (res.ok) acceptImport(res);
       else if (res.code === 'length' || res.code === 'empty') iSay(res.message, 'warn');
       else refuse(res, seed);
@@ -1579,8 +1694,9 @@
       b.className = 'chip' + (p.adv && p.adv.length ? ' adv' : '');
       b.type = 'button';
       b.textContent = label;
+      const hard = (p.adv || []).concat(p.mst || []);
       b.title = 'Load this imported puzzle' +
-        (p.adv && p.adv.length ? ' — needs ' + p.adv.map(x => NAMES[x]).join(' + ') : '');
+        (hard.length ? ' — needs ' + hard.map(x => NAMES[x] || x).join(' + ') : '');
       b.addEventListener('click', () => {
         endCapture();
         load(p);
@@ -1600,12 +1716,14 @@
     });
   }
 
-  function copyLink() {
+  /* `say` is where the answer goes: the importer's line or the maker's,
+     whichever panel the button was pressed in. */
+  function copyLink(say) {
     const url = window.location.href;
-    const ok = () => iSay('Link copied. It carries the puzzle itself, so it opens the same ' +
-                          'board on any device.', 'good');
-    const no = () => iSay('No clipboard available here — the link is in the address bar, and ' +
-                          'it carries the puzzle: ' + url);
+    const ok = () => say('Link copied. It carries the puzzle itself, so it opens the same ' +
+                         'board on any device.', 'good');
+    const no = () => say('No clipboard available here — the link is in the address bar, and ' +
+                         'it carries the puzzle: ' + url);
     try {
       if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, no);
       else no();
@@ -1676,7 +1794,10 @@
   $('bCapClear').addEventListener('click', () => { startCapture(null); iSay(''); });
   $('bCapCancel').addEventListener('click', cancelCapture);
   $('bCatchUp').addEventListener('click', catchUp);
-  $('bCopyLink').addEventListener('click', copyLink);
+  $('bCopyLink').addEventListener('click', () => copyLink(iSay));
+  $('bMake').addEventListener('click', makeStart);
+  $('bMakeLink').addEventListener('click', () => copyLink(makeSay));
+  fillNeeds();
   /* Out of the import and back to the bank. An import takes the board over —
      hash, meta line, panel — and until now the only way off it was the New
      puzzle button three sections down, which is not where you are looking.
@@ -1697,6 +1818,8 @@
      has to be rebuilt here. */
   if (TIER) TIER.onChange(() => {
     fillDrills();
+    if (!onMaster()) MASTER.forEach(id => MAKE.want.delete(id));
+    fillNeeds();
     S.quiz = null;
     S.pick = null; S.level = 0;
     recompute();
@@ -1790,7 +1913,7 @@
      trainer empty. With no link, the saved position, and only then a fresh
      deal. */
   const linked = I.fromHash();
-  const first = linked ? I.analyze(linked, NAMES) : null;
+  const first = linked ? I.analyze(linked, NAMES, onMaster() ? M : null) : null;
   const kept = savedPosition();
   if (first && first.ok && !(kept && kept.puzzle.p === first.puzzle.p)) acceptImport(first);
   else if (kept) resume(kept);

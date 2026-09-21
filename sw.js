@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v44';  // v44: two-mark seek on the trainer, ten drill positions per technique
+const VERSION = 'v45';  // v45: make a puzzle to order on the trainer; faster solver and walk
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between
@@ -42,6 +42,7 @@ const PRECACHE = [
   './assets/js/tier.js',
   './assets/js/bank.js',
   './assets/js/import.js',
+  './assets/js/gen.js',
   './assets/js/trainer.js',
   './assets/js/check.js',
   './assets/js/pwa.js',

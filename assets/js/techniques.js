@@ -973,5 +973,28 @@
     return { findings: all, candidates: cand };
   }
 
-  root.SudokuTech = { findAll, effective, verify, audit, NAME };
+  /* The cheapest move alone. The walks — the importer's, which the drill
+     builder, catch-up and the maker all play a few hundred steps at a time —
+     only ever read findAll(...).findings[0], and most of those steps are a
+     single. So: the same detectors in the same rank order, stopping at the
+     first rank that yields anything, and the best of that rank by
+     eliminations, which is exactly what heads findAll's list. Nothing here is
+     a detector, so nothing here can drift from the coach. */
+  function cheapest(grid, notes) {
+    const cand = effective(grid, notes);
+    const ranks = [
+      () => nakedSingles(grid, cand), () => hiddenSingles(grid, cand), () => locked(grid, cand),
+      () => nakedSubset(grid, cand, 2), () => hiddenSubset(grid, cand, 2), () => nakedSubset(grid, cand, 3),
+      () => fish(grid, cand, 2), () => skyscraper(grid, cand), () => fish(grid, cand, 3), () => xyWing(grid, cand)
+    ];
+    for (const at of ranks) {
+      const found = at();
+      if (!found.length) continue;
+      found.sort((a, b) => a.rank - b.rank || b.elims.length - a.elims.length);
+      return found[0];
+    }
+    return null;
+  }
+
+  root.SudokuTech = { findAll, cheapest, effective, verify, audit, NAME };
 })(typeof window !== 'undefined' ? window : globalThis);
