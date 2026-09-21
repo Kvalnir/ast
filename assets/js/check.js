@@ -247,6 +247,21 @@
     el.className = 'note flash' + (kind ? ' ' + kind : '');
   }
 
+  /* A press on the page at large lets the selection go — the trainer's rule,
+     and the same line: everything that reads or acts on selected squares lives
+     in one of the two columns, so a press inside either keeps what you
+     gathered. Anywhere else — the masthead, the standfirst, the margins either
+     side, the space below — there is nothing a selection could be for.
+     pointerdown rather than click, so the squares let go the moment you touch
+     down, the same event that picks a square in the first place. */
+  document.addEventListener('pointerdown', e => {
+    const t = e.target;
+    if (t && t.closest && t.closest('.tplay, .tside')) return;
+    if (!S.sel.length) return;
+    S.sel = [];
+    render();
+  });
+
   /* ---------------- keyboard ---------------- */
   const isTyping = el => !!el && (el.isContentEditable || el.tagName === 'TEXTAREA' ||
     (el.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|range)$/i.test(el.type)));
@@ -416,7 +431,15 @@
   /* ---------------- buttons ---------------- */
   $('bUndo').addEventListener('click', undo);
   $('bErase').addEventListener('click', () => { S.erase = !S.erase; render(); });
-  $('bMulti').addEventListener('click', () => { S.multi = !S.multi; render(); });
+  /* Turning multi off drops the selection, as on the trainer. The squares you
+     gathered were gathered for a reason, and the next tap in single mode would
+     replace the lot of them anyway — leaving them selected only makes the
+     first tap after the switch behave differently from every tap after that. */
+  $('bMulti').addEventListener('click', () => {
+    S.multi = !S.multi;
+    if (!S.multi) S.sel = [];
+    render();
+  });
   $('bClear').addEventListener('click', clearCells);
   $('bWipe').addEventListener('click', clearBoard);
   $('bDemo').addEventListener('click', () => {

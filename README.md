@@ -466,6 +466,11 @@ refusal. Mark everything and the answer becomes as definite as the trainer's.
 **No pen, no solver, no hints.** A digit placed in a square is a fact about the puzzle, and this
 board is about candidates only: the pattern lives in the marks.
 
+**Selecting works as it does on the trainer**, and so does letting go: tap the one selected square
+again, press <kbd>Esc</kbd>, switch **multi** off, or press anywhere off the two columns. A press
+inside the board, the pad and tools, or the panels down the right keeps the selection, because
+everything there acts on it.
+
 ## The master tier
 
 **Nine more techniques, and really one idea.** Seven of the nine are the *strong link* — a unit
