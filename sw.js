@@ -9,7 +9,7 @@
  * they clear storage. There is no build step to do this automatically —
  * changing it is part of editing the site.
  */
-const VERSION = 'v46';  // v46: the check board lets a selection go the way the trainer does
+const VERSION = 'v47';  // v47: a visual pass — lists, links, the bar at tablet widths, panel spacing
 
 // Every cache name is prefixed, and the sweep below only ever touches names
 // carrying this prefix. That is not tidiness, it is the difference between

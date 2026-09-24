@@ -59,7 +59,7 @@ body{
 
 /* ---------- hero ---------- */
 .hero{padding:56px 0 28px;position:relative}
-.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin:0 0 18px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin:0 0 18px;text-wrap:balance}
 h1{
   font-family:var(--disp);font-weight:800;font-size:clamp(36px,10vw,60px);
   line-height:.98;letter-spacing:-.02em;margin:0 0 18px;color:#F4F8F5;
@@ -254,14 +254,23 @@ h3.sub{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transfor
   display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;
   text-transform:uppercase;color:var(--amber);margin-bottom:6px
 }
+/* The number hangs in the padding rather than being a flex item beside the
+   text. As a flex row, every <b> or <a> in an item became a flex item of its
+   own, so "Run the <a>Advanced order</a> to its end" set as three columns
+   with 14px gutters. */
 .order{list-style:none;padding:0;margin:0 0 18px;counter-reset:o}
 .order li{
-  counter-increment:o;display:flex;gap:14px;padding:11px 0;border-bottom:1px solid #1D2B33;font-size:15px
+  counter-increment:o;position:relative;padding:11px 0 11px 40px;border-bottom:1px solid #1D2B33;font-size:15px
 }
 .order li::before{
-  content:counter(o,decimal-leading-zero);font-family:var(--mono);font-size:12px;color:var(--amber);flex:0 0 26px;padding-top:3px
+  content:counter(o,decimal-leading-zero);font-family:var(--mono);font-size:12px;color:var(--amber);
+  position:absolute;left:0;top:14px
 }
 footer{margin-top:44px;padding-top:20px;border-top:1px solid #1D2B33;color:var(--mist);font-size:13px}
+/* Prose links on the two lesson pages, underlined like the hero's inline-amber
+   ones. The master page's body and footer links had no rule at all and came
+   out in the browser's own blue on a near-black page. */
+.wrap .block a,.wrap footer a{color:var(--amber)}
 @media (prefers-reduced-motion:no-preference){
   .geo line{stroke-dasharray:12;stroke-dashoffset:12;animation:draw .7s ease forwards}
   .geo line.cross{animation:none;stroke-dashoffset:0}
@@ -761,6 +770,17 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
    rewriting the paragraph cannot move them. See trainer.html. */
 .coachrow.lead{margin:0 0 12px}
 .note{font-size:13px;color:var(--mist);margin:10px 0 0}
+/* A row of chips or buttons under a note sat flush against its last line: the
+   note has no bottom margin and the rows have no top one. Two panels patched
+   this with inline styles and three did not. */
+.note + .chips,.note + .coachrow{margin-top:10px}
+/* The result lines and the saved list are empty until something happens, and
+   their margins still stood there, deepening the foot of Import and Make. Not
+   display:none — #kResult is a live region, and one that leaves the
+   accessibility tree is not announced when it is filled. Panels only: the
+   check page's flash line is a .note too, and it holds its space empty on
+   purpose so the column does not jump when a message arrives. */
+.coach .note:empty,.coach .chips:empty{margin:0}
 /* Panel prose links, which until the check page existed there were none of. */
 .coach .note a,.report a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(240,180,41,.35)}
 .coach .note a:hover,.report a:hover{border-bottom-color:var(--amber)}
@@ -768,11 +788,14 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
 .note.good{color:#8FD48A}
 
 .setrow{display:flex;flex-wrap:wrap;gap:14px;margin:14px 0 0;padding-top:12px;border-top:1px solid #1D2B33}
-.setrow label{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--mist);cursor:pointer}
+/* Wraps so that a select wider than the panel drops under its label rather
+   than out of the panel: "Challenging - one advanced pattern" ran past the
+   padding on a 390px phone and gave a 320px one a horizontal scroll. */
+.setrow label{display:flex;flex-wrap:wrap;align-items:center;gap:6px 7px;font-size:13px;color:var(--mist);cursor:pointer;max-width:100%}
 .setrow input{accent-color:var(--amber);width:15px;height:15px}
 .setrow select{
   font-family:var(--mono);font-size:12px;background:var(--panel2);color:var(--text);
-  border:1px solid #2A3D45;border-radius:2px;padding:5px 7px;
+  border:1px solid #2A3D45;border-radius:2px;padding:5px 7px;max-width:100%;
 }
 /* Panels that come and go — the import section swaps between three sets of
    controls. `hidden` needs the !important because .coachrow and .chips set
@@ -949,8 +972,10 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
 .cribhead{padding:34px 0 24px}
 .cribhead h1{font-size:clamp(30px,8vw,48px)}
 .cribhead .lede{margin-bottom:20px}
-.cribhead .lede a,.crib footer a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(240,180,41,.35)}
-.cribhead .lede a:hover,.crib footer a:hover{border-bottom-color:var(--amber)}
+/* The master crib's loop and diagnosis prose carry links the Advanced one does
+   not, and with no rule here they came out in the browser's own blue. */
+.cribhead .lede a,.crib footer a,.cribblock p a,.cribblock li a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(240,180,41,.35)}
+.cribhead .lede a:hover,.crib footer a:hover,.cribblock p a:hover,.cribblock li a:hover{border-bottom-color:var(--amber)}
 /* Four rows of legend in one column is a lot of vertical space on a wide
    screen, and this page is meant to be taken in at a glance. */
 @media (min-width:760px){.cribleg{grid-template-columns:1fr 1fr}}
@@ -959,10 +984,16 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
 
 /* auto-fill rather than auto-fit: with eight cards a fit grid stretches the
    last row's card across the whole width, which reads as a different kind of
-   thing rather than as the ninth of nine. */
+   thing rather than as the ninth of nine.
+
+   The hairlines between cards are each card's 1px shadow filling the 1px gap,
+   not the container showing through it. Nine cards leave the last row short
+   in two columns (a tablet, and every wide screen on the master tier), and a
+   container painted in the rule colour showed through the empty slot as a
+   lighter block. A panel-coloured container shows it as more panel. */
 .cards{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(384px,1fr));
-  gap:1px;background:#1D2B33;border:1px solid #1D2B33;border-radius:2px;overflow:hidden;
+  gap:1px;background:var(--panel);border:1px solid #1D2B33;border-radius:2px;overflow:hidden;
 }
 /* Grid areas rather than a row of two columns, because the three parts have to
    re-order for one column: the figure keeps its own column here, spanning the
@@ -970,7 +1001,7 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
    The trigger list at the foot of the page links to these, and the site bar is
    sticky — without the offset a jump lands the card's eyebrow under the bar. */
 .card{
-  background:var(--panel);padding:16px;
+  background:var(--panel);padding:16px;box-shadow:0 0 0 1px #1D2B33;
   display:grid;grid-template-columns:auto minmax(0,1fr);
   grid-template-areas:"fig head" "fig body";
   gap:0 14px;align-content:start;
@@ -1218,7 +1249,9 @@ details.coach > summary.coachhead:focus-visible{outline:2px solid var(--amber);o
 /* Two columns rather than three. These cards carry a `Because` the Advanced
    ones do not, and three narrow columns of an argument is a column of two-word
    lines. */
-body[data-tier="master"] .cards{grid-template-columns:repeat(auto-fill,minmax(520px,1fr))}
+/* min() because this rule outranks the one-column rule for phones, so a bare
+   520px floor made a 520px card on a 390px screen, clipped by .cards. */
+body[data-tier="master"] .cards{grid-template-columns:repeat(auto-fill,minmax(min(520px,100%),1fr))}
 .mcard .figcap{font-family:var(--sans);font-size:11.5px;line-height:1.4;max-width:calc(9 * var(--gcell));text-align:left}
 .mcard .figcap b{color:#F4F8F5}
 .mcard .kv dd{margin-bottom:8px}
@@ -1294,6 +1327,17 @@ body[data-tier="master"] .cards{grid-template-columns:repeat(auto-fill,minmax(52
   .sitebar{gap:10px}
   .sitebar nav{gap:1px}
   .sitebar nav a{padding:4px 6px;font-size:11.5px;letter-spacing:0}
+}
+/* Between the phone strip below and the width where the full name fits, the
+   bar wrapped instead: two rows on the lesson pages from 557px to 716px, and
+   three on the trainer and the check page from 481px all the way to 1039px,
+   because their one-column shell is 560px at every width in between, which
+   covers every tablet. The acronym buys back 180px and the bar fits on one
+   line with room to spare. The 480px media query above is still the fallback
+   for a browser without container queries. */
+@container (max-width:680px){
+  .sitebar .mark-long{display:none}
+  .sitebar .mark-short{display:inline}
 }
 /* A phone cannot hold a wordmark, a tier switch and five destinations on one
    line at any size worth reading, and a wrapped sticky bar costs the board
@@ -1424,7 +1468,17 @@ body[data-tier="master"] .sitebar .mark em{color:#C6A9F0}
    claim about every square at once and has nothing to recognise. */
 .galnone{display:block;max-width:60ch;color:var(--mist);font-size:13.5px;line-height:1.6}
 .galnone p{margin:0}
-.galnone a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(240,180,41,.35)}
+/* Beside its intro, the prose stands where the nine figures stand in every
+   other section, so it takes their width: three of (nine cells plus the 4px of
+   mini border and 2px of button border) and two 16px gaps. The section is
+   centred as a block, and a narrower second column pulled this one intro 79px
+   in from the eight above and below it. The measure stays on the paragraphs. */
+@media (min-width:1001px){
+  .galnone{width:calc(27 * var(--gcell) + 50px);max-width:none}
+  .galnone p{max-width:60ch}
+}
+.galnone a,.galhero .lede a,.gal footer a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(240,180,41,.35)}
+.galnone a:hover,.galhero .lede a:hover,.gal footer a:hover{border-bottom-color:var(--amber)}
 
 @media (max-width:1000px){
   .galsec{grid-template-columns:minmax(0,1fr)}
